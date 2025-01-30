@@ -1,0 +1,13 @@
+{
+    "los" : 1,
+    "num_clusters" : 2,
+    "scale_delays" : true,
+
+    "powers" : [    -0.394,
+                    -10.618,
+                    -23.373],
+
+    "delays" : [    0.0,
+                    0.0,
+                    14.8124]
+}
