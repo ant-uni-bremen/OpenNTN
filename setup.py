@@ -31,9 +31,9 @@ setup(
         "Intended Audience :: Science/Research",
         "Operating System :: OS Independent",
     ],
-    #cmdclass={
-    #    "install": CustomInstallCommand,
-    #},
+    cmdclass={
+        "install": CustomInstallCommand,
+    },
     
     include_package_data=True,
 )
