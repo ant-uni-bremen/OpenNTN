@@ -3,7 +3,7 @@ This git provides an implementation of the channel models for dense urban, urban
 
 ## Installation
 
-1. Install Sionna
+1. Install Sionna <br>
   <code>pip install sionna</code> <br>
 For more information on the different installation options we refer the reader to the [sionna documentation](https://nvlabs.github.io/sionna/installation.html).
 2. Download the install.sh file
