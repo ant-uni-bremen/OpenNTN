@@ -1,16 +1,4 @@
 from setuptools import setup, find_packages
-from setuptools.command.install import install
-
-import subprocess
-import sys
-import os
-
-class CustomInstallCommand(install):
-    """Custom installation to modify framework files."""
-    def run(self):
-        install.run(self)  # Run the default install
-        script_path = os.path.join(os.path.dirname(__file__), "install.py")
-        subprocess.run([sys.executable, script_path])
 
 setup(
     name="OpenNTN",  # Change this to your package name
@@ -31,9 +19,6 @@ setup(
         "Intended Audience :: Science/Research",
         "Operating System :: OS Independent",
     ],
-    cmdclass={
-        "install": CustomInstallCommand,
-    },
     
     include_package_data=True,
 )
