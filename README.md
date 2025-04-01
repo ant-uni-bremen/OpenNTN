@@ -1,10 +1,19 @@
+# PLEASE NOTE!
+
+Sionna has very recently published the 1.0 and **OpenNTN has not yet been adapted for Sionna 1.0+**! <br>
+We appreciate the ongoing development of Sionna to continously create an even better tool and are exited about all of the new features and future developments. Thus we will do our best to adapt OpenNTN for Sionna 1.0+ as soon as possible! However, for now we kindly ask all user of OpenNTN to stick to the **legacy version Sionna 0.19.2 for now**. You can still find the [documentation of the legacy version of Sionna here](https://jhoydis.github.io/sionna-0.19.2-doc/), including an [installation guide here](https://jhoydis.github.io/sionna-0.19.2-doc/installation.html). <br>
+
+We thank all users of OpenNTN for their patience and wish you continued success with your ongoing projects!
+
 # OpenNTN: An Open-Source Framework for Non-Terrestrial Network Channel Simulations
 This git provides an implementation of the channel models for dense urban, urban, and suburban scenarios according to the 3GPP TR38.811 standard. It is an extension to the existing Sionna™ framework and integrates into it as another module.
 
 ## Installation
 
+As of very recently, Sionna has released version 1.0. This installation uses the legacy version 0.19.<br>
+
 1. Install Sionna <br>
-  <code>pip install sionna</code> <br>
+  <code>pip install sionna==0.19</code> <br>
 For more information on the different installation options we refer the reader to the [sionna documentation](https://nvlabs.github.io/sionna/installation.html).
 2. Download the install.sh file found in this git 
 3. Execute the install.sh file <br>
