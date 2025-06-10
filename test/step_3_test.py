@@ -87,7 +87,7 @@ class Test_Urb(unittest.TestCase):
                  batch_size = self.batch_size,
                  num_ut= self.num_ut)
 
-   
+    # Test for Urban downlink with 20 degrees elevation
     def test_s_band_20_degrees_dl(self):
         run_test(channel_model_class=DenseUrban,
                  direction="downlink",
@@ -194,7 +194,7 @@ class Test_SubUrban(unittest.TestCase):
                  scenario='sur',
                  batch_size = self.batch_size,
                  num_ut= self.num_ut)
-        
+    # Test for SubUrban downlink with 70 degrees elevation    
     def test_s_band_70_degrees_dl(self):
         run_test(channel_model_class=SubUrban,
                  direction="downlink",
@@ -207,7 +207,7 @@ class Test_SubUrban(unittest.TestCase):
                  batch_size = self.batch_size,
                  num_ut= self.num_ut)
 
-    # Test for SubUrban downlink with 50 degrees elevation
+    # Test for SubUrban downlink with 80 degrees elevation
     def test_s_band_80_degrees_dl(self):
         run_test(channel_model_class=SubUrban,
                  direction="downlink",
@@ -220,7 +220,7 @@ class Test_SubUrban(unittest.TestCase):
                  batch_size = self.batch_size,
                  num_ut= self.num_ut)
 
-    # Test for SubUrban downlink with 60 degrees elevation
+    # Test for SubUrban downlink with 90 degrees elevation
     def test_s_band_90_degrees_dl(self):
         run_test(channel_model_class=SubUrban,
                  direction="downlink",
@@ -233,7 +233,7 @@ class Test_SubUrban(unittest.TestCase):
                  batch_size = 1000,
                  num_ut= 200)
         
-    # Test for Ka-band downlink with 20 degrees elevation
+    # Test for Ka-band downlink with 10 degrees elevation
     def test_ka_band_10_degrees_dl(self):
         run_test(channel_model_class=SubUrban,
                  direction="downlink",
@@ -311,7 +311,7 @@ class Test_SubUrban(unittest.TestCase):
                  batch_size = self.batch_size,
                  num_ut= self.num_ut)
         
-    # Test for Ka-band downlink with 40 degrees elevation
+    # Test for Ka-band downlink with 70 degrees elevation
     def test_ka_band_70_degrees_dl(self):
         run_test(channel_model_class=SubUrban,
                  direction="downlink",
@@ -324,7 +324,7 @@ class Test_SubUrban(unittest.TestCase):
                  batch_size = self.batch_size,
                  num_ut= self.num_ut)
 
-    # Test for Ka-band downlink with 50 degrees elevation
+    # Test for Ka-band downlink with 80 degrees elevation
     def test_ka_band_80_degrees_dl(self):
         run_test(channel_model_class=SubUrban,
                  direction="downlink",
@@ -337,7 +337,7 @@ class Test_SubUrban(unittest.TestCase):
                  batch_size = self.batch_size,
                  num_ut= self.num_ut)
 
-    # Test for Ka-band downlink with 60 degrees elevation
+    # Test for Ka-band downlink with 90 degrees elevation
     def test_ka_band_90_degrees_dl(self):
         run_test(channel_model_class=SubUrban,
                  direction="downlink",
