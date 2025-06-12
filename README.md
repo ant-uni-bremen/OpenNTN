@@ -25,7 +25,7 @@ OpenNTN imlements the models for Non-Terrestrial Networks in the dense urban, ur
 ## Citing OpenNTN
 When you use OpenNTN for research, please cite us as: "An Open Source Channel Emulator for Non-Terrestrial Networks,T. Düe, M. Vakilifard, C. Bockelmann, D. Wübben, A. Dekorsy​, Advanced Satellite Multimedia Systems Conference/Signal Processing for Space Communications Workshop (ASMS/SPSC 2025), Sitges, Spanien, 26. - 28. Februar 2025",\
 or by using the BibTeX:\
-@inproceedings{\
+@inproceedings{OpenNTN,\
   author = {T. D\"{u}e and M. Vakilifard and C. Bockelmann and D. W\"{u}bben and A. Dekorsy​},\
   year = {2025},\
   month = {Feb},\
