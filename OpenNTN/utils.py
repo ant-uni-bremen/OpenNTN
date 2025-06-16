@@ -1013,8 +1013,8 @@ def gen_single_sector_topology( batch_size,
 
     The returned batch of topologies can be used as-is with the
     :meth:`set_topology` method of the system level models, i.e.
-    :class:`~sionna.channel.tr38811.DenseUrban`, :class:`~sionna.channel.tr38811.Urban`,
-    and :class:`~sionna.channel.tr38811.SubUrban`.
+    :class:`~sionna.phy.channel.tr38811.DenseUrban`, :class:`~sionna.phy.channel.tr38811.Urban`,
+    and :class:`~sionna.phy.channel.tr38811.SubUrban`.
 
     Example
     --------
@@ -1218,8 +1218,8 @@ def gen_single_sector_topology_interferers( batch_size,
 
     The returned batch of topologies can be used as-is with the
     :meth:`set_topology` method of the system level models, i.e.
-    :class:`~sionna.channel.tr38811.DenseUrban`, :class:`~sionna.channel.tr38811.Urban`,
-    and :class:`~sionna.channel.tr38811.SubUrban`.
+    :class:`~sionna.phy.channel.tr38811.DenseUrban`, :class:`~sionna.phy.channel.tr38811.Urban`,
+    and :class:`~sionna.phy.channel.tr38811.SubUrban`.
 
     In the returned ``ut_loc``, ``ut_orientations``, ``ut_velocities``, and
     ``in_state`` tensors, the first ``num_ut`` items along the axis with index

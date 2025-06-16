@@ -21,7 +21,7 @@ class DenseUrban(SystemLevelChannel):
 
     Setting up a Dense Urban model requires configuring the network topology, i.e., the
     UTs and BSs locations, UTs velocities, etc. This is achieved using the
-    :meth:`~sionna.channel.tr38811.DenseUrban.set_topology` method. Setting a different
+    :meth:`~sionna.phy.channel.tr38811.DenseUrban.set_topology` method. Setting a different
     topology for each batch example is possible. The batch size used when setting up the network topology
     is used for the link simulations.
 

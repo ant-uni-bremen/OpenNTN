@@ -16,7 +16,7 @@ import tensorflow as tf
 from tensorflow import sin, cos, acos
 
 from sionna import PI, SPEED_OF_LIGHT
-from sionna.channel.tr38811.utils import compute_satellite_speed
+from sionna.phy.channel.tr38811.utils import compute_satellite_speed
 
 class Topology:
     # pylint: disable=line-too-long
