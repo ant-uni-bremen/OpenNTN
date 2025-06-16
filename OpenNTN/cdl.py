@@ -170,9 +170,10 @@ class CDL(ChannelModel):
         then ``max_speed`` takes the same value as ``min_speed``.
         Defaults to `None`.
 
-    dtype : Complex tf.DType
-        Defines the datatype for internal calculations and the output
-        dtype. Defaults to `tf.complex64`.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Input
     -----
@@ -210,12 +211,9 @@ class CDL(ChannelModel):
                     bs_orientation=None,
                     min_speed=0.,
                     max_speed=None,
-                    dtype=tf.complex64):
+                    precision=None):
 
-        assert dtype.is_complex, "dtype must be a complex datatype"
-        self._dtype = dtype
-        real_dtype = dtype.real_dtype
-        self._real_dtype = real_dtype
+        super().__init__(precision=precision)
 
         assert direction in('uplink', 'downlink'), "Invalid link direction"
         self._direction = direction
@@ -223,9 +221,9 @@ class CDL(ChannelModel):
         # If no orientation is defined by the user, set to default values
         # that make sense
         if ut_orientation is None:
-            ut_orientation = tf.constant([PI, 0.0, 0.0], real_dtype)
+            ut_orientation = tf.constant([PI, 0.0, 0.0], self.rdtype)
         if bs_orientation is None:
-            bs_orientation = tf.zeros([3], real_dtype)
+            bs_orientation = tf.zeros([3], self.rdtype)
 
         # Setting which from UT or BS is the transmitter and which is the
         # receiver according to the link direction
@@ -242,15 +240,15 @@ class CDL(ChannelModel):
             self._tx_orientation = ut_orientation
             self._rx_orientation = bs_orientation
 
-        self._carrier_frequency = tf.constant(carrier_frequency, real_dtype)
-        self._delay_spread = tf.constant(delay_spread, real_dtype)
-        self._min_speed = tf.constant(min_speed, real_dtype)
+        self._carrier_frequency = tf.constant(carrier_frequency, self.rdtype)
+        self._delay_spread = tf.constant(delay_spread, self.rdtype)
+        self._min_speed = tf.constant(min_speed, self.rdtype)
         if max_speed is None:
             self._max_speed = self._min_speed
         else:
             assert max_speed >= min_speed, \
                 "min_speed cannot be larger than max_speed"
-            self._max_speed = tf.constant(max_speed, real_dtype)
+            self._max_speed = tf.constant(max_speed, self.rdtype)
 
         # Loading the model parameters
         assert model in ("A", "B", "C", "D"), "Invalid CDL model"
@@ -269,7 +267,7 @@ class CDL(ChannelModel):
                                                          self._tx_array,
                                                          self._rx_array,
                                                          subclustering=False,
-                                                         dtype=dtype)
+                                                         precision=precision)
 
     def __call__(self, batch_size, num_time_steps, sampling_frequency):
 
@@ -278,15 +276,15 @@ class CDL(ChannelModel):
         v_r = tf.random.uniform(shape=[batch_size, 1],
                                 minval=self._min_speed,
                                 maxval=self._max_speed,
-                                dtype=self._real_dtype)
+                                dtype=self.rdtype)
         v_phi = tf.random.uniform(  shape=[batch_size, 1],
                                     minval=0.0,
                                     maxval=2.*PI,
-                                    dtype=self._real_dtype)
+                                    dtype=self.rdtype)
         v_theta = tf.random.uniform(    shape=[batch_size, 1],
                                         minval=0.0,
                                         maxval=PI,
-                                        dtype=self._real_dtype)
+                                        dtype=self.rdtype)
         velocities = tf.stack([ v_r*cos(v_phi)*sin(v_theta),
                                 v_r*sin(v_phi)*sin(v_theta),
                                 v_r*cos(v_theta)], axis=-1)
@@ -295,7 +293,7 @@ class CDL(ChannelModel):
         los_zoa = tf.tile(self._los_zoa, [batch_size, 1, 1])
         los_aod = tf.tile(self._los_aod, [batch_size, 1, 1])
         los_zod = tf.tile(self._los_zod, [batch_size, 1, 1])
-        distance_3d = tf.zeros([batch_size, 1, 1], self._real_dtype)
+        distance_3d = tf.zeros([batch_size, 1, 1], self.rdtype)
         tx_orientation = tf.tile(insert_dims(self._tx_orientation, 2, 0),
                                  [batch_size, 1, 1])
         rx_orientation = tf.tile(insert_dims(self._rx_orientation, 2, 0),
@@ -446,23 +444,23 @@ class CDL(ChannelModel):
         self._num_clusters = tf.constant(params['num_clusters'], tf.int32)
 
         # Loading the rays components, all of shape [num clusters]
-        delays = tf.constant(params['delays'], self._real_dtype)
+        delays = tf.constant(params['delays'], self.rdtype)
         powers = tf.constant(np.power(10.0, np.array(params['powers'])/10.0),
-                                                            self._real_dtype)
+                                                            self.rdtype)
 
         # Normalize powers
         norm_fact = tf.reduce_sum(powers)
         powers = powers / norm_fact
 
         # Loading the angles and angle spreads of arrivals and departure
-        c_aod = tf.constant(params['cASD'], self._real_dtype)
-        aod = tf.constant(params['aod'], self._real_dtype)
-        c_aoa = tf.constant(params['cASA'], self._real_dtype)
-        aoa = tf.constant(params['aoa'], self._real_dtype)
-        c_zod = tf.constant(params['cZSD'], self._real_dtype)
-        zod = tf.constant(params['zod'], self._real_dtype)
-        c_zoa = tf.constant(params['cZSA'], self._real_dtype)
-        zoa = tf.constant(params['zoa'], self._real_dtype)
+        c_aod = tf.constant(params['cASD'], self.rdtype)
+        aod = tf.constant(params['aod'], self.rdtype)
+        c_aoa = tf.constant(params['cASA'], self.rdtype)
+        aoa = tf.constant(params['aoa'], self.rdtype)
+        c_zod = tf.constant(params['cZSD'], self.rdtype)
+        zod = tf.constant(params['zod'], self.rdtype)
+        c_zoa = tf.constant(params['cZSA'], self.rdtype)
+        zoa = tf.constant(params['zoa'], self.rdtype)
 
         # If LoS, compute the model K-factor following 7.7.6 of TR38.901 and
         # the LoS path angles of arrival and departure.
@@ -511,12 +509,12 @@ class CDL(ChannelModel):
         else:
             # For NLoS models, we need to give value to the K-factor and LoS
             # angles, but they will not be used.
-            k_factor = tf.ones((), self._real_dtype)
+            k_factor = tf.ones((), self.rdtype)
 
-            los_aod = tf.zeros((), self._real_dtype)
-            los_aoa = tf.zeros((), self._real_dtype)
-            los_zod = tf.zeros((), self._real_dtype)
-            los_zoa = tf.zeros((), self._real_dtype)
+            los_aod = tf.zeros((), self.rdtype)
+            los_aoa = tf.zeros((), self.rdtype)
+            los_zod = tf.zeros((), self.rdtype)
+            los_zoa = tf.zeros((), self.rdtype)
 
         # Generate clusters rays and convert angles to radian
         aod = self._generate_rays(aod, c_aod) # [num clusters, num rays]
@@ -569,7 +567,7 @@ class CDL(ChannelModel):
         # XPR
         xpr = params['xpr']
         xpr = np.power(10.0, xpr/10.0)
-        xpr = tf.constant(xpr, self._real_dtype)
+        xpr = tf.constant(xpr, self.rdtype)
         xpr = tf.fill([self._num_clusters, CDL.NUM_RAYS], xpr)
         self._xpr = self._reshape_for_cir_computation(xpr)
 
@@ -595,7 +593,6 @@ class CDL(ChannelModel):
 
         # Basis vector of offset angle from table 7.5-3 from specfications
         # TR38.901
-        #TODO adjust for 811
         basis_vector = tf.constant([0.0447, -0.0447,
                                     0.1413, -0.1413,
                                     0.2492, -0.2492,
@@ -605,7 +602,7 @@ class CDL(ChannelModel):
                                     0.8844, -0.8844,
                                     1.1481, -1.1481,
                                     1.5195, -1.5195,
-                                    2.1551, -2.1551], self._real_dtype)
+                                    2.1551, -2.1551], self.rdtype)
 
         # Reshape for broadcasting
         # [1, num rays = 20]
