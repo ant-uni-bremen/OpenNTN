@@ -10,7 +10,7 @@
 import tensorflow as tf
 import warnings
 
-from sionna import PI
+from sionna.phy.constants import PI
 from sionna.phy.utils import expand_to_rank
 import math 
 from sionna.phy.utils import log10
