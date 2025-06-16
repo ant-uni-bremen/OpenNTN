@@ -15,7 +15,6 @@ The process is based on 3GPP TR38.901, with TR38.811 serving mainly as an extens
 import tensorflow as tf
 
 from sionna.phy.utils import log10
-from sionna.phy.utils import matrix_sqrt
 
 class LSP:
     r"""
@@ -291,7 +290,7 @@ class LSPGenerator:
 
         # Compute and store the square root of the cross-LSP correlation
         # matrix
-        self._cross_lsp_correlation_matrix_sqrt = matrix_sqrt(
+        self._cross_lsp_correlation_matrix_sqrt = tf.linalg.cholesky(
                 cross_lsp_corr_mat)
 
     def _compute_lsp_spatial_correlation_sqrt(self):
@@ -391,7 +390,7 @@ class LSPGenerator:
         # Compute and store the square root of the spatial correlation matrix
 
         #If we are in DL, the ASD and ZSD are -inf and there is no correlation   
-        self._spatial_lsp_correlation_matrix_sqrt = matrix_sqrt(
+        self._spatial_lsp_correlation_matrix_sqrt = tf.linalg.cholesky(
                 spatial_lsp_correlation)
 
 
