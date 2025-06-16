@@ -21,8 +21,9 @@ from matplotlib.markers import MarkerStyle
 
 from sionna.phy.constants import SPEED_OF_LIGHT, PI
 from sionna.phy.utils import log10
+from sionna.phy.block import Object
 
-class AntennaElement:
+class AntennaElement(Object):
     """Antenna element following the [TR38901] specification. The implementation is used in [TR38811] in the same way. 
 
     Parameters
@@ -34,23 +35,23 @@ class AntennaElement:
     slant_angle : float
         Polarization slant angle [radian]
 
-    dtype : tf.DType
-        Complex datatype to use for internal processing and output.
-        Defaults to `tf.complex64`.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
     """
 
     def __init__(self,
                  pattern,
                  slant_angle=0.0,
-                 dtype=tf.complex64,
+                 precision=None,
                 ):
-
+        super().__init__(precision=precision)
         assert pattern in ["omni", "38.901", "aperture", "dlp"], \
             "The radiation_pattern must be one of [\"omni\", \"38.901\", \"aperture\", \"dlp\"]."
-        assert dtype.is_complex, "'dtype' must be complex type"
 
         self._pattern = pattern
-        self._slant_angle = tf.constant(slant_angle, dtype=dtype.real_dtype)
+        self._slant_angle = tf.constant(slant_angle, dtype=self.rdtype)
         # Selected the radiation field correspding to the requested pattern
         if pattern == "omni":
             self._radiation_pattern = self._radiation_pattern_omni
@@ -60,8 +61,6 @@ class AntennaElement:
             self._radiation_pattern = self._radiation_pattern_circular_aperture
         elif pattern == "dlp":
             self._radiation_pattern = self._radiation_pattern_co_phased_DLp
-
-        self._dtype = dtype
 
     def field(self, theta, phi):
         """
@@ -251,7 +250,7 @@ class AntennaElement:
         return (gain_db, directivity_db)
 
 
-class AntennaPanel:
+class AntennaPanel(Object):
     """Antenna panel following the [TR38901]_ specification
     this function is defined in [TR38901] but is directly reused in [TR38811]
 
@@ -273,9 +272,10 @@ class AntennaPanel:
     horizontal_spacing : float
         Horizontal antenna element spacing [multiples of wavelength]
 
-    dtype : tf.DType
-        Complex datatype to use for internal processing and output.
-        Defaults to `tf.complex64`.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
     """
 
     def __init__(self,
@@ -284,19 +284,17 @@ class AntennaPanel:
                  polarization,
                  vertical_spacing,
                  horizontal_spacing,
-                 dtype=tf.complex64):
+                 precision=None):
 
-        assert dtype.is_complex, "'dtype' must be complex type"
+        super().__init__(precision=precision)
         assert polarization in ('single', 'dual'), \
             "polarization must be either 'single' or 'dual'"
 
         self._num_rows = tf.constant(num_rows, tf.int32)
         self._num_cols = tf.constant(num_cols, tf.int32)
         self._polarization = polarization
-        self._horizontal_spacing = tf.constant(horizontal_spacing,
-                                                dtype.real_dtype)
-        self._vertical_spacing = tf.constant(vertical_spacing, dtype.real_dtype)
-        self._dtype = dtype.real_dtype
+        self._horizontal_spacing = tf.constant(horizontal_spacing, self.rdtype)
+        self._vertical_spacing = tf.constant(vertical_spacing, self.rdtype)
 
         # Place the antenna elements of the first polarization direction
         # on the y-z-plane
@@ -317,7 +315,7 @@ class AntennaPanel:
         # Create the antenna elements of the second polarization direction
         if polarization == 'dual':
             ant_pos[num_rows*num_cols:] = ant_pos[:num_rows*num_cols]
-        self._ant_pos = tf.constant(ant_pos, self._dtype.real_dtype)
+        self._ant_pos = tf.constant(ant_pos, self.rdtype)
 
     @property
     def ant_pos(self):
@@ -367,7 +365,7 @@ class AntennaPanel:
         plt.legend(["Polarization 1", "Polarization 2"], loc="upper right")
 
 
-class PanelArray:
+class PanelArray(Object):
     # pylint: disable=line-too-long
     r"""PanelArray(num_rows_per_panel, num_cols_per_panel, polarization, polarization_type, antenna_pattern, carrier_frequency, num_rows=1, num_cols=1, panel_vertical_spacing=None, panel_horizontal_spacing=None, element_vertical_spacing=None, element_horizontal_spacing=None, dtype=tf.complex64)
 
@@ -439,9 +437,10 @@ class PanelArray:
         Element horizontal spacing [multiple of wavelength].
         Defaults to 0.5 if set to `None`.
 
-    dtype : Complex tf.DType
-        Defines the datatype for internal calculations and the output
-        dtype. Defaults to `tf.complex64`.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
     """
 
     def __init__(self,  num_rows_per_panel,
@@ -456,9 +455,9 @@ class PanelArray:
                         panel_horizontal_spacing=None,
                         element_vertical_spacing=None,
                         element_horizontal_spacing=None,
-                        dtype=tf.complex64):
+                        precision=None):
 
-        assert dtype.is_complex, "'dtype' must be complex type"
+        super().__init__(precision=precision)
 
         assert polarization in ('single', 'dual'), \
             "polarization must be either 'single' or 'dual'"
@@ -493,14 +492,13 @@ class PanelArray:
         self._polarization = polarization
         self._polarization_type = polarization_type
         self._panel_vertical_spacing = tf.constant(panel_vertical_spacing,
-                                            dtype.real_dtype)
+                                            self.rdtype)
         self._panel_horizontal_spacing = tf.constant(panel_horizontal_spacing,
-                                            dtype.real_dtype)
+                                            self.rdtype)
         self._element_vertical_spacing = tf.constant(element_vertical_spacing,
-                                            dtype.real_dtype)
+                                            self.rdtype)
         self._element_horizontal_spacing=tf.constant(element_horizontal_spacing,
-                            dtype.real_dtype)
-        self._dtype = dtype
+                            self.rdtype)
 
         self._num_panels = tf.constant(num_cols*num_rows, tf.int32)
 
@@ -513,7 +511,7 @@ class PanelArray:
 
         # Wavelength (m)
         self._lambda_0 = tf.constant(SPEED_OF_LIGHT / carrier_frequency,
-                                    dtype.real_dtype)
+                                    self.rdtype)
 
         # Create one antenna element for each polarization direction
         # polarization must be one of {"V", "H", "VH", "cross"}
@@ -522,21 +520,21 @@ class PanelArray:
                 "For single polarization, polarization_type must be 'V' or 'H'"
             slant_angle = 0 if polarization_type == "V" else PI/2
             self._ant_pol1 = AntennaElement(antenna_pattern, slant_angle,
-                self._dtype)
+                self.precision)
         else:
             assert polarization_type in ["VH", "cross"],\
             "For dual polarization, polarization_type must be 'VH' or 'cross'"
             slant_angle = 0 if polarization == "VH" else -PI/4
             self._ant_pol1 = AntennaElement(antenna_pattern, slant_angle,
-                self._dtype)
+                self.precision)
             self._ant_pol2 = AntennaElement(antenna_pattern, slant_angle+PI/2,
-                self._dtype)
+                self.precision)
 
         # Compose array from panels
         ant_pos = np.zeros([self._num_ant, 3])
         panel = AntennaPanel(num_rows_per_panel, num_cols_per_panel,
             polarization, element_vertical_spacing, element_horizontal_spacing,
-            dtype)
+            self.precision)
         pos = panel.ant_pos
         count = 0
         num_panel_ant = self._num_panel_ant
@@ -557,7 +555,7 @@ class PanelArray:
 
         # Scale antenna element positions by the wavelength
         ant_pos *= self._lambda_0
-        self._ant_pos = tf.constant(ant_pos, dtype.real_dtype)
+        self._ant_pos = tf.constant(ant_pos, self.rdtype)
 
         # Compute indices of antennas for polarization directions
         ind = np.arange(0, self._num_ant)
@@ -748,16 +746,17 @@ class Antenna(PanelArray):
     carrier_frequency : float
         Carrier frequency [Hz]
 
-    dtype : Complex tf.DType
-        Defines the datatype for internal calculations and the output
-        dtype. Defaults to `tf.complex64`.
+   precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
     """
 
     def __init__(self,  polarization,
                         polarization_type,
                         antenna_pattern,
                         carrier_frequency,
-                        dtype=tf.complex64):
+                        precision=None):
 
         super().__init__(num_rows_per_panel=1,
                          num_cols_per_panel=1,
@@ -765,7 +764,7 @@ class Antenna(PanelArray):
                          polarization_type=polarization_type,
                          antenna_pattern=antenna_pattern,
                          carrier_frequency=carrier_frequency,
-                         dtype=dtype)
+                         precision=precision)
 
 class AntennaArray(PanelArray):
     # pylint: disable=line-too-long
@@ -805,9 +804,10 @@ class AntennaArray(PanelArray):
         Element horizontal spacing [multiple of wavelength].
         Defaults to 0.5 if set to `None`.
 
-    dtype : Complex tf.DType
-        Defines the datatype for internal calculations and the output
-        dtype. Defaults to `tf.complex64`.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
     """
 
     def __init__(self,  num_rows,
@@ -818,7 +818,7 @@ class AntennaArray(PanelArray):
                         carrier_frequency,
                         vertical_spacing=None,
                         horizontal_spacing=None,
-                        dtype=tf.complex64):
+                        precision=None):
 
         super().__init__(num_rows_per_panel=num_rows,
                          num_cols_per_panel=num_cols,
@@ -828,4 +828,4 @@ class AntennaArray(PanelArray):
                          carrier_frequency=carrier_frequency,
                          element_vertical_spacing=vertical_spacing,
                          element_horizontal_spacing=horizontal_spacing,
-                         dtype=dtype)
+                         precision=precision)
