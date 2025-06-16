@@ -21,7 +21,7 @@ import numpy as np
 import tensorflow as tf
 
 from sionna.phy.constants import PI, SPEED_OF_LIGHT
-from sionna.phy.utils import insert_dims, expand_to_rank, matrix_sqrt, split_dim, flatten_last_dims
+from sionna.phy.utils import insert_dims, expand_to_rank, split_dim, flatten_last_dims
 from sionna.phy.channel import ChannelModel
 
 from . import models # pylint: disable=relative-beyond-top-level
@@ -325,21 +325,21 @@ class TDL(ChannelModel):
         # Precompute square root of spatial covariance matrices
         if spatial_corr_mat is not None:
             spatial_corr_mat = tf.cast(spatial_corr_mat, self._dtype)
-            spatial_corr_mat_sqrt = matrix_sqrt(spatial_corr_mat)
+            spatial_corr_mat_sqrt = tf.linalg.cholesky(spatial_corr_mat)
             spatial_corr_mat_sqrt = expand_to_rank(spatial_corr_mat_sqrt, 7, 0)
             self._spatial_corr_mat_sqrt = spatial_corr_mat_sqrt
         else:
             self._spatial_corr_mat_sqrt = None
             if rx_corr_mat is not None:
                 rx_corr_mat = tf.cast(rx_corr_mat, self._dtype)
-                rx_corr_mat_sqrt = matrix_sqrt(rx_corr_mat)
+                rx_corr_mat_sqrt = tf.linalg.cholesky(rx_corr_mat)
                 rx_corr_mat_sqrt = expand_to_rank(rx_corr_mat_sqrt, 7, 0)
                 self._rx_corr_mat_sqrt = rx_corr_mat_sqrt
             else:
                 self._rx_corr_mat_sqrt = None
             if tx_corr_mat is not None:
                 tx_corr_mat = tf.cast(tx_corr_mat, self._dtype)
-                tx_corr_mat_sqrt = matrix_sqrt(tx_corr_mat)
+                tx_corr_mat_sqrt = tf.linalg.cholesky(tx_corr_mat)
                 tx_corr_mat_sqrt = expand_to_rank(tx_corr_mat_sqrt, 7, 0)
                 self._tx_corr_mat_sqrt = tx_corr_mat_sqrt
             else:
