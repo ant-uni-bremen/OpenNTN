@@ -16,9 +16,10 @@ import tensorflow as tf
 from tensorflow import sin, cos, acos
 
 from sionna.phy.constants import PI, SPEED_OF_LIGHT
+from sionna.phy.block import Object
 from sionna.phy.channel.tr38811.utils import compute_satellite_speed
 
-class Topology:
+class Topology(Object):
     # pylint: disable=line-too-long
     r"""
     Class for conveniently storing the network topology information required
@@ -102,7 +103,7 @@ class Topology:
         self.sat_speed = tf.math.cos(random_direction_per_batch) * max_sat_speed_for_elevation_angle
 
 
-class ChannelCoefficientsGenerator:
+class ChannelCoefficientsGenerator(Object):
     # pylint: disable=line-too-long
     r"""
     Sample channel impulse responses according to LSPs rays.
@@ -128,9 +129,10 @@ class ChannelCoefficientsGenerator:
         TR 38.901). CDL does not use subclustering. System level models (dur, urb,
         and sur) do.
 
-    dtype : Complex tf.DType
-        Defines the datatype for internal calculations and the output
-        dtype. Defaults to `tf.complex64`.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Input
     -----
@@ -180,14 +182,13 @@ class ChannelCoefficientsGenerator:
     def __init__(self,  carrier_frequency,
                         tx_array, rx_array,
                         subclustering,
-                        dtype=tf.complex64):
-        assert dtype.is_complex, "dtype must be a complex datatype"
-        self._dtype = dtype
+                        precision=None):
+        super().__init__(precision=precision)
 
         self._carrier_frequency = carrier_frequency
         # Wavelength (m)
         self._lambda_0 = tf.constant(SPEED_OF_LIGHT/carrier_frequency,
-            dtype.real_dtype)
+            self.rdtype)
         self._tx_array = tx_array
         self._rx_array = rx_array
         self._subclustering = subclustering
@@ -198,13 +199,13 @@ class ChannelCoefficientsGenerator:
         self._sub_cl_2_ind = tf.constant([8,9,10,11,16,17], tf.int32)
         self._sub_cl_3_ind = tf.constant([12,13,14,15], tf.int32)
         self._sub_cl_delay_offsets = tf.constant([0, 1.28, 2.56],
-                                                    dtype.real_dtype)
+                                                    self.rdtype)
     
     def __call__(self, num_time_samples, sampling_frequency, k_factor, rays,
                  topology, c_ds=None, debug=False):
         # Sample times
         sample_times = (tf.range(num_time_samples,
-                dtype=self._dtype.real_dtype)/sampling_frequency)
+                dtype=self.rdtype)/sampling_frequency)
 
         # Step 10
         phi = self._step_10(tf.shape(rays.aoa))
@@ -344,13 +345,13 @@ class ChannelCoefficientsGenerator:
         rho_hat = self._unit_sphere_vector(theta, phi)
         rot_inv = self._reverse_rotation_matrix(orientations)
         rot_rho = tf.matmul(rot_inv, rho_hat)
-        v1 = tf.constant([0,0,1], self._dtype.real_dtype)
+        v1 = tf.constant([0,0,1], self.rdtype)
         v1 = tf.reshape(v1, [1]*(rot_rho.shape.rank-1)+[3])
         v2 = tf.constant([1+0j,1j,0], self._dtype)
         v2 = tf.reshape(v2, [1]*(rot_rho.shape.rank-1)+[3])
         z = tf.matmul(v1, rot_rho)
-        z = tf.clip_by_value(z, tf.constant(-1., self._dtype.real_dtype),
-                             tf.constant(1., self._dtype.real_dtype))
+        z = tf.clip_by_value(z, tf.constant(-1., self.rdtype),
+                             tf.constant(1., self.rdtype))
         theta_prime = acos(z)
         phi_prime = tf.math.angle((tf.matmul(v2, tf.cast(rot_rho,
             self._dtype))))
@@ -503,7 +504,7 @@ class ChannelCoefficientsGenerator:
             Phases for all polarization combinations
         """
         phi = tf.random.uniform(tf.concat([shape, [4]], axis=0), minval=-PI,
-            maxval=PI, dtype=self._dtype.real_dtype)
+            maxval=PI, dtype=self.rdtype)
 
         return phi
 
@@ -528,15 +529,15 @@ class ChannelCoefficientsGenerator:
         xpr = rays.xpr
 
         xpr_scaling = tf.complex(tf.sqrt(1/xpr),
-            tf.constant(0., self._dtype.real_dtype))
-        e0 = tf.exp(tf.complex(tf.constant(0., self._dtype.real_dtype),
+            tf.constant(0., self.rdtype))
+        e0 = tf.exp(tf.complex(tf.constant(0., self.rdtype),
             phi[...,0]))
-        e3 = tf.exp(tf.complex(tf.constant(0., self._dtype.real_dtype),
+        e3 = tf.exp(tf.complex(tf.constant(0., self.rdtype),
             phi[...,3]))
         e1 = xpr_scaling*tf.exp(tf.complex(tf.constant(0.,
-                                self._dtype.real_dtype), phi[...,1]))
+                                self.rdtype), phi[...,1]))
         e2 = xpr_scaling*tf.exp(tf.complex(tf.constant(0.,
-                                self._dtype.real_dtype), phi[...,2]))
+                                self.rdtype), phi[...,2]))
         shape = tf.concat([tf.shape(e0), [2,2]], axis=-1)
         h_phase = tf.reshape(tf.stack([e0, e1, e2, e3], axis=-1), shape)
 
@@ -628,7 +629,7 @@ class ChannelCoefficientsGenerator:
             exponent = tf.math.add(exponent, rotation_for_time)
 
         h_doppler = tf.exp(tf.complex(tf.constant(0.,
-                                    self._dtype.real_dtype), exponent))
+                                    self.rdtype), exponent))
         
         return h_doppler
 
@@ -701,7 +702,7 @@ class ChannelCoefficientsGenerator:
         exp_rx = 2*PI/lambda_0*tf.reduce_sum(r_hat_rx*d_bar_rx,
             axis=-1, keepdims=True)
         exp_rx = tf.exp(tf.complex(tf.constant(0.,
-                                    self._dtype.real_dtype), exp_rx))
+                                    self.rdtype), exp_rx))
 
         # The hack is for some reason not needed for this term
         # exp_tx = 2*PI/lambda_0*tf.reduce_sum(r_hat_tx*d_bar_tx,
@@ -709,7 +710,7 @@ class ChannelCoefficientsGenerator:
         exp_tx = 2*PI/lambda_0*tf.reduce_sum(r_hat_tx*d_bar_tx,
             axis=-1)
         exp_tx = tf.exp(tf.complex(tf.constant(0.,
-                                    self._dtype.real_dtype), exp_tx))
+                                    self.rdtype), exp_tx))
         exp_tx = tf.expand_dims(exp_tx, -2)
 
         h_array = exp_rx*exp_tx
@@ -790,10 +791,10 @@ class ChannelCoefficientsGenerator:
 
         # Fill the full channel matrix with field responses
         pol1_tx = tf.matmul(h_phase, tf.complex(f_tx_pol1,
-            tf.constant(0., self._dtype.real_dtype)))
+            tf.constant(0., self.rdtype)))
         if self._tx_array.polarization == 'dual':
             pol2_tx = tf.matmul(h_phase, tf.complex(f_tx_pol2, tf.constant(0.,
-                                            self._dtype.real_dtype)))
+                                            self.rdtype)))
 
         num_ant_tx = self._tx_array.num_ant
         if self._tx_array.polarization == 'single':
@@ -820,7 +821,7 @@ class ChannelCoefficientsGenerator:
                 tf.concat([[num_ant_rx], tf.ones([tf.rank(f_rx_pol1)],
                                                  tf.int32)], axis=0))
             f_rx_array = tf.complex(f_rx_array,
-                                    tf.constant(0., self._dtype.real_dtype))
+                                    tf.constant(0., self.rdtype))
         else:
             # Assign polarization response according to polarization to each
             # antenna
@@ -832,7 +833,7 @@ class ChannelCoefficientsGenerator:
             gather_ind = tf.scatter_nd(tf.reshape(ant_ind_pol2, [-1,1]),
                 tf.ones([num_ant_pol2], tf.int32), [num_ant_rx])
             f_rx_array = tf.complex(tf.gather(pol_rx, gather_ind, axis=0),
-                            tf.constant(0., self._dtype.real_dtype))
+                            tf.constant(0., self.rdtype))
 
         # Compute the scalar product between the field vectors through
         # reduce_sum and transpose to put antenna dimensions last
@@ -886,8 +887,8 @@ class ChannelCoefficientsGenerator:
             tf.expand_dims(h_doppler, -2), -2)
 
         power_scaling = tf.complex(tf.sqrt(rays.powers/
-            tf.cast(tf.shape(h_full)[4], self._dtype.real_dtype)),
-                            tf.constant(0., self._dtype.real_dtype))
+            tf.cast(tf.shape(h_full)[4], self.rdtype)),
+                            tf.constant(0., self.rdtype))
         shape = tf.concat([tf.shape(power_scaling), tf.ones(
             [tf.rank(h_full)-tf.rank(power_scaling)], tf.int32)], 0)
         h_full *= tf.reshape(power_scaling, shape)
@@ -1015,7 +1016,7 @@ class ChannelCoefficientsGenerator:
         # Field matrix
         h_phase = tf.reshape(tf.constant([[1.,0.],
                                          [0.,-1.]],
-                                         self._dtype),
+                                         self.cdtype),
                                          [1,1,1,1,1,2,2])
         
         # Add Faraday phase rotation in NTN case
@@ -1037,7 +1038,7 @@ class ChannelCoefficientsGenerator:
         d3d = topology.distance_3d
         lambda_0 = self._lambda_0
         h_delay = tf.exp(tf.complex(tf.constant(0.,
-                        self._dtype.real_dtype), 2*PI*d3d/lambda_0))
+                        self.rdtype), 2*PI*d3d/lambda_0))
 
         # Combining all to compute channel coefficient
         h_field = tf.expand_dims(tf.squeeze(h_field, axis=4), axis=-1)
@@ -1084,7 +1085,7 @@ class ChannelCoefficientsGenerator:
         k_factor = tf.reshape(k_factor, tf.concat([tf.shape(k_factor),
             tf.ones([tf.rank(h_los_los_comp)-tf.rank(k_factor)], tf.int32)],0))
         k_factor = tf.complex(k_factor, tf.constant(0.,
-                                            self._dtype.real_dtype))
+                                            self.rdtype))
 
         # Scale NLOS and LOS components according to K-factor
         h_los_los_comp = h_los_los_comp*tf.sqrt(k_factor/(k_factor+1))
