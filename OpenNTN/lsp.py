@@ -72,7 +72,7 @@ class LSPGenerator:
 
     Parameters
     ----------
-    scenario : :class:`~sionna.channel.tr38901.SystemLevelScenario``
+    scenario : :class:`~sionna.phy.channel.tr38811.SystemLevelScenario``
         Scenario used to generate LSPs
 
     Input

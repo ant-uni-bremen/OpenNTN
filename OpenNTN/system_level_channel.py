@@ -19,8 +19,8 @@ import matplotlib.pyplot as plt
 from . import LSPGenerator
 from . import RaysGenerator
 from . import Topology, ChannelCoefficientsGenerator
-from sionna.channel import ChannelModel
-from sionna.channel.utils import deg_2_rad
+from sionna.phy.channel import ChannelModel
+from sionna.phy.channel.utils import deg_2_rad
 
 class SystemLevelChannel(ChannelModel):
     # pylint: disable=line-too-long

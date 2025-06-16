@@ -379,9 +379,9 @@ def time_to_ofdm_channel(h_t, rg, l_min):
     Note
     ----
     Note that the result of this function is generally different from the
-    output of :meth:`~sionna.channel.utils.cir_to_ofdm_channel` because
+    output of :meth:`~sionna.phy.channel.utils.cir_to_ofdm_channel` because
     the discrete complex-baseband channel impulse response is truncated
-    (see :meth:`~sionna.channel.utils.cir_to_time_channel`). This effect
+    (see :meth:`~sionna.phy.channel.utils.cir_to_time_channel`). This effect
     can be observed in the example below.
 
     Examples
