@@ -16,7 +16,7 @@ python "$POST_INSTALL_NAME"
 # Create link to OpenNTN inside Sionna
 OpenNTN_DIR=$(pip show OpenNTN | grep Location | cut -d' ' -f2)/OpenNTN
 SIONNA_DIR=$(pip show sionna | grep Location | cut -d' ' -f2)/sionna
-ln -s $OpenNTN_DIR $SIONNA_DIR/phy/channel/tr38811
+ln -s $OpenNTN_DIR $SIONNA_DIR/channel/tr38811
 
 # Remove temporary variables after installation
 rm "$POST_INSTALL_NAME"
