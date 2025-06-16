@@ -7,9 +7,9 @@
 # mentioning it, the correlation between ZSD and ASD to any other paramter is set to 0.0 in the DL case, the both ZSD and ASD are set to -inf in every case,
 # removing the correlation to other parameters.
 
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
 import numpy as np
 import tensorflow as tf
 import math

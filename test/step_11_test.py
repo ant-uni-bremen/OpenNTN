@@ -4,11 +4,11 @@ import unittest
 import numpy as np
 import sionna
 from sionna import config
-from sionna.channel.tr38811 import utils
-from sionna.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
-from sionna.channel.tr38811 import DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import utils
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
+from sionna.phy.channel.tr38811 import DenseUrban, SubUrban, Urban, CDL
 from sionna.channel.utils import deg_2_rad
-from sionna.channel.tr38811.utils import gen_single_sector_topology as gen_ntn_topology
+from sionna.phy.channel.tr38811.utils import gen_single_sector_topology as gen_ntn_topology
 
 
 class Step_11(unittest.TestCase):
@@ -119,7 +119,7 @@ class Step_11(unittest.TestCase):
         
         # # lsp = lsp_sampler()
         self.rays = ray_sampler(self.lsp)   
-        topology = sionna.channel.tr38811.Topology(velocities=channel_model._scenario.ut_velocities,
+        topology = sionna.phy.channel.tr38811.Topology(velocities=channel_model._scenario.ut_velocities,
                                 moving_end="tx", 
                                 los_aoa=channel_model._scenario.los_aoa,
                                 los_aod=channel_model._scenario.los_aod,

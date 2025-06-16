@@ -6,9 +6,9 @@
 # The spatial correlation is calculated as exp(d*c) for correlated parameters, in which d is the 2d distance and c is the correlation factor, which
 # is equal to -1/the value in the corresponding table. 
 
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
 import numpy as np
 import tensorflow as tf
 import math

@@ -2,9 +2,9 @@
 # combined wiht the additions of 3GPP TR38.811 6.7.2
 # The test mainly test for the correct detection of illegal scenario configurations based on 38.811 5.2 and 4.5
 
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
 import numpy as np
   
 def create_ut_ant(carrier_frequency):

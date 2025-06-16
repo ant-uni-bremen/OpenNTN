@@ -4,9 +4,9 @@
 # to be correct here.
 # Step 6 has no easily measurable output, so that a mockup 
 
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
 import numpy as np
 import tensorflow as tf
 import math

@@ -5,11 +5,11 @@ import tensorflow as tf
 import numpy as np
 
 # Importing necessary modules from Sionna
-import sionna.channel.tr38811.rays as rays
-import sionna.channel.tr38811.dense_urban_scenario as sys_scenario
-import sionna.channel.tr38811.antenna as antenna
-from sionna.channel.tr38811.utils import gen_single_sector_topology as gen_topology
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+import sionna.phy.channel.tr38811.rays as rays
+import sionna.phy.channel.tr38811.dense_urban_scenario as sys_scenario
+import sionna.phy.channel.tr38811.antenna as antenna
+from sionna.phy.channel.tr38811.utils import gen_single_sector_topology as gen_topology
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
 
 class Test_A_D_angles(unittest.TestCase):
     

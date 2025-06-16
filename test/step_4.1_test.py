@@ -6,9 +6,9 @@
 # As this part can be reused from the existing 3GPP TR38.901 implementation in Sionna, it is currently not tested and only lsp_log_std and 
 # lsp_log_mean are being verified
 
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
 import numpy as np
 import tensorflow as tf
 import math

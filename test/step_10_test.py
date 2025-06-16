@@ -5,8 +5,8 @@ import tensorflow as tf
 import numpy as np
 import math
 from sionna import PI
-from sionna.channel.tr38811 import utils
-from sionna.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
+from sionna.phy.channel.tr38811 import utils
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
 
 
 class Test_Step10(unittest.TestCase):

@@ -5,9 +5,9 @@ import unittest
 import numpy as np
 import sionna
 from sionna import config
-from sionna.channel.tr38811 import utils
-from sionna.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
-from sionna.channel.tr38811 import DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import utils
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
+from sionna.phy.channel.tr38811 import DenseUrban, SubUrban, Urban, CDL
 
 
 class Step_12(unittest.TestCase):
@@ -99,7 +99,7 @@ class Step_12(unittest.TestCase):
         self.lsp = lsp
         self.sf = self.lsp.sf
         los = tf.boolean_mask(los, channel_model._scenario.los)
-        topology = sionna.channel.tr38811.Topology(
+        topology = sionna.phy.channel.tr38811.Topology(
             velocities=ut_velocities,
             moving_end='rx',
             los_aoa= self.los_aoa,

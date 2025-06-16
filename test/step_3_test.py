@@ -1,6 +1,6 @@
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, Urban, DenseUrban, SubUrban
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, Urban, DenseUrban, SubUrban
 import tensorflow as tf
 import math
 

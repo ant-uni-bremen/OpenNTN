@@ -1,9 +1,9 @@
 # This file tests the generation of the LOS states according to Step 2 of 3GPP TR38.901 7.5
 # using the parameters of 3GPP TR38.811 Table 6.6.1-1 LOS probability
 
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
 import numpy as np
 import tensorflow as tf
 import math
