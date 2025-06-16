@@ -14,8 +14,8 @@ The process is based on 3GPP TR38.901, with TR38.811 serving mainly as an extens
 
 import tensorflow as tf
 
-from sionna.utils import log10
-from sionna.utils import matrix_sqrt
+from sionna.phy.utils import log10
+from sionna.phy.utils import matrix_sqrt
 
 class LSP:
     r"""
