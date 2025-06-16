@@ -20,8 +20,8 @@ import numpy as np
 
 import tensorflow as tf
 
-from sionna import PI, SPEED_OF_LIGHT
-from sionna.utils import insert_dims, expand_to_rank, matrix_sqrt, split_dim, flatten_last_dims
+from sionna.phy.constants import PI, SPEED_OF_LIGHT
+from sionna.phy.utils import insert_dims, expand_to_rank, matrix_sqrt, split_dim, flatten_last_dims
 from sionna.channel import ChannelModel
 
 from . import models # pylint: disable=relative-beyond-top-level

@@ -23,7 +23,7 @@ import numpy as np
 from sionna.channel.utils import deg_2_rad
 from sionna.channel import ChannelModel
 from sionna import PI
-from sionna.utils.tensors import insert_dims
+from sionna.phy.utils.tensors import insert_dims
 from . import Topology, ChannelCoefficientsGenerator
 from . import Rays
 

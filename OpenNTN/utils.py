@@ -11,9 +11,9 @@ import tensorflow as tf
 import warnings
 
 from sionna import PI
-from sionna.utils import expand_to_rank
+from sionna.phy.utils import expand_to_rank
 import math 
-from sionna.utils import log10
+from sionna.phy.utils import log10
 import numpy as np
 
 
