@@ -75,17 +75,17 @@ class RaysGenerator:
 
     Parameters
     ----------
-    scenario : :class:`~sionna.channel.tr38811.SystemLevelScenario``
+    scenario : :class:`~sionna.phy.channel.tr38811.SystemLevelScenario``
         Scenario used to generate LSPs
 
     Input
     -----
-    lsp : :class:`~sionna.channel.tr38811.LSP`
+    lsp : :class:`~sionna.phy.channel.tr38811.LSP`
         LSPs samples
 
     Output
     ------
-    rays : :class:`~sionna.channel.tr38811.Rays`
+    rays : :class:`~sionna.phy.channel.tr38811.Rays`
         Rays samples
     """
 

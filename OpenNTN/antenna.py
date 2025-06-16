@@ -730,7 +730,7 @@ class Antenna(PanelArray):
 
     Single antenna following the [TR38901] specification. Can be reused for [TR38811]
 
-    This class is a special case of :class:`~sionna.channel.tr38811.PanelArray`,
+    This class is a special case of :class:`~sionna.phy.channel.tr38811.PanelArray`,
     and can be used in lieu of it.
 
     Parameters
@@ -773,7 +773,7 @@ class AntennaArray(PanelArray):
 
     Antenna array following the [TR38901] specification. Can be reused for [TR38811].
 
-    This class is a special case of :class:`~sionna.channel.tr38811.PanelArray`,
+    This class is a special case of :class:`~sionna.phy.channel.tr38811.PanelArray`,
     and can used in lieu of it.
 
     Parameters
