@@ -31,7 +31,7 @@ class Test_A_D_angles(unittest.TestCase):
                                                             enable_pathloss=True, 
                                                             enable_shadow_fading=True, 
                                                             doppler_enabled=True,
-                                                            dtype=tf.complex64)
+                                                            precision="single")
         # Generate the topology
         topology = gen_topology(batch_size=self.batch_size, num_ut=self.num_ut , scenario="dur", bs_height = 600000.0)
 
