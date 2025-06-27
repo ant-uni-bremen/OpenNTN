@@ -522,20 +522,14 @@ def sample_bernoulli(shape, p, precision=None):
     : Tensor of shape ``shape``, bool
         Binary samples
     """
-    print("in tr38811 utils sample bernoulli, precision is: ", precision)
     if precision is None:
         rdtype = config.tf_rdtype
     elif precision is tf.float32 or precision == "single":
-        #print("Debugging sionna.phy.utils.misc.py: the precision is: ", precision)
         precision = "single"
         rdtype = dtypes[precision]["tf"]["rdtype"]
-        #print("before if rdtype is: ", rdtype)
     elif precision is tf.float64 or precision == "double":
-        #print("Debugging sionna.phy.utils.misc.py: the precision is: ", precision)
         precision = "double"
         rdtype = dtypes[precision]["tf"]["rdtype"]
-    print("After if precision is: ", precision)
-    print("After if rdtype is: ", rdtype)
     z = config.tf_rng.uniform(shape=shape, minval=0.0, maxval=1.0, dtype=rdtype)
     z = tf.math.less(z, p)
     return z
