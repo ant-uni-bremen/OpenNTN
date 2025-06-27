@@ -465,7 +465,7 @@ def deg_2_rad(x):
         y : Tensor
             Angles ``x`` converted to radian
     """
-    return x*tf.constant(PI/180.0, tf.float64)
+    return x*tf.constant(PI/180.0, x.dtype)
 
 def rad_2_deg(x):
     r"""
@@ -582,7 +582,7 @@ def drop_uts_in_sector(batch_size, num_ut, bs_height, elevation_angle, isd,
     # the center with some random variation based on the isd
 
     
-    actual_bs_ut_distance = tf.cast(bs_height, rdtype) / tf.cast(tf.math.sin(deg_2_rad(elevation_angle)),rdtype)
+    actual_bs_ut_distance = tf.cast(bs_height, rdtype) / tf.cast(tf.math.sin(deg_2_rad(tf.cast(elevation_angle,rdtype))),rdtype)
     distance_center_to_ut = tf.math.sqrt(tf.math.square(actual_bs_ut_distance) - tf.math.square(bs_height))
     x_base = tf.random.uniform(shape = [1], minval=0,maxval=distance_center_to_ut)
     y_base = tf.math.sqrt(tf.math.square(actual_bs_ut_distance) - tf.math.square(bs_height) - tf.math.square(x_base))
@@ -979,8 +979,8 @@ def generate_uts_topology(  batch_size,
                                 axis=-1)
 
     
-    ut_downtilt = tf.zeros([batch_size, num_ut]) + tf.cast(deg_2_rad(elevation_angle + 180),rdtype)
-    ut_slant = tf.zeros([batch_size, num_ut]) + tf.cast(deg_2_rad(elevation_angle + 90),rdtype)
+    ut_downtilt = tf.zeros([batch_size, num_ut]) + tf.cast(deg_2_rad(tf.cast(elevation_angle + 180.0, rdtype)),rdtype)
+    ut_slant = tf.zeros([batch_size, num_ut]) + tf.cast(deg_2_rad(tf.cast(elevation_angle + 90.0, rdtype)),rdtype)
     #Always point at the BS, which is at [0,0,bs_height]
     ut_bearing = tf.math.atan(ut_loc_xy[:,:,1]/ut_loc_xy[:,:,0])
     ut_orientations = tf.stack([ut_bearing, ut_downtilt, ut_slant], axis=-1)
