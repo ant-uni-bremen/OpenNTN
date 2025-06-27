@@ -14,7 +14,7 @@ from abc import abstractmethod
 from sionna.phy.block import Object
 from sionna.phy.constants import SPEED_OF_LIGHT, PI
 from sionna.phy.utils import log10
-from sionna.phy.utils import sample_bernoulli
+from sionna.phy.channel.tr38811.utils import sample_bernoulli
 from sionna.phy.channel.utils import rad_2_deg, wrap_angle_0_360
 from .antenna import PanelArray
 import math
