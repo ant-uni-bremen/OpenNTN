@@ -206,9 +206,11 @@ class TDL(ChannelModel):
         correlation is applied.
         Defaults to `None`.
 
-    dtype : Complex tf.DType
-        Defines the datatype for internal calculations and the output
-        dtype. Defaults to `tf.complex64`.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
+
 
     Input
     -----
@@ -247,12 +249,14 @@ class TDL(ChannelModel):
                     tx_corr_mat=None,
                     basestation_height=600000,
                     elevation_angle=80.0,
-                    dtype=tf.complex64):
+                    precision=None):
+        super().__init__(precision=precision)
 
-        assert dtype.is_complex, "dtype must be a complex datatype"
-        self._dtype = dtype
-        real_dtype = dtype.real_dtype
-        self._real_dtype = real_dtype
+        # TODO remove refernce o old dtype structure
+        #assert dtype.is_complex, "dtype must be a complex datatype"
+        #self._dtype = dtype
+        #real_dtype = dtype.real_dtype
+        #self._real_dtype = real_dtype
 
         # Set the file from which to load the model
         assert model in ('A', 'B', 'C', 'D', 'E', 'A30', 'B100', 'C300'),\
