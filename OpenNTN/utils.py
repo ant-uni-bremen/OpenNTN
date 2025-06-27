@@ -15,10 +15,11 @@ from sionna.phy.utils import expand_to_rank
 import math 
 from sionna.phy.utils import log10
 import numpy as np
+from sionna.phy import PI, config, dtypes
 
 
 def subcarrier_frequencies(num_subcarriers, subcarrier_spacing,
-                           dtype=tf.complex64):
+                           precision=None):
     # pylint: disable=line-too-long
     r"""
     Compute the baseband frequencies of ``num_subcarrier`` subcarriers spaced by
@@ -39,11 +40,10 @@ def subcarrier_frequencies(num_subcarriers, subcarrier_spacing,
     subcarrier_spacing : float
         Subcarrier spacing [Hz]
 
-    dtype : tf.DType
-        Datatype to use for internal processing and output.
-        If a complex datatype is provided, the corresponding precision of
-        real components is used.
-        Defaults to `tf.complex64` (`tf.float32`).
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Output
     ------
@@ -51,12 +51,10 @@ def subcarrier_frequencies(num_subcarriers, subcarrier_spacing,
             Baseband frequencies of subcarriers
     """
 
-    if dtype.is_complex:
-        real_dtype = dtype.real_dtype
-    elif dtype.if_floating:
-        real_dtype = dtype
+    if precision is None:
+        rdtype = config.tf_rdtype
     else:
-        raise AssertionError("dtype must be a complex or floating datatype")
+        rdtype = dtypes[precision]["tf"]["rdtype"]
 
     if tf.equal(tf.math.floormod(num_subcarriers, 2), 0):
         start=-num_subcarriers/2
@@ -67,11 +65,11 @@ def subcarrier_frequencies(num_subcarriers, subcarrier_spacing,
 
     frequencies = tf.range( start=start,
                             limit=limit,
-                            dtype=real_dtype)
+                            dtype=rdtype)
     frequencies = frequencies*subcarrier_spacing
     return frequencies
 
-def time_frequency_vector(num_samples, sample_duration, dtype=tf.float32):
+def time_frequency_vector(num_samples, sample_duration, precision=None):
     # pylint: disable=line-too-long
     r"""
     Compute the time and frequency vector for a given number of samples
@@ -88,18 +86,25 @@ def time_frequency_vector(num_samples, sample_duration, dtype=tf.float32):
         sample_duration : float
             Sample duration in normalized time
 
-        dtype : tf.DType
-            Datatype to use for internal processing and output.
-            Defaults to `tf.float32`.
+        precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Output
     ------
-        t : [``num_samples``], ``dtype``
+        t : [``num_samples``], ``tf.float``
             Time vector
 
-        f : [``num_samples``], ``dtype``
+        f : [``num_samples``], ``tf.float``
             Frequency vector
     """
+
+    if precision is None:
+        rdtype = config.tf_rdtype
+    else:
+        rdtype = dtypes[precision]["tf"]["rdtype"]
+    num_samples = int(num_samples)
 
     num_samples = int(num_samples)
 
@@ -111,13 +116,13 @@ def time_frequency_vector(num_samples, sample_duration, dtype=tf.float32):
         n_max = tf.cast((num_samples+1) / 2 - 1, dtype=tf.int32)
 
     # Time vector
-    t = tf.cast(tf.linspace(n_min, n_max, num_samples), dtype) \
-        * tf.cast(sample_duration, dtype)
+    t = tf.cast(tf.linspace(n_min, n_max, num_samples), rdtype) \
+        * tf.cast(sample_duration, rdtype)
 
     # Frequency vector
-    df = tf.cast(1.0/sample_duration, dtype)/tf.cast(num_samples, dtype)
-    f = tf.cast(tf.linspace(n_min, n_max, num_samples), dtype) \
-        * tf.cast(df, dtype)
+    df = tf.cast(1.0/sample_duration, rdtype)/tf.cast(num_samples, rdtype)
+    f = tf.cast(tf.linspace(n_min, n_max, num_samples), rdtype) \
+        * tf.cast(df, rdtype)
 
     return t, f
 
@@ -460,7 +465,7 @@ def deg_2_rad(x):
         y : Tensor
             Angles ``x`` converted to radian
     """
-    return x*tf.constant(PI/180.0, tf.float32)
+    return x*tf.constant(PI/180.0, x.dtype)
 
 def rad_2_deg(x):
     r"""
@@ -476,7 +481,7 @@ def rad_2_deg(x):
         y : Tensor
             Angles ``x`` converted to degree
     """
-    return x*tf.constant(180.0/PI, tf.float32)
+    return x*tf.constant(180.0/PI, x.dtype)
 
 def wrap_angle_0_360(angle):
     r"""
@@ -494,7 +499,7 @@ def wrap_angle_0_360(angle):
     """
     return tf.math.mod(angle, 360.)
 
-def sample_bernoulli(shape, p, dtype=tf.float32):
+def sample_bernoulli(shape, p, precision=None):
     r"""
     Sample a tensor with shape ``shape`` from a Bernoulli distribution with
     probability ``p``
@@ -507,20 +512,32 @@ def sample_bernoulli(shape, p, dtype=tf.float32):
     p : Broadcastable with ``shape``, tf.float
         Probability
 
-    dtype : tf.DType
-        Datatype to use for internal processing and output.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Output
     --------
     : Tensor of shape ``shape``, bool
         Binary samples
     """
-    z = tf.random.uniform(shape=shape, minval=0.0, maxval=1.0, dtype=dtype)
+    if precision is None:
+        rdtype = config.tf_rdtype
+    elif precision is tf.float32:
+        print("Debugging sionna.phy.utils.misc.py: the precision is: ", precision)
+        precision = "single"
+        rdtype = dtypes[precision]["tf"]["rdtype"]
+    elif precision is tf.float64:
+        print("Debugging sionna.phy.utils.misc.py: the precision is: ", precision)
+        precision = "double"
+        rdtype = dtypes[precision]["tf"]["rdtype"]
+    z = config.tf_rng.uniform(shape=shape, minval=0.0, maxval=1.0, dtype=rdtype)
     z = tf.math.less(z, p)
     return z
 
 def drop_uts_in_sector(batch_size, num_ut, bs_height, elevation_angle, isd,
-                       dtype=tf.complex64):
+                       precision=None):
     r"""
     Uniformly sample UT locations from a sector.
 
@@ -546,11 +563,10 @@ def drop_uts_in_sector(batch_size, num_ut, bs_height, elevation_angle, isd,
     isd : tf.float
         Inter-site distance, i.e., the distance between two adjacent BSs [m]
 
-    dtype : tf.DType
-        Datatype to use for internal processing and output.
-        If a complex datatype is provided, the corresponding precision of
-        real components is used.
-        Defaults to `tf.complex64` (`tf.float32`).
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Output
     ------
@@ -558,12 +574,10 @@ def drop_uts_in_sector(batch_size, num_ut, bs_height, elevation_angle, isd,
         UTs locations in the X-Y plan
     """
 
-    if dtype.is_complex:
-        real_dtype = dtype.real_dtype
-    elif dtype.if_floating:
-        real_dtype = dtype
+    if precision is None:
+        rdtype = config.tf_rdtype
     else:
-        raise AssertionError("dtype must be a complex or floating datatype")
+        rdtype = dtypes[precision]["tf"]["rdtype"]
 
     # Gets the actual distance from the UTs to the BS based on the BS height and elevation angle
     # Samples a random value for an xy center location with the corret distance and then places UTs around
@@ -577,20 +591,20 @@ def drop_uts_in_sector(batch_size, num_ut, bs_height, elevation_angle, isd,
 
     # Randomly assign the UTs to one of the two half of the sector
     side = sample_bernoulli([batch_size, num_ut],
-                            tf.cast(0.5, real_dtype),
-                            real_dtype)
-    side = tf.cast(side, real_dtype)
+                            tf.cast(0.5, rdtype),
+                            rdtype)
+    side = tf.cast(side, rdtype)
     side = 2.*side+1.
 
     # Set UT location in X-Y coordinate system
     x_dis = tf.random.uniform(shape=[batch_size, num_ut],
                                    minval=-isd/2.0,
                                    maxval=isd/2.0,
-                                   dtype=real_dtype)
+                                   dtype=rdtype)
     y_dis = tf.random.uniform(shape=[batch_size, num_ut],
                                    minval=-isd/2.0,
                                    maxval=isd/2.0,
-                                   dtype=real_dtype)
+                                   dtype=rdtype)
 
     ut_loc = tf.stack([x_base+x_dis,
                        y_base+y_dis], axis=-1)
@@ -606,7 +620,7 @@ def set_3gpp_scenario_parameters(   scenario,
                                     indoor_probability = None,
                                     min_ut_velocity=None,
                                     max_ut_velocity=None,
-                                    dtype=tf.complex64):
+                                    precision=None):
     r"""
     Set valid parameters for a specified 3GPP system level ``scenario``
     (DenseUrban, Urban, or SubUrban).
@@ -646,11 +660,10 @@ def set_3gpp_scenario_parameters(   scenario,
     max_ut_velocity : None or tf.float
         Maximim UT velocity [m/s]
 
-    dtype : tf.DType
-        Datatype to use for internal processing and output.
-        If a complex datatype is provided, the corresponding precision of
-        real components is used.
-        Defaults to `tf.complex64` (`tf.float32`).
+    precision : str, `None` (default) | 'single' | 'double'
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :py:attr:`~sionna.phy.config.precision` is used.
     Output
     --------
     min_bs_ut_dist : tf.float
@@ -684,12 +697,10 @@ def set_3gpp_scenario_parameters(   scenario,
     assert scenario in ('urb', 'dur', 'sur'),\
         "`scenario` must be one of 'urb', 'dur', 'sur'"
 
-    if dtype.is_complex:
-        real_dtype = dtype.real_dtype
-    elif dtype.if_floating:
-        real_dtype = dtype
+    if precision is None:
+        rdtype = config.tf_rdtype
     else:
-        raise AssertionError("dtype must be a complex or floating datatype")
+        rdtype = dtypes[precision]["tf"]["rdtype"]
 
     # Default values for scenario parameters.
     # Partially taken from TR38.901, sections 7.2 and 7.4.
@@ -698,42 +709,42 @@ def set_3gpp_scenario_parameters(   scenario,
     # All velocities are in meters per second.
     # The elevation angle is in degrees
     default_scenario_par = {'dur' : {
-                                'isd' : tf.constant(200., real_dtype),
-                                'bs_height' : tf.constant(600000.0, real_dtype),
-                                'elevation_angle' : tf.constant(80., real_dtype),
-                                'min_ut_height' : tf.constant(1.5, real_dtype),
-                                'max_ut_height' : tf.constant(1.5, real_dtype),
+                                'isd' : tf.constant(200., rdtype),
+                                'bs_height' : tf.constant(600000.0, rdtype),
+                                'elevation_angle' : tf.constant(80., rdtype),
+                                'min_ut_height' : tf.constant(1.5, rdtype),
+                                'max_ut_height' : tf.constant(1.5, rdtype),
                                 'indoor_probability' : tf.constant(0.0,#Zero as HAPS are currently not considered
-                                                                    real_dtype),
+                                                                    rdtype),
                                 'min_ut_velocity' : tf.constant(0.0,
-                                                                    real_dtype),
-                                'max_ut_velocity' :tf.constant(0.0, real_dtype)
+                                                                    rdtype),
+                                'max_ut_velocity' :tf.constant(0.0, rdtype)
                             },
                             'urb' : {
-                                'isd' : tf.constant(500., real_dtype),
-                                'elevation_angle' : tf.constant(80., real_dtype),
-                                'bs_height' : tf.constant(600000.0, real_dtype),
-                                'min_ut_height' : tf.constant(1.5, real_dtype),
-                                'max_ut_height' : tf.constant(1.5, real_dtype),
+                                'isd' : tf.constant(500., rdtype),
+                                'elevation_angle' : tf.constant(80., rdtype),
+                                'bs_height' : tf.constant(600000.0, rdtype),
+                                'min_ut_height' : tf.constant(1.5, rdtype),
+                                'max_ut_height' : tf.constant(1.5, rdtype),
                                 'indoor_probability' : tf.constant(0.0,#Zero as HAPS are currently not considered
-                                                                    real_dtype),
+                                                                    rdtype),
                                 'min_ut_velocity' : tf.constant(0.0,
-                                                                    real_dtype),
+                                                                    rdtype),
                                 'max_ut_velocity' : tf.constant(0.0,
-                                                                    real_dtype),
+                                                                    rdtype),
                             },
                             'sur' : {
-                                'isd' : tf.constant(5000., real_dtype),
-                                'elevation_angle' : tf.constant(80., real_dtype),
-                                'bs_height' : tf.constant(600000.0, real_dtype),
-                                'min_ut_height' : tf.constant(1.5, real_dtype),
-                                'max_ut_height' : tf.constant(1.5, real_dtype),
+                                'isd' : tf.constant(5000., rdtype),
+                                'elevation_angle' : tf.constant(80., rdtype),
+                                'bs_height' : tf.constant(600000.0, rdtype),
+                                'min_ut_height' : tf.constant(1.5, rdtype),
+                                'max_ut_height' : tf.constant(1.5, rdtype),
                                 'indoor_probability' : tf.constant(0.0,#Zero as HAPS are currently not considered
-                                                                    real_dtype),
+                                                                    rdtype),
                                 'min_ut_velocity' : tf.constant(0.0,
-                                                                    real_dtype),
+                                                                    rdtype),
                                 'max_ut_velocity' : tf.constant(0.0,
-                                                                    real_dtype)
+                                                                    rdtype)
                             }
                         }
 
@@ -845,7 +856,7 @@ def generate_uts_topology(  batch_size,
                             indoor_probability,
                             min_ut_velocity,
                             max_ut_velocity,
-                            dtype=tf.complex64):
+                            precision=None):
     # pylint: disable=line-too-long
     r"""
     Sample UTs location from a sector or a cell
@@ -895,11 +906,10 @@ def generate_uts_topology(  batch_size,
     max_ut_velocity : None or tf.float
         Maximum UT velocity [m/s]
 
-    dtype : tf.DType
-        Datatype to use for internal processing and output.
-        If a complex datatype is provided, the corresponding precision of
-        real components is used.
-        Defaults to `tf.complex64` (`tf.float32`).
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Output
     ------
@@ -920,12 +930,10 @@ def generate_uts_topology(  batch_size,
     assert drop_area in ('sector', 'cell'),\
         "Drop area must be either 'sector' or 'cell'"
 
-    if dtype.is_complex:
-        real_dtype = dtype.real_dtype
-    elif dtype.if_floating:
-        real_dtype = dtype
+    if precision is None:
+        rdtype = config.tf_rdtype
     else:
-        raise AssertionError("dtype must be a complex or floating datatype")
+        rdtype = dtypes[precision]["tf"]["rdtype"]
 
     # Randomly generating the UT locations
     ut_loc_xy = drop_uts_in_sector(batch_size,
@@ -933,7 +941,7 @@ def generate_uts_topology(  batch_size,
                                    bs_height,
                                    elevation_angle,
                                    isd,
-                                   dtype)
+                                   precision=precision)
     if drop_area == 'sector':
         sectors = tf.constant(0, tf.int32)
     elif drop_area == 'cell':
@@ -948,7 +956,7 @@ def generate_uts_topology(  batch_size,
     ut_loc_z = tf.random.uniform(   shape=[batch_size, num_ut, 1],
                                     minval=min_ut_height,
                                     maxval=max_ut_height,
-                                    dtype=real_dtype)
+                                    dtype=rdtype)
     ut_loc = tf.concat([    ut_loc_xy,
                             ut_loc_z], axis=-1)
 
@@ -956,20 +964,20 @@ def generate_uts_topology(  batch_size,
     #Currently indoor scenarios are not supported and therefore the probability is forced to be 0. This line already exists to support future implementations.
     indoor_probability = 0.0
     in_state = sample_bernoulli(   [batch_size, num_ut], indoor_probability,
-                                    real_dtype)
+                                    rdtype)
 
     # Randomly generate the UT velocities
     ut_vel_angle = tf.random.uniform(   [batch_size, num_ut],
                                         minval=-PI,
                                         maxval=PI,
-                                        dtype=real_dtype)
+                                        dtype=rdtype)
     ut_vel_norm = tf.random.uniform(    [batch_size, num_ut],
                                         minval=min_ut_velocity,
                                         maxval=max_ut_velocity,
-                                        dtype=real_dtype)
+                                        dtype=rdtype)
     ut_velocities = tf.stack([  ut_vel_norm*tf.math.cos(ut_vel_angle),
                                 ut_vel_norm*tf.math.sin(ut_vel_angle),
-                                tf.zeros([batch_size, num_ut], real_dtype)],
+                                tf.zeros([batch_size, num_ut], rdtype)],
                                 axis=-1)
 
     
@@ -992,7 +1000,7 @@ def gen_single_sector_topology( batch_size,
                                 indoor_probability = None,
                                 min_ut_velocity=None,
                                 max_ut_velocity=None,
-                                dtype=tf.complex64):
+                                precision=None):
     # pylint: disable=line-too-long
     r"""
     Generate a batch of topologies consisting of a single BS located at the
@@ -1092,11 +1100,10 @@ def gen_single_sector_topology( batch_size,
     max_ut_velocity : None or tf.float
         Maximim UT velocity [m/s]
 
-    dtype : tf.DType
-        Datatype to use for internal processing and output.
-        If a complex datatype is provided, the corresponding precision of
-        real components is used.
-        Defaults to `tf.complex64` (`tf.float32`).
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Output
     ------
@@ -1129,7 +1136,7 @@ def gen_single_sector_topology( batch_size,
                                             indoor_probability,
                                             min_ut_velocity,
                                             max_ut_velocity,
-                                            dtype)
+                                            precision=precision)
     isd, bs_height, elevation_angle, min_ut_height, max_ut_height,\
             indoor_probability, min_ut_velocity, max_ut_velocity = params
 
@@ -1148,26 +1155,29 @@ def gen_single_sector_topology( batch_size,
     #bs_height >= 600000.0 and bs_height <= 36000000.0, \
         
 
-    real_dtype = dtype.real_dtype
+    if precision is None:
+        rdtype = config.tf_rdtype
+    else:
+        rdtype = dtypes[precision]["tf"]["rdtype"]
 
     # Setting BS to (0,0,bs_height)
-    bs_loc = tf.stack([ tf.zeros([batch_size, 1], real_dtype),
-                        tf.zeros([batch_size, 1], real_dtype),
+    bs_loc = tf.stack([ tf.zeros([batch_size, 1], rdtype),
+                        tf.zeros([batch_size, 1], rdtype),
                         tf.fill( [batch_size, 1], bs_height)], axis=-1)
 
     # BS always faces exactly down in simulations
-    bs_yaw = tf.constant(0.0, real_dtype)
-    bs_downtilt = tf.constant(0.5*PI, real_dtype)
+    bs_yaw = tf.constant(0.0, rdtype)
+    bs_downtilt = tf.constant(0.5*PI, rdtype)
     #bs_downtilt = PI
     bs_orientation = tf.stack([ tf.fill([batch_size, 1], bs_yaw),
                                 tf.fill([batch_size, 1], bs_downtilt),
-                                tf.zeros([batch_size, 1], real_dtype)], axis=-1)
+                                tf.zeros([batch_size, 1], rdtype)], axis=-1)
 
     # Generating the UTs
     ut_topology = generate_uts_topology(    batch_size,
                                             num_ut,
                                             'sector',
-                                            tf.zeros([2], real_dtype),
+                                            tf.zeros([2], rdtype),
                                             bs_height,
                                             elevation_angle,
                                             isd,
@@ -1176,7 +1186,7 @@ def gen_single_sector_topology( batch_size,
                                             indoor_probability,
                                             min_ut_velocity,
                                             max_ut_velocity,
-                                            dtype)
+                                            precision)
     ut_loc, ut_orientations, ut_velocities, in_state = ut_topology
 
     return ut_loc, bs_loc, ut_orientations, bs_orientation, ut_velocities,\
@@ -1195,7 +1205,7 @@ def gen_single_sector_topology_interferers( batch_size,
                                             indoor_probability = None,
                                             min_ut_velocity=None,
                                             max_ut_velocity=None,
-                                            dtype=tf.complex64):
+                                            precision=None):
     # pylint: disable=line-too-long
     r"""
     Generate a batch of topologies consisting of a single BS located at the
@@ -1303,11 +1313,10 @@ def gen_single_sector_topology_interferers( batch_size,
     max_ut_velocity : None or tf.float
         Maximim UT velocity [m/s]
 
-    dtype : tf.DType
-        Datatype to use for internal processing and output.
-        If a complex datatype is provided, the corresponding precision of
-        real components is used.
-        Defaults to `tf.complex64` (`tf.float32`).
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Output
     ------
@@ -1349,31 +1358,34 @@ def gen_single_sector_topology_interferers( batch_size,
                                             indoor_probability,
                                             min_ut_velocity,
                                             max_ut_velocity,
-                                            dtype)
+                                            precision)
     min_bs_ut_dist, isd, bs_height, min_ut_height, max_ut_height,\
             indoor_probability, min_ut_velocity, max_ut_velocity = params
 
-    real_dtype = dtype.real_dtype
+    if precision is None:
+        rdtype = config.tf_rdtype
+    else:
+        rdtype = dtypes[precision]["tf"]["rdtype"]
 
     # Setting BS to (0,0,bs_height)
-    bs_loc = tf.stack([ tf.zeros([batch_size, 1], real_dtype),
-                        tf.zeros([batch_size, 1], real_dtype),
+    bs_loc = tf.stack([ tf.zeros([batch_size, 1], rdtype),
+                        tf.zeros([batch_size, 1], rdtype),
                         tf.fill( [batch_size, 1], bs_height)], axis=-1)
 
     # Setting the BS orientation such that it is downtilted towards the center
     # of the sector
     sector_center = (min_bs_ut_dist + 0.5*isd)*0.5
     bs_downtilt = 0.5*PI - tf.math.atan(sector_center/bs_height)
-    bs_yaw = tf.constant(PI/3.0, real_dtype)
+    bs_yaw = tf.constant(PI/3.0, rdtype)
     bs_orientation = tf.stack([ tf.fill([batch_size, 1], bs_yaw),
                                 tf.fill([batch_size, 1], bs_downtilt),
-                                tf.zeros([batch_size, 1], real_dtype)], axis=-1)
+                                tf.zeros([batch_size, 1], rdtype)], axis=-1)
 
     # Generating the UTs located in the UTs served by the BS
     ut_topology = generate_uts_topology(    batch_size,
                                             num_ut,
                                             'sector',
-                                            tf.zeros([2], real_dtype),
+                                            tf.zeros([2], rdtype),
                                             min_bs_ut_dist,
                                             isd,
                                             min_ut_height,
@@ -1421,7 +1433,7 @@ def gen_single_sector_topology_interferers( batch_size,
 
 
 
-def exp_corr_mat(a, n, dtype=tf.complex64):
+def exp_corr_mat(a, n, precision=None):
     r"""Generate exponential correlation matrices.
 
     This function computes for every element :math:`a` of a complex-valued
@@ -1454,8 +1466,13 @@ def exp_corr_mat(a, n, dtype=tf.complex64):
     R : [n_0, ..., n_k, n, n], tf.complex
         A tensor of the same dtype as the input tensor :math:`\mathbf{a}`.
     """
+    if precision is None:
+        cdtype = config.tf_cdtype
+    else:
+        cdtype = dtypes[precision]["tf"]["cdtype"]
+    
     # Cast to desired output dtype and expand last dimension for broadcasting
-    a = tf.cast(a, dtype=dtype)
+    a = tf.cast(a, dtype=cdtype)
     a = tf.expand_dims(a, -1)
 
     # Check that a is valid
@@ -1464,7 +1481,7 @@ def exp_corr_mat(a, n, dtype=tf.complex64):
 
     # Vector of exponents, adapt dtype and dimensions for broadcasting
     exp = tf.range(0, n)
-    exp = tf.cast(exp, dtype=dtype)
+    exp = tf.cast(exp, dtype=cdtype)
     exp = expand_to_rank(exp, tf.rank(a), 0)
 
     # First column of R
@@ -1486,7 +1503,7 @@ def exp_corr_mat(a, n, dtype=tf.complex64):
     return r
 
 def one_ring_corr_mat(phi_deg, num_ant, d_h=0.5, sigma_phi_deg=15,
-                      dtype=tf.complex64):
+                      precision=None):
     r"""Generate covariance matrices from the one-ring model.
 
     This function generates approximate covariance matrices for the
@@ -1520,8 +1537,10 @@ def one_ring_corr_mat(phi_deg, num_ant, d_h=0.5, sigma_phi_deg=15,
         Angular standard deviation (deg). Defaults to 15 (deg). Values greater
         than 15 should not be used as the approximation becomes invalid.
 
-    dtype : tf.complex64, tf.complex128
-        The dtype of the output.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Output
     ------
@@ -1529,12 +1548,19 @@ def one_ring_corr_mat(phi_deg, num_ant, d_h=0.5, sigma_phi_deg=15,
         Tensor containing the covariance matrices of the desired dtype.
     """
 
+    if precision is None:
+        rdtype = config.tf_rdtype
+        cdtype = config.tf_cdtype
+    else:
+        rdtype = dtypes[precision]["tf"]["rdtype"]
+        cdtype = dtypes[precision]["tf"]["cdtype"]
+
     if sigma_phi_deg>15:
         warnings.warn("sigma_phi_deg should be smaller than 15.")
 
     # Convert all inputs to radians
-    phi_deg = tf.cast(phi_deg, dtype=dtype.real_dtype)
-    sigma_phi_deg = tf.cast(sigma_phi_deg, dtype=dtype.real_dtype)
+    phi_deg = tf.cast(phi_deg, dtype=rdtype)
+    sigma_phi_deg = tf.cast(sigma_phi_deg, dtype=rdtype)
     phi = deg_2_rad(phi_deg)
     sigma_phi = deg_2_rad(sigma_phi_deg)
 
@@ -1543,15 +1569,15 @@ def one_ring_corr_mat(phi_deg, num_ant, d_h=0.5, sigma_phi_deg=15,
     sigma_phi = tf.expand_dims(sigma_phi, -1)
 
     # Compute first column
-    c = tf.constant(2*PI*d_h, dtype=dtype.real_dtype)
-    d = c*tf.range(0, num_ant, dtype=dtype.real_dtype)
+    c = tf.constant(2*PI*d_h, dtype=rdtype)
+    d = c*tf.range(0, num_ant, dtype=rdtype)
     d = expand_to_rank(d, tf.rank(phi), 0)
 
-    a = tf.complex(tf.cast(0, dtype=dtype.real_dtype), d*tf.sin(phi))
+    a = tf.complex(tf.cast(0, dtype=rdtype), d*tf.sin(phi))
     exp_a = tf.exp(a) # First exponential term
 
-    b = -tf.cast(0.5, dtype=dtype.real_dtype)*(sigma_phi*d*tf.cos(phi))**2
-    exp_b = tf.cast(tf.exp(b), dtype=dtype) # Second exponetial term
+    b = -tf.cast(0.5, dtype=rdtype)*(sigma_phi*d*tf.cos(phi))**2
+    exp_b = tf.cast(tf.exp(b), dtype=cdtype) # Second exponetial term
 
     col = exp_a*exp_b # First column
 
