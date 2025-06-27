@@ -15,8 +15,10 @@ The process is based on 3GPP TR38.901, with TR38.811 serving mainly as an extens
 import tensorflow as tf
 
 from sionna.phy.utils import log10
+from sionna.phy import config
+from sionna.phy.block import Object
 
-class LSP:
+class LSP(Object):
     r"""
     Class for conveniently storing LSPs
 
@@ -53,8 +55,9 @@ class LSP:
         self.k_factor = k_factor
         self.zsa = zsa
         self.zsd = zsd
+        super().__init__()
 
-class LSPGenerator:
+class LSPGenerator(Object):
     """
     Sample large scale parameters (LSP) and pathloss given a channel scenario,
     e.g., DenseUrban, Urban, or SubUrban.
@@ -86,6 +89,7 @@ class LSPGenerator:
 
     def __init__(self, scenario):
         self._scenario = scenario
+        super().__init__(precision=scenario.precision)
 
     def sample_pathloss(self):
         """
@@ -120,9 +124,10 @@ class LSPGenerator:
         # distribution), where they are correlated as indicated in TR38901
         # specification (Section 7.5, step 4)
 
-        s = tf.random.normal(shape=[self._scenario.batch_size,
-            self._scenario.num_bs, self._scenario.num_ut, 7],
-            dtype=self._scenario.dtype.real_dtype)
+        s = config.tf_rng.normal(shape=[self._scenario.batch_size,
+                                        self._scenario.num_bs,
+                                        self._scenario.num_ut, 7],
+                                        dtype=self.rdtype)
         
         ## Applyting cross-LSP correlation
         s = tf.expand_dims(s, axis=4)
@@ -141,7 +146,7 @@ class LSPGenerator:
         lsp_log_std = self._scenario.lsp_log_std
         lsp_log = lsp_log_std*s + lsp_log_mean
         ## Mapping to linear domain
-        lsp = tf.math.pow(tf.constant(10., self._scenario.dtype.real_dtype),
+        lsp = tf.math.pow(tf.constant(10., self.rdtype),
             lsp_log)
 
         # Limit the RMS azimuth arrival (ASA) and azimuth departure (ASD)
@@ -212,7 +217,7 @@ class LSPGenerator:
         # We create the correlation matrix initialized to the identity matrix
         cross_lsp_corr_mat = tf.eye(7, 7,batch_shape=[self._scenario.batch_size,
             self._scenario.num_bs, self._scenario.num_ut],
-            dtype=self._scenario.dtype.real_dtype)
+            dtype=self.rdtype)
 
         # Tensors of bool indicating the state of UT-BS links
         # Indoor
@@ -235,7 +240,7 @@ class LSPGenerator:
             # Mask to put the parameters in the right spot of the 7x7
             # correlation matrix
             mask = tf.scatter_nd([[m,n],[n,m]],
-                tf.constant([1.0, 1.0], self._scenario.dtype.real_dtype), [7,7])
+                tf.constant([1.0, 1.0], self.rdtype), [7,7])
             mask = tf.reshape(mask, [1,1,1,7,7])
             # Get the parameter value according to the link scenario
             update = self._scenario.get_param(parameter_name)
@@ -358,7 +363,7 @@ class LSPGenerator:
             # The correlation distance is different for each LSP.
             filtering_matrix = tf.eye(self._scenario.num_ut,
                 self._scenario.num_ut, batch_shape=[self._scenario.batch_size,
-                self._scenario.num_bs], dtype=self._scenario.dtype.real_dtype)
+                self._scenario.num_bs], dtype=self.rdtype)
             distance_scaling_matrix = self._scenario.get_param(parameter_name)
             distance_scaling_matrix = tf.tile(tf.expand_dims(
                 distance_scaling_matrix, axis=3),
@@ -366,15 +371,15 @@ class LSPGenerator:
             distance_scaling_matrix = -1./distance_scaling_matrix
             # LoS
             filtering_matrix = tf.where(los_pair_bool,
-                tf.constant(1.0, self._scenario.dtype.real_dtype),
+                tf.constant(1.0, self.rdtype),
                     filtering_matrix)
             # NLoS
             filtering_matrix = tf.where(nlos_pair_bool,
-                tf.constant(1.0, self._scenario.dtype.real_dtype),
+                tf.constant(1.0, self.rdtype),
                     filtering_matrix)
             # indoor
             filtering_matrix = tf.where(o2i_pair_bool,
-                tf.constant(1.0, self._scenario.dtype.real_dtype),
+                tf.constant(1.0, self.rdtype),
                     filtering_matrix)
             # Stacking
             filtering_matrices.append(filtering_matrix)
@@ -431,14 +436,14 @@ class LSPGenerator:
 
         # Path loss through external wall
         pl_tw = 5.0 - 10.*log10(0.3*tf.math.pow(tf.constant(10.,
-            self._scenario.dtype.real_dtype), -l_glass/10.0) + 0.7*tf.math.pow(
-                tf.constant(10., self._scenario.dtype.real_dtype),
+            self.rdtype), -l_glass/10.0) + 0.7*tf.math.pow(
+                tf.constant(10., self.rdtype),
                     -l_concrete/10.0))
 
         # Filtering-out the O2I pathloss for UTs located outdoor
         indoor_mask = tf.where(self._scenario.indoor, tf.constant(1.0,
-            self._scenario.dtype.real_dtype), tf.zeros([batch_size, num_ut],
-            self._scenario.dtype.real_dtype))
+            self.rdtype), tf.zeros([batch_size, num_ut],
+            self.rdtype))
         indoor_mask = tf.expand_dims(indoor_mask, axis=1)
         pl_tw = pl_tw*indoor_mask
 
@@ -449,7 +454,7 @@ class LSPGenerator:
         # Random path loss component
         # Gaussian distributed with standard deviation 4.4 in dB
         pl_rnd = tf.random.normal(shape=[batch_size, num_bs, num_ut],
-            mean=0.0, stddev=4.4, dtype=self._scenario.dtype.real_dtype)
+            mean=0.0, stddev=4.4, dtype=self.rdtype)
         pl_rnd = pl_rnd*indoor_mask
 
         return pl_tw + pl_in + pl_rnd
@@ -491,13 +496,13 @@ class LSPGenerator:
 
         # Path loss through external wall
         pl_tw = 5.0 - 10.*log10(0.7*tf.math.pow(tf.constant(10.,
-            self._scenario.dtype.real_dtype), -l_iirglass/10.0)
+            self.rdtype), -l_iirglass/10.0)
                 + 0.3*tf.math.pow(tf.constant(10.,
-                self._scenario.dtype.real_dtype), -l_concrete/10.0))
+                self.rdtype), -l_concrete/10.0))
 
         # Filtering-out the O2I pathloss for outdoor UTs
         indoor_mask = tf.where(self._scenario.indoor, 1.0,
-            tf.zeros([batch_size, num_ut], self._scenario.dtype.real_dtype))
+            tf.zeros([batch_size, num_ut], self.rdtype))
         indoor_mask = tf.expand_dims(indoor_mask, axis=1)
         pl_tw = pl_tw*indoor_mask
 
@@ -510,7 +515,7 @@ class LSPGenerator:
         # high loss model
         pl_rnd = tf.random.normal(shape=[batch_size, num_bs, num_ut],
                                   mean=0.0, stddev=6.5,
-                                  dtype=self._scenario.dtype.real_dtype)
+                                  dtype=self.rdtype)
         pl_rnd = pl_rnd*indoor_mask
 
         return pl_tw + pl_in + pl_rnd
