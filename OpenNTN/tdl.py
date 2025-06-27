@@ -296,18 +296,18 @@ class TDL(ChannelModel):
 
         self._num_rx_ant = num_rx_ant
         self._num_tx_ant = num_tx_ant
-        self._carrier_frequency = tf.constant(carrier_frequency, real_dtype)
+        self._carrier_frequency = tf.constant(carrier_frequency, self.rdtype)
         self._num_sinusoids = tf.constant(num_sinusoids, tf.int32)
         self._los_angle_of_arrival = tf.constant(   los_angle_of_arrival,
-                                                    real_dtype)
-        self._delay_spread = tf.constant(delay_spread, real_dtype)
-        self._min_speed = tf.constant(min_speed, real_dtype)
+                                                    self.rdtype)
+        self._delay_spread = tf.constant(delay_spread, self.rdtype)
+        self._min_speed = tf.constant(min_speed, self.rdtype)
         if max_speed is None:
             self._max_speed = self._min_speed
         else:
             assert max_speed >= min_speed, \
                 "min_speed cannot be larger than max_speed"
-            self._max_speed = tf.constant(max_speed, real_dtype)
+            self._max_speed = tf.constant(max_speed, self.rdtype)
 
         # Pre-compute maximum and minimum Doppler shifts
         self._min_doppler = self._compute_doppler(self._min_speed)
@@ -315,7 +315,7 @@ class TDL(ChannelModel):
 
         # Precompute average angles of arrivals for each sinusoid
         alpha_const = 2.*PI/num_sinusoids * \
-                      tf.range(1., self._num_sinusoids+1, 1., dtype=real_dtype)
+                      tf.range(1., self._num_sinusoids+1, 1., dtype=self.rdtype)
         self._alpha_const = tf.reshape( alpha_const,
                                         [   1, # batch size
                                             1, # num rx
@@ -328,21 +328,21 @@ class TDL(ChannelModel):
 
         # Precompute square root of spatial covariance matrices
         if spatial_corr_mat is not None:
-            spatial_corr_mat = tf.cast(spatial_corr_mat, self._dtype)
+            spatial_corr_mat = tf.cast(spatial_corr_mat, self.cdtype)
             spatial_corr_mat_sqrt = tf.linalg.cholesky(spatial_corr_mat)
             spatial_corr_mat_sqrt = expand_to_rank(spatial_corr_mat_sqrt, 7, 0)
             self._spatial_corr_mat_sqrt = spatial_corr_mat_sqrt
         else:
             self._spatial_corr_mat_sqrt = None
             if rx_corr_mat is not None:
-                rx_corr_mat = tf.cast(rx_corr_mat, self._dtype)
+                rx_corr_mat = tf.cast(rx_corr_mat, self.cdtype)
                 rx_corr_mat_sqrt = tf.linalg.cholesky(rx_corr_mat)
                 rx_corr_mat_sqrt = expand_to_rank(rx_corr_mat_sqrt, 7, 0)
                 self._rx_corr_mat_sqrt = rx_corr_mat_sqrt
             else:
                 self._rx_corr_mat_sqrt = None
             if tx_corr_mat is not None:
-                tx_corr_mat = tf.cast(tx_corr_mat, self._dtype)
+                tx_corr_mat = tf.cast(tx_corr_mat, self.cdtype)
                 tx_corr_mat_sqrt = tf.linalg.cholesky(tx_corr_mat)
                 tx_corr_mat_sqrt = expand_to_rank(tx_corr_mat_sqrt, 7, 0)
                 self._tx_corr_mat_sqrt = tx_corr_mat_sqrt
@@ -415,7 +415,7 @@ class TDL(ChannelModel):
     def __call__(self, batch_size, num_time_steps, sampling_frequency):
 
         # Time steps
-        sample_times = tf.range(num_time_steps, dtype=self._real_dtype)\
+        sample_times = tf.range(num_time_steps, dtype=self.rdtype)\
             /sampling_frequency
         sample_times = tf.expand_dims(insert_dims(sample_times, 6, 0), -1)
 
@@ -432,7 +432,7 @@ class TDL(ChannelModel):
                                         1], # num sinusoids
                                         self._min_doppler,
                                         self._max_doppler,
-                                        self._real_dtype)
+                                        self.rdtype)
 
         # Eq. (7) in the paper [TDL] (see class docstring)
         # The angle of arrival is different for each TX-RX link.
@@ -445,10 +445,10 @@ class TDL(ChannelModel):
                                     1, # num time steps
                                     self._num_sinusoids],
                                     -PI/tf.cast(self._num_sinusoids,
-                                                self._real_dtype),
+                                                self.rdtype),
                                     PI/tf.cast( self._num_sinusoids,
-                                                self._real_dtype),
-                                    self._real_dtype)
+                                                self.rdtype),
+                                    self.rdtype)
         alpha = self._alpha_const + theta
 
         # Eq. (6a)-(6c) in the paper [TDL] (see class docstring)
@@ -462,15 +462,15 @@ class TDL(ChannelModel):
                                     self._num_sinusoids],
                                     -PI,
                                     PI,
-                                    self._real_dtype)
+                                    self.rdtype)
 
         argument = doppler * sample_times * tf.cos(alpha) + phi
 
         # Eq. (6a) in the paper [SoS]
         h = tf.complex(tf.cos(argument), tf.sin(argument))
         normalization_factor = 1./tf.sqrt(  tf.cast(self._num_sinusoids,
-                                            self._real_dtype))
-        h = tf.complex(normalization_factor, tf.constant(0., self._real_dtype))\
+                                            self.rdtype))
+        h = tf.complex(normalization_factor, tf.constant(0., self.rdtype))\
             *tf.reduce_sum(h, axis=-1)
 
         # Scaling by average power
@@ -492,7 +492,7 @@ class TDL(ChannelModel):
                                         1], # Shared by all time steps
                                         -PI,
                                         PI,
-                                        self._real_dtype)
+                                        self.rdtype)
             # Remove the sinusoids dim
             doppler = tf.squeeze(doppler, axis=-1)
             sample_times = tf.squeeze(sample_times, axis=-1)
@@ -622,9 +622,9 @@ class TDL(ChannelModel):
         self._num_clusters = tf.constant(params['num_clusters'], tf.int32)
 
         # Retrieve power and delays
-        delays = tf.constant(params['delays'], self._real_dtype)
+        delays = tf.constant(params['delays'], self.rdtype)
         mean_powers = np.power(10.0, np.array(params['powers'])/10.0)
-        mean_powers = tf.constant(mean_powers, self._dtype)
+        mean_powers = tf.constant(mean_powers, self.cdtype)
 
         if self._los:
             # The power of the specular component of the first path is stored
