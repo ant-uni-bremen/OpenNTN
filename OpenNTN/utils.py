@@ -465,7 +465,7 @@ def deg_2_rad(x):
         y : Tensor
             Angles ``x`` converted to radian
     """
-    return x*tf.constant(PI/180.0, x.dtype)
+    return x*tf.constant(PI/180.0, tf.float64)
 
 def rad_2_deg(x):
     r"""
@@ -522,16 +522,20 @@ def sample_bernoulli(shape, p, precision=None):
     : Tensor of shape ``shape``, bool
         Binary samples
     """
+    print("in tr38811 utils sample bernoulli, precision is: ", precision)
     if precision is None:
         rdtype = config.tf_rdtype
-    elif precision is tf.float32:
-        print("Debugging sionna.phy.utils.misc.py: the precision is: ", precision)
+    elif precision is tf.float32 or precision == "single":
+        #print("Debugging sionna.phy.utils.misc.py: the precision is: ", precision)
         precision = "single"
         rdtype = dtypes[precision]["tf"]["rdtype"]
-    elif precision is tf.float64:
-        print("Debugging sionna.phy.utils.misc.py: the precision is: ", precision)
+        #print("before if rdtype is: ", rdtype)
+    elif precision is tf.float64 or precision == "double":
+        #print("Debugging sionna.phy.utils.misc.py: the precision is: ", precision)
         precision = "double"
         rdtype = dtypes[precision]["tf"]["rdtype"]
+    print("After if precision is: ", precision)
+    print("After if rdtype is: ", rdtype)
     z = config.tf_rng.uniform(shape=shape, minval=0.0, maxval=1.0, dtype=rdtype)
     z = tf.math.less(z, p)
     return z
@@ -584,7 +588,7 @@ def drop_uts_in_sector(batch_size, num_ut, bs_height, elevation_angle, isd,
     # the center with some random variation based on the isd
 
     
-    actual_bs_ut_distance = bs_height /tf.math.sin(deg_2_rad(elevation_angle))
+    actual_bs_ut_distance = tf.cast(bs_height, rdtype) / tf.cast(tf.math.sin(deg_2_rad(elevation_angle)),rdtype)
     distance_center_to_ut = tf.math.sqrt(tf.math.square(actual_bs_ut_distance) - tf.math.square(bs_height))
     x_base = tf.random.uniform(shape = [1], minval=0,maxval=distance_center_to_ut)
     y_base = tf.math.sqrt(tf.math.square(actual_bs_ut_distance) - tf.math.square(bs_height) - tf.math.square(x_base))
@@ -981,8 +985,8 @@ def generate_uts_topology(  batch_size,
                                 axis=-1)
 
     
-    ut_downtilt = tf.zeros([batch_size, num_ut]) + deg_2_rad(elevation_angle + 180)
-    ut_slant = tf.zeros([batch_size, num_ut]) + deg_2_rad(elevation_angle + 90)
+    ut_downtilt = tf.zeros([batch_size, num_ut]) + tf.cast(deg_2_rad(elevation_angle + 180),rdtype)
+    ut_slant = tf.zeros([batch_size, num_ut]) + tf.cast(deg_2_rad(elevation_angle + 90),rdtype)
     #Always point at the BS, which is at [0,0,bs_height]
     ut_bearing = tf.math.atan(ut_loc_xy[:,:,1]/ut_loc_xy[:,:,0])
     ut_orientations = tf.stack([ut_bearing, ut_downtilt, ut_slant], axis=-1)
