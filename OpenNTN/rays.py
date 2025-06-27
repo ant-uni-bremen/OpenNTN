@@ -14,11 +14,13 @@ TR38.811 serving mainly as an extension.
 
 import tensorflow as tf
 
+from sionna.phy import config
+from sionna.phy.block import Object
 from sionna.phy.utils import log10
 from sionna.phy.channel.utils import deg_2_rad, wrap_angle_0_360
 
 
-class Rays:
+class Rays(Object):
     # pylint: disable=line-too-long
     r"""
     Class for conveniently storing rays
@@ -58,7 +60,7 @@ class Rays:
         self.xpr = xpr
 
 
-class RaysGenerator:
+class RaysGenerator(Object):
     """
     Sample rays according to a given channel scenario and large scale
     parameters (LSP).
@@ -90,6 +92,8 @@ class RaysGenerator:
     """
 
     def __init__(self, scenario):
+        super().__init__(precision=scenario.precision)
+
         # Scenario
         self._scenario = scenario
 
@@ -106,7 +110,7 @@ class RaysGenerator:
                                          1.1481, -0.1481,
                                          1.5195, -1.5195,
                                          2.1551, -2.1551],
-                                         self._scenario.dtype.real_dtype)
+                                         self.rdtype)
 
     #########################################
     # Public methods and properties
@@ -207,43 +211,43 @@ class RaysGenerator:
         # Initialize an empty mask
         mask = tf.zeros(shape=[scenario.batch_size, scenario.num_bs,
             scenario.num_ut, num_clusters_max],
-            dtype=self._scenario.dtype.real_dtype)
+            dtype=self.rdtype)
 
         # Indoor mask
         # Despite the indoor state currently not being supported, the code remains for future developments
         mask_indoor = tf.concat((tf.zeros([num_clusters_o2i],
-                                          self._scenario.dtype.real_dtype),
+                                          self.rdtype),
                                  tf.ones([num_clusters_max-num_clusters_o2i],
-                                    self._scenario.dtype.real_dtype)), axis=0)
+                                    self.rdtype)), axis=0)
         mask_indoor = tf.reshape(mask_indoor, [1, 1, 1, num_clusters_max])
         indoor = tf.expand_dims(scenario.indoor, axis=1) # Broadcasting with BS
-        o2i_slice_mask = tf.cast(indoor, self._scenario.dtype.real_dtype)
+        o2i_slice_mask = tf.cast(indoor, self.rdtype)
         o2i_slice_mask = tf.expand_dims(o2i_slice_mask, axis=3)
         mask = mask + o2i_slice_mask*mask_indoor
 
         # LoS
         mask_los = tf.concat([tf.zeros([num_clusters_los],
-            self._scenario.dtype.real_dtype),
+            self.rdtype),
             tf.ones([num_clusters_max-num_clusters_los],
-            self._scenario.dtype.real_dtype)], axis=0)
+            self.rdtype)], axis=0)
         mask_los = tf.reshape(mask_los, [1, 1, 1, num_clusters_max])
         los_slice_mask = scenario.los
         los_slice_mask = tf.cast(los_slice_mask,
-                                    self._scenario.dtype.real_dtype)
+                                    self.rdtype)
         los_slice_mask = tf.expand_dims(los_slice_mask, axis=3)
         mask = mask + los_slice_mask*mask_los
 
         # NLoS
         mask_nlos = tf.concat([tf.zeros([num_clusters_nlos],
-            self._scenario.dtype.real_dtype),
+            self.rdtype),
             tf.ones([num_clusters_max-num_clusters_nlos],
-            self._scenario.dtype.real_dtype)], axis=0)
+            self.rdtype)], axis=0)
         mask_nlos = tf.reshape(mask_nlos, [1, 1, 1, num_clusters_max])
         nlos_slice_mask = tf.logical_and(tf.logical_not(scenario.los),
             tf.logical_not(indoor))
         #nlos_slice_mask = tf.logical_not(scenario.los)
         nlos_slice_mask = tf.cast(nlos_slice_mask,
-                                    self._scenario.dtype.real_dtype)
+                                    self.rdtype)
         nlos_slice_mask = tf.expand_dims(nlos_slice_mask, axis=3)
         mask = mask + nlos_slice_mask*mask_nlos
 
@@ -291,7 +295,7 @@ class RaysGenerator:
         delay_spread = tf.expand_dims(delay_spread, axis=3)
         x = tf.random.uniform(shape=[batch_size, num_bs, num_ut,
             num_clusters_max], minval=1e-6, maxval=1.0,
-            dtype=self._scenario.dtype.real_dtype)
+            dtype=self.rdtype)
 
         # Moving to linear domain
         unscaled_delays = -delay_scaling_parameter*delay_spread*tf.math.log(x)
@@ -310,7 +314,7 @@ class RaysGenerator:
         scaling_factor = (0.7705 - 0.0433*rician_k_factor_db
             + 0.0002*tf.square(rician_k_factor_db)
             + 0.000017*tf.math.pow(rician_k_factor_db, tf.constant(3.,
-            self._scenario.dtype.real_dtype)))
+            self.rdtype)))
         scaling_factor = tf.expand_dims(scaling_factor, axis=3)
         delays = tf.where(tf.expand_dims(scenario.los, axis=3),
             unscaled_delays / scaling_factor, unscaled_delays)
@@ -359,13 +363,13 @@ class RaysGenerator:
         # Generate unnormalized cluster powers
         z = tf.random.normal(shape=[batch_size, num_bs, num_ut,
             num_clusters_max], mean=0.0, stddev=cluster_shadowing_std_db,
-            dtype=self._scenario.dtype.real_dtype)
+            dtype=self.rdtype)
 
         # Moving to linear domain
         powers_unnormalized = (tf.math.exp(-unscaled_delays*
             (delay_scaling_parameter - 1.0)/
             (delay_scaling_parameter*delay_spread))*tf.math.pow(tf.constant(10.,
-            self._scenario.dtype.real_dtype), -z/10.0))
+            self.rdtype), -z/10.0))
 
         # Force the power of unused cluster to zero
         powers_unnormalized = powers_unnormalized*(1.-self._cluster_mask)
@@ -458,10 +462,10 @@ class RaysGenerator:
         random_sign = tf.random.uniform(shape=[batch_size, num_bs, 1,
             num_clusters_max], minval=0, maxval=2, dtype=tf.int32)
         random_sign = 2*random_sign - 1
-        random_sign = tf.cast(random_sign, self._scenario.dtype.real_dtype)
+        random_sign = tf.cast(random_sign, self.rdtype)
         random_comp = tf.random.normal(shape=[batch_size, num_bs, num_ut,
             num_clusters_max], mean=0.0, stddev=azimuth_spread/7.0,
-            dtype=self._scenario.dtype.real_dtype)
+            dtype=self.rdtype)
         azimuth_angles = (random_sign*azimuth_angles_prime + random_comp
             + azimuth_angles_los)
         azimuth_angles = (azimuth_angles -
@@ -590,7 +594,7 @@ class RaysGenerator:
         if angle_type == 'zod':
             zenith_angles_los = scenario.los_zod
             cluster_angle_spread = (3./8.)*tf.math.pow(tf.constant(10.,
-                self._scenario.dtype.real_dtype),
+                self.rdtype),
                 scenario.lsp_log_mean[:,:,:,6])
             if self._scenario.bs_loc[0,0,2] >= 160000:
                 zenith_spread = tf.zeros_like(zenith_spread)
@@ -620,10 +624,10 @@ class RaysGenerator:
         random_sign = tf.random.uniform(shape=[batch_size, num_bs, 1,
             num_clusters_max], minval=0, maxval=2, dtype=tf.int32)
         random_sign = 2*random_sign - 1
-        random_sign = tf.cast(random_sign, self._scenario.dtype.real_dtype)
+        random_sign = tf.cast(random_sign, self.rdtype)
         random_comp = tf.random.normal(shape=[batch_size, num_bs, num_ut,
             num_clusters_max], mean=0.0, stddev=zenith_spread/7.0,
-            dtype=self._scenario.dtype.real_dtype)
+            dtype=self.rdtype)
 
         # The center cluster angles depend on the UT scenario
         zenith_angles = random_sign*zenith_angles_prime + random_comp
@@ -635,11 +639,11 @@ class RaysGenerator:
                 zenith_angles_los + zod_offset)
         else:
             additional_comp = tf.where(los_uts, los_additinoal_comp,
-                tf.constant(0.0, self._scenario.dtype.real_dtype))
+                tf.constant(0.0, self.rdtype))
             additional_comp = tf.where(nlos_uts, zenith_angles_los,
                 additional_comp)
             additional_comp = tf.where(indoor_uts, tf.constant(90.0,
-                self._scenario.dtype.real_dtype),
+                self.rdtype),
                 additional_comp)
         zenith_angles = zenith_angles + additional_comp
 
@@ -825,8 +829,8 @@ class RaysGenerator:
         # Generate XPR in log-domain
         x = tf.random.normal(shape=[batch_size, num_bs, num_ut, num_clusters,
             num_rays_per_cluster], mean=mu_xpr, stddev=std_xpr,
-            dtype=self._scenario.dtype.real_dtype)
+            dtype=self.rdtype)
         # To linear domain
         cross_polarization_power_ratios = tf.math.pow(tf.constant(10.,
-            self._scenario.dtype.real_dtype), x/10.0)
+            self.rdtype), x/10.0)
         return cross_polarization_power_ratios
