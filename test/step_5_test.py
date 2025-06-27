@@ -10,7 +10,7 @@ from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrb
 import numpy as np
 import tensorflow as tf
 import math
-from sionna.utils import log10
+from sionna.phy.utils import log10
 
 
 
@@ -77,7 +77,7 @@ class Test_URB(unittest.TestCase):
                 shape=[self.batch_size, channel_model._scenario.num_bs, 
                        channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
                 minval=1e-6, maxval=1.0,
-                dtype=channel_model._scenario.dtype.real_dtype
+                dtype=channel_model._scenario.rdtype
             )
             delay_scaling_parameter = tf.expand_dims(delay_scaling_parameter,axis=3)
             
@@ -183,7 +183,7 @@ class Test_SUR(unittest.TestCase):
                 shape=[self.batch_size, channel_model._scenario.num_bs, 
                        channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
                 minval=1e-6, maxval=1.0,
-                dtype=channel_model._scenario.dtype.real_dtype
+                dtype=channel_model._scenario.rdtype
             )
 
             # Calculate unscaled delays by applying scaling based on channel conditions
@@ -272,7 +272,7 @@ class Test_DUR(unittest.TestCase):
                 shape=[self.batch_size, channel_model._scenario.num_bs, 
                        channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
                 minval=1e-6, maxval=1.0,
-                dtype=channel_model._scenario.dtype.real_dtype
+                dtype=channel_model._scenario.rdtype
             )
 
             # Calculate unscaled delays by applying scaling based on channel conditions
