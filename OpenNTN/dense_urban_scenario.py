@@ -59,26 +59,27 @@ class DenseUrbanScenario(SystemLevelScenario):
         the same LSPs, except if the topology is changed. Defaults to
         `False`.
 
-    dtype : Complex tf.DType
-        Defines the datatype for internal calculations and the output
-        dtype. Defaults to `tf.complex64`.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
     """
 
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True,
         average_street_width=20.0, average_building_height=5.0, doppler_enabled = True,
-        dtype=tf.complex64):
+        precision=None):
 
         super().__init__(carrier_frequency, ut_array, bs_array,
-            direction, elevation_angle, enable_pathloss, enable_shadow_fading, doppler_enabled, dtype)
+            direction, elevation_angle, enable_pathloss, enable_shadow_fading, doppler_enabled, precision)
 
         # Average street width [m]
         self._average_street_width = tf.constant(average_street_width,
-            self._dtype.real_dtype)
+            self.rdtype)
 
         # Average building height [m]
         self._average_building_height = tf.constant(average_building_height,
-            self._dtype.real_dtype)
+            self.rdtype)
 
     #########################################
     # Public methods and properties
@@ -102,12 +103,12 @@ class DenseUrbanScenario(SystemLevelScenario):
     @property
     def min_2d_in(self):
         r"""Minimum indoor 2D distance for indoor UTs [m]"""
-        return tf.constant(0.0, self._dtype.real_dtype)
+        return tf.constant(0.0, self.rdtype)
 
     @property
     def max_2d_in(self):
         r"""Maximum indoor 2D distance for indoor UTs [m]"""
-        return tf.constant(10.0, self._dtype.real_dtype)
+        return tf.constant(10.0, self.rdtype)
 
     @property
     def average_street_width(self):
@@ -193,7 +194,7 @@ class DenseUrbanScenario(SystemLevelScenario):
         log_mean_asa = self.get_param("muASA")
         # SF.  Has zero-mean.
         log_mean_sf = tf.zeros([batch_size, num_bs, num_ut],
-                                self._dtype.real_dtype)
+                                self.rdtype)
         # K.  Given in dB in the 3GPP tables, hence the division by 10
         log_mean_k = self.get_param("muK")/10.0
         # ZSA
@@ -203,7 +204,7 @@ class DenseUrbanScenario(SystemLevelScenario):
         # The ZSD might be -inf which the system cannot work with. Thus it is replaced by a large negative number
         # TODO -100 is chose here just to be a large negative number. However, it is not yet tested if replacing it with larger
         # numbers further improves the results.
-        log_mean_max = tf.math.maximum(tf.constant(-100.0, self._dtype.real_dtype), log_mean_zsd)
+        log_mean_max = tf.math.maximum(tf.constant(-100.0, self.rdtype), log_mean_zsd)
         log_mean_zsd = tf.where(log_mean_zsd != float("-inf"), log_mean_max, log_mean_zsd)
 
         lsp_log_mean = tf.stack([log_mean_ds,
@@ -254,7 +255,7 @@ class DenseUrbanScenario(SystemLevelScenario):
         # ZOD offset
         zod_offset = (tf.atan((35.-3.5)/distance_2d)
           - tf.atan((35.-1.5)/distance_2d))
-        zod_offset = tf.where(self.los, tf.constant(0.0,self._dtype.real_dtype),
+        zod_offset = tf.where(self.los, tf.constant(0.0,self.rdtype),
             zod_offset)
         self._zod_offset = zod_offset
 

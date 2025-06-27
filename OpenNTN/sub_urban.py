@@ -103,9 +103,10 @@ class SubUrban(SystemLevelChannel):
         the same LSPs, except if the topology is changed. Defaults to
         `False`.
 
-    dtype : Complex tf.DType
-        Defines the datatype for internal calculations and the output
-        dtype. Defaults to `tf.complex64`.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
 
     Input
     -----
@@ -128,11 +129,11 @@ class SubUrban(SystemLevelChannel):
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True,
         average_street_width=20.0, average_building_height=5.0,
-        always_generate_lsp=False, doppler_enabled=True, dtype=tf.complex64):
+        always_generate_lsp=False, doppler_enabled=True, precision=None):
 
         # Suburban urban scenario
         scenario = SubUrbanScenario(carrier_frequency, ut_array, bs_array,
             direction, elevation_angle, enable_pathloss, enable_shadow_fading,
-            average_street_width, average_building_height, doppler_enabled, dtype)
+            average_street_width, average_building_height, doppler_enabled, precision=precision)
 
         super().__init__(scenario, always_generate_lsp)
