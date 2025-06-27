@@ -56,8 +56,8 @@ class SystemLevelChannel(ChannelModel):
             Path delays [s]
     """
 
-    def __init__(self, scenario, always_generate_lsp=False):
-
+    def __init__(self, scenario, always_generate_lsp=False, precision=None):
+        super().__init__(precision=scenario.precision)
         self._scenario = scenario
         self._lsp_sampler = LSPGenerator(scenario)
         self._ray_sampler = RaysGenerator(scenario)
@@ -73,7 +73,7 @@ class SystemLevelChannel(ChannelModel):
                                             scenario.carrier_frequency,
                                             tx_array, rx_array,
                                             subclustering=True,
-                                            dtype = scenario.dtype)
+                                            precision=self.precision)
 
         # Are new LSPs needed
         self._always_generate_lsp = always_generate_lsp
@@ -417,15 +417,15 @@ class SystemLevelChannel(ChannelModel):
             if self._scenario.direction == 'uplink':
                 pl_db = tf.transpose(pl_db, [0,2,1])
         else:
-            pl_db = tf.constant(0.0, self._scenario.dtype.real_dtype)
+            pl_db = tf.constant(0.0, self.rdtype)
 
         if not self._scenario.shadow_fading_enabled:
             sf = tf.ones_like(sf)
 
-        gain = tf.math.pow(tf.constant(10., self._scenario.dtype.real_dtype),
+        gain = tf.math.pow(tf.constant(10., self.rdtype),
             -(pl_db)/20.)*tf.sqrt(sf)
         gain = tf.reshape(gain, tf.concat([tf.shape(gain),
             tf.ones([tf.rank(h)-tf.rank(gain)], tf.int32)],0))
-        h *= tf.complex(gain, tf.constant(0., self._scenario.dtype.real_dtype))
+        h *= tf.complex(gain, tf.constant(0., self.rdtype))
 
         return h

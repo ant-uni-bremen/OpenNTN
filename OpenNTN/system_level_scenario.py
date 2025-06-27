@@ -10,9 +10,8 @@
 import json
 from importlib_resources import files
 import tensorflow as tf
-import numpy as np
-from abc import ABC, abstractmethod
-
+from abc import abstractmethod
+from sionna.phy.block import Object
 from sionna.phy.constants import SPEED_OF_LIGHT, PI
 from sionna.phy.utils import log10
 from sionna.phy.utils import sample_bernoulli
@@ -23,7 +22,7 @@ import math
 from . import models # pylint: disable=relative-beyond-top-level
 
 
-class SystemLevelScenario(ABC):
+class SystemLevelScenario(Object):
     r"""
     This class is used to set up the scenario for system level 3GPP channel
     simulation.
@@ -55,15 +54,16 @@ class SystemLevelScenario(ABC):
         If set to `True`, apply shadow fading. Otherwise, does not.
         Defaults to True.
 
-    dtype : tf.DType
-        Defines the datatype for internal calculations and the output
-        dtype. Defaults to `tf.complex64`.
+    precision : `None` (default) | "single" | "double"
+        Precision used for internal calculations and outputs.
+        If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
     """
 
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True, doppler_enabled=True,
-        dtype=tf.complex64):
-
+        precision=None):
+        super().__init__(precision=precision)
         # Direction
         assert direction in ("uplink", "downlink"), \
             "'direction' must be 'uplink' or 'downlink'"
@@ -82,11 +82,11 @@ class SystemLevelScenario(ABC):
         
         # Carrier frequency (Hz)
         self._carrier_frequency = tf.constant(carrier_frequency,
-            dtype.real_dtype)
+            self.rdtype)
 
         # Wavelength (m)
         self._lambda_0 = tf.constant(SPEED_OF_LIGHT/carrier_frequency,
-            dtype.real_dtype)
+            self.rdtype)
 
         # UTs and BSs arrays
         assert isinstance(ut_array, PanelArray), \
@@ -101,8 +101,6 @@ class SystemLevelScenario(ABC):
         assert ut_array._lambda_0 == bs_array._lambda_0 == self._lambda_0, \
             "The carrier frequencies of ut antenna, bs antenna and scenario must match"
         # data type
-        assert dtype.is_complex, "'dtype' must be complex type"
-        self._dtype = dtype
 
         
 
@@ -704,10 +702,11 @@ class SystemLevelScenario(ABC):
         r""" Path of the configuration file for NLoS scenario"""
         pass
 
-    @property
-    def dtype(self):
-        r"""Complex datatype used for internal calculation and tensors"""
-        return self._dtype
+    # TODO remove getter from old dtype structure
+    #@property
+    #def dtype(self):
+    #    r"""Complex datatype used for internal calculation and tensors"""
+    #    return self._dtype
 
     @abstractmethod
     def clip_carrier_frequency_lsp(self, fc):
@@ -748,7 +747,7 @@ class SystemLevelScenario(ABC):
         parameter_tensor = tf.zeros(shape=[self.batch_size,
                                             self.num_bs,
                                             self.num_ut],
-                                            dtype=self._dtype.real_dtype)
+                                            dtype=self.rdtype)
 
         # Parameter value, rounds elevation angle to nearest table entry 
         if parameter_name not in ("CPhiNLoS", "CThetaNLoS"):
@@ -762,11 +761,11 @@ class SystemLevelScenario(ABC):
         indoor = tf.expand_dims(self.indoor, axis=1)
         # LoS
         parameter_value_los = tf.cast(parameter_value_los,
-                                        self._dtype.real_dtype)
+                                        self.rdtype)
 
         # NLoS
         parameter_value_nlos = tf.cast(parameter_value_nlos,
-                                        self._dtype.real_dtype)
+                                        self.rdtype)
         
         parameter_tensor = tf.where(self.los, parameter_value_los,
             parameter_value_nlos)
@@ -854,7 +853,7 @@ class SystemLevelScenario(ABC):
             los_probability = self.los_probability
             los = sample_bernoulli([self.batch_size, self.num_bs,
                                         self.num_ut], los_probability,
-                                        self._dtype.real_dtype)
+                                        precision=self.precision)
         else:
             los = tf.fill([self.batch_size, self.num_bs, self.num_ut],
                             self._requested_los)
@@ -869,13 +868,13 @@ class SystemLevelScenario(ABC):
 
         indoor = self.indoor
         indoor = tf.expand_dims(indoor, axis=1) # For broadcasting with BS dim
-        indoor_mask = tf.where(indoor, tf.constant(1.0, self._dtype.real_dtype),
-            tf.constant(0.0, self._dtype.real_dtype))
+        indoor_mask = tf.where(indoor, tf.constant(1.0, self.rdtype),
+            tf.constant(0.0, self.rdtype))
 
         # Sample the indoor 2D distances for each BS-UT link
         self._distance_2d_in = tf.random.uniform(shape=[self.batch_size,
             self.num_bs, self.num_ut], minval=self.min_2d_in,
-            maxval=self.max_2d_in, dtype=self._dtype.real_dtype)*indoor_mask
+            maxval=self.max_2d_in, dtype=self.rdtype)*indoor_mask
         # Compute the outdoor 2D distances
         self._distance_2d_out = self.distance_2d - self._distance_2d_in
         # Compute the indoor 3D distances
@@ -896,12 +895,12 @@ class SystemLevelScenario(ABC):
             v = self._params_los[param_name]
             if isinstance(v, float):
                 self._params_los[param_name] = tf.constant(v,
-                                                    self._dtype.real_dtype)
+                                                    self.rdtype)
             elif isinstance(v, int):
                 self._params_los[param_name] = tf.constant(v, 
                                                     tf.int32)
             elif isinstance(v, str):
-                self._params_los[param_name] = tf.constant(float(v), self._dtype.real_dtype)
+                self._params_los[param_name] = tf.constant(float(v), self.rdtype)
 
         source = files(models).joinpath(self.nlos_parameter_filepath)
         # pylint: disable=unspecified-encoding
@@ -912,12 +911,12 @@ class SystemLevelScenario(ABC):
             v = self._params_nlos[param_name]
             if isinstance(v, float):
                 self._params_nlos[param_name] = tf.constant(v,
-                                                        self._dtype.real_dtype)
+                                                        self.rdtype)
             elif isinstance(v, int):
                 self._params_nlos[param_name] = tf.constant(v,
                                                         tf.int32)
             elif isinstance(v, str):
-                self._params_nlos[param_name] = tf.constant(float(v), self._dtype.real_dtype)
+                self._params_nlos[param_name] = tf.constant(float(v), self.rdtype)
 
     @abstractmethod
     def _compute_lsp_log_mean_std(self):
