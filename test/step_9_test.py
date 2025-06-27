@@ -11,12 +11,12 @@ from sionna.phy.channel.tr38811.utils import gen_single_sector_topology as gen_t
 class Step_9(unittest.TestCase):
     def setUp(self):
         # Initialize the required attributes and setup the scenario
-        self.batch_size = 2
+        self.batch_size = 200
         self.num_bs = 1
         self.num_ut = 1
         self.num_clusters_max = 4
         self.rays_per_cluster = 20
-        self.dtype = tf.dtypes.complex64
+        self.precision = "single"
         self.mu_xpr = 17.6
         self.sigma_xpr = 12.7
 
@@ -38,7 +38,7 @@ class Step_9(unittest.TestCase):
             enable_pathloss=True,
             enable_shadow_fading=True,
             doppler_enabled=True,
-            dtype=self.dtype
+            precision=self.precision
         )
 
         # Generate the topology
@@ -85,8 +85,8 @@ class Step_9(unittest.TestCase):
         measured_mean = np.mean(log_result)
         measured_std = np.std(log_result)
 
-        self.assertAlmostEqual(measured_mean, expected_mean, tol=1.0)
-        self.assertAlmostEqual(measured_std, expected_std, tol=1.0)
+        self.assertAlmostEqual(measured_mean, expected_mean, delta=1.0)
+        self.assertAlmostEqual(measured_std, expected_std, delta=1.0)
 
 if __name__ == "__main__":
     unittest.main()
