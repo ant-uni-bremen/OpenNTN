@@ -347,14 +347,14 @@ class ChannelCoefficientsGenerator(Object):
         rot_rho = tf.matmul(rot_inv, rho_hat)
         v1 = tf.constant([0,0,1], self.rdtype)
         v1 = tf.reshape(v1, [1]*(rot_rho.shape.rank-1)+[3])
-        v2 = tf.constant([1+0j,1j,0], self._dtype)
+        v2 = tf.constant([1+0j,1j,0], self.cdtype)
         v2 = tf.reshape(v2, [1]*(rot_rho.shape.rank-1)+[3])
         z = tf.matmul(v1, rot_rho)
         z = tf.clip_by_value(z, tf.constant(-1., self.rdtype),
                              tf.constant(1., self.rdtype))
         theta_prime = acos(z)
         phi_prime = tf.math.angle((tf.matmul(v2, tf.cast(rot_rho,
-            self._dtype))))
+            self.cdtype))))
         theta_prime = tf.squeeze(theta_prime, axis=[phi.shape.rank,
             phi.shape.rank+1])
         phi_prime = tf.squeeze(phi_prime, axis=[phi.shape.rank,
