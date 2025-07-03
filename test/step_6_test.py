@@ -10,7 +10,7 @@ from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrb
 import numpy as np
 import tensorflow as tf
 import math
-from sionna import config
+from sionna.phy import config
 import json
 import os
 
