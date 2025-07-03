@@ -4,7 +4,7 @@ import tensorflow as tf
 import unittest
 import numpy as np
 import sionna
-from sionna import config
+from sionna.phy import config
 from sionna.phy.channel.tr38811 import utils
 from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
 from sionna.phy.channel.tr38811 import DenseUrban, SubUrban, Urban, CDL
@@ -68,7 +68,7 @@ class Step_12(unittest.TestCase):
             tx_array=self.tx_array,
             rx_array=self.rx_array,
             subclustering=True,
-            dtype=tf.complex64)
+            precision="single")
 
         rx_orientations = config.tf_rng.uniform([batch_size, nb_ut, 3], 0.0,
                                             2*np.pi, dtype=tf.float32)

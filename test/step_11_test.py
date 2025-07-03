@@ -3,11 +3,10 @@ import tensorflow as tf
 import unittest
 import numpy as np
 import sionna
-from sionna import config
+from sionna.phy import config
 from sionna.phy.channel.tr38811 import utils
 from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
 from sionna.phy.channel.tr38811 import DenseUrban, SubUrban, Urban, CDL
-from sionna.channel.utils import deg_2_rad
 from sionna.phy.channel.tr38811.utils import gen_single_sector_topology as gen_ntn_topology
 
 
