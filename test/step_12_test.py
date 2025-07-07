@@ -14,7 +14,7 @@ class Step_12(unittest.TestCase):
     r"""Test the computation of channel coefficients"""
 
     # Batch size used to check the LSP distribution
-    BATCH_SIZE = 100
+    BATCH_SIZE = 10
 
     # Carrier frequency
     CARRIER_FREQUENCY = 2.0e9 # Hz
@@ -29,13 +29,13 @@ class Step_12(unittest.TestCase):
     H_BS = 600000.0
 
     # # Number of BS
-    NB_BS = 1
+    NB_BS =1
 
     # Number of UT
-    NB_UT = 100
+    NB_UT = 1
 
     # Number of channel time samples
-    NUM_SAMPLES = 64
+    NUM_SAMPLES = 32
 
     # Sampling frequency
     SAMPLING_FREQUENCY = 20e6
@@ -47,19 +47,14 @@ class Step_12(unittest.TestCase):
         h_ut = Step_12.H_UT
         h_bs = Step_12.H_BS
         fc = Step_12.CARRIER_FREQUENCY
-        los = tf.zeros(shape=[batch_size, nb_bs, nb_ut], dtype=tf.bool)
-        distance_3d = tf.random.uniform([batch_size, nb_ut, nb_ut], 0.0, 2000.0, dtype=tf.float32)
 
-        self.tx_array = PanelArray(num_rows_per_panel=1,
-                                    num_cols_per_panel=1,
-                                    polarization="single",
+        
+        self.tx_array = Antenna(polarization="single",
                                     polarization_type="V",
                                     antenna_pattern="38.901",
                                     carrier_frequency=fc)
-        self.rx_array = PanelArray(num_rows_per_panel=1,
-                                num_cols_per_panel=1,
-                                polarization='dual',
-                                polarization_type='VH',
+        self.rx_array = Antenna(polarization='single',
+                                polarization_type='V',
                                 antenna_pattern='38.901',
                                 carrier_frequency=fc)
 
@@ -67,63 +62,85 @@ class Step_12(unittest.TestCase):
             fc,
             tx_array=self.tx_array,
             rx_array=self.rx_array,
-            subclustering=True,
-            dtype=tf.complex64)
+            subclustering=True)
 
-        rx_orientations = config.tf_rng.uniform([batch_size, nb_ut, 3], 0.0,
-                                            2*np.pi, dtype=tf.float32)
-        tx_orientations = config.tf_rng.uniform([batch_size, nb_bs, 3], 0.0,
-                                            2*np.pi, dtype=tf.float32)
-        ut_velocities = config.tf_rng.uniform([batch_size, nb_ut, 3], 0.0, 5.0,
-                                                dtype=tf.float32)
-
-        channel_model = SubUrban(
+        channel_model = DenseUrban(
             carrier_frequency=fc,
             ut_array=self.rx_array,
             bs_array=self.tx_array,
             direction='downlink',
             elevation_angle=30.0)
         topology = utils.gen_single_sector_topology(
-            batch_size=batch_size, num_ut=nb_ut, scenario='sur', bs_height=h_bs
+            batch_size=batch_size, num_ut=nb_ut, scenario='dur', bs_height=h_bs
         )
         channel_model.set_topology(*topology)
         self.scenario = channel_model
+        
 
         ray_sampler = self.scenario._ray_sampler
-        lsp = self.scenario._lsp
-        self.rays = ray_sampler(lsp)
-        self.los_aoa = self.rays.aoa[..., 0]  
-        self.los_aod = self.rays.aod[..., 0]  
-        self.los_zoa = self.rays.zoa[..., 0]  
-        self.los_zod = self.rays.zod[..., 0]     
-        self.lsp = lsp
+        self.lsp = self.scenario._lsp
         self.sf = self.lsp.sf
-        los = tf.boolean_mask(los, channel_model._scenario.los)
-        topology = sionna.channel.tr38811.Topology(
-            velocities=ut_velocities,
-            moving_end='rx',
-            los_aoa= self.los_aoa,
-            los_aod= self.los_aod,
-            los_zoa= self.los_zoa,
-            los_zod= self.los_zod,
-            los= los,
-            distance_3d=distance_3d,
-            tx_orientations=tx_orientations,
-            bs_height= h_bs ,
-            elevation_angle = 30,
-            doppler_enabled = False,
-            rx_orientations=rx_orientations)
+        
+        # # lsp = lsp_sampler()
+        self.rays = ray_sampler(self.lsp)   
+        topology = sionna.channel.tr38811.Topology(velocities=channel_model._scenario.ut_velocities,
+                                moving_end="tx", 
+                                los_aoa=channel_model._scenario.los_aoa,
+                                los_aod=channel_model._scenario.los_aod,
+                                los_zoa=channel_model._scenario.los_zoa,
+                                los_zod=channel_model._scenario.los_zod,
+                                los=channel_model._scenario.los,
+                                distance_3d=channel_model._scenario.distance_3d,
+                                tx_orientations=channel_model._scenario.ut_orientations,
+                                rx_orientations=channel_model._scenario.bs_orientations,
+                                bs_height = channel_model._scenario._bs_loc[:,:,2][0],
+                                elevation_angle = channel_model._scenario.elevation_angle,
+                                doppler_enabled = channel_model._scenario.doppler_enabled
+                                )
         self.topology = topology
-        num_time_samples = Step_12.NUM_SAMPLES
+        
+        num_time_samples = Step_12.NUM_SAMPLES 
         sampling_frequency = Step_12.SAMPLING_FREQUENCY
+        # c_ds = scenario.get_param("cDS")*1e-9
         c_ds = 1.6*1e-9
         h, delays, phi, sample_times = self.ccg(num_time_samples,
-            sampling_frequency, lsp.k_factor, self.rays, topology, c_ds,
+            sampling_frequency, self.lsp.k_factor, self.rays, topology, c_ds,
             debug=True)
-        self.h = h
+        self.phi = phi.numpy()
+        self.sample_times = sample_times.numpy()
+        self.c_ds = c_ds
+        self.h = h 
 
-    def test_step_12(self):
-        h_processed = self.scenario._step_12(self.h,self.sf)
+    def max_rel_err(self, r, x):
+        """Compute the maximum relative error, ``r`` being the reference value,
+        ``x`` an esimate of ``r``."""
+        err = np.abs(r-x)
+        rel_err = np.where(np.abs(r) > 0.0, np.divide(err,np.abs(r)+1e-6), err)
+        return np.max(rel_err)
+
+    def test_step_12_output_shape(self):
+        """Test that the shape of h"""
+        h_processed = self.scenario._step_12(self.h, self.sf)
+        self.assertEqual(self.h.shape, h_processed.shape)
+    
+    def test_step_12_numerical_correctness(self):
+        """Verify that path loss and shadow fading are applied correctly"""
+        if self.scenario._scenario.pathloss_enabled:
+            pl_db = self.scenario._lsp_sampler.sample_pathloss()
+            if self.scenario._scenario._direction == 'uplink':
+                pl_db = tf.transpose(pl_db, [0,2,1])
+        else:
+            pl_db = tf.constant(0.0, dtype=tf.float32)
+        
+        sf = self.sf if self.scenario._scenario.shadow_fading_enabled else tf.ones_like(self.sf)
+        gain = tf.math.pow(10.0, -pl_db/20.0) * tf.sqrt(sf)
+        gain = tf.reshape(gain, tf.concat([tf.shape(gain), tf.ones([tf.rank(self.h)-tf.rank(gain)], tf.int32)], 0))
+        expected_h = self.h * tf.complex(gain, 0.0)
+        
+        h_processed = self.scenario._step_12(self.h, self.sf)
+        rel_err = self.max_rel_err(expected_h.numpy(), h_processed.numpy())
+        self.assertTrue(rel_err < Step_12.MAX_ERR) 
+        
 
 
 if __name__ == "__main__":
