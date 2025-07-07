@@ -1,7 +1,10 @@
-# This file tests the implementation of step 11, the channel coefficients generation. 
+# This file tests the implementation of step 11, the channel coefficients generation. The test is based on the 3GPP TR 38.811,
+# it is broken down into multiple subtest for better understanding.
 import tensorflow as tf
 import unittest
 import numpy as np
+from tensorflow import sin, cos, acos
+from sionna import PI, SPEED_OF_LIGHT
 import sionna
 from sionna import config
 from sionna.channel.tr38811 import utils
@@ -48,33 +51,7 @@ class Step_11(unittest.TestCase):
         h_ut = Step_11.H_UT
         h_bs = Step_11.H_BS
         fc = Step_11.CARRIER_FREQUENCY
-        # los_aoa = tf.random.uniform(
-        # shape=[batch_size, nb_bs, nb_ut],
-        # minval=-np.pi,
-        # maxval=np.pi,
-        # dtype=tf.float32)
-
-        # los_aod = tf.random.uniform(
-        #     shape=[batch_size, nb_bs, nb_ut],
-        #     minval=-np.pi,
-        #     maxval=np.pi,
-        #     dtype=tf.float32
-        # )
-
-        # los_zoa = tf.random.uniform(
-        #     shape=[batch_size, nb_bs, nb_ut],
-        #     minval=-np.pi,
-        #     maxval=np.pi,
-        #     dtype=tf.float32
-        # )
-
-        # los_zod = tf.random.uniform(
-        #     shape=[batch_size, nb_bs, nb_ut],
-        #     minval=-np.pi,
-        #     maxval=np.pi,
-        #     dtype=tf.float32
-        # )
-
+        
         los = tf.ones(shape=[batch_size, nb_bs, nb_ut], dtype=tf.bool)
         distance_3d = tf.random.uniform([batch_size, nb_ut, nb_ut], 0.0, 2000.0, dtype=tf.float32)
 
@@ -94,12 +71,6 @@ class Step_11(unittest.TestCase):
             rx_array=self.rx_array,
             subclustering=True)
 
-        # rx_orientations = config.tf_rng.uniform([batch_size, nb_ut, 3], 0.0,
-        #                                     2*np.pi, dtype=tf.float32)
-        # tx_orientations = config.tf_rng.uniform([batch_size, nb_bs, 3], 0.0,
-        #                                     2*np.pi, dtype=tf.float32)
-        # ut_velocities = config.tf_rng.uniform([batch_size, nb_ut, 3], 0.0, 5.0,
-        #                                         dtype=tf.float32)
 
         channel_model = DenseUrban(
             carrier_frequency=fc,
@@ -149,17 +120,18 @@ class Step_11(unittest.TestCase):
 
     def max_rel_err(self, r, x):
         """Compute the maximum relative error, ``r`` being the reference value,
-        ``x`` an esimate of ``r``."""
-        err = np.abs(r-x)
-        rel_err = np.where(np.abs(r) > 0.0, np.divide(err,np.abs(r)+1e-6), err)
-        return np.max(rel_err)
+        ``x`` an estimate of ``r``."""
+        err = tf.abs(r - x)
+        rel_err = tf.where(tf.abs(r) > 0.0, tf.divide(err, tf.abs(r) + 1e-6), err)
+        return tf.reduce_max(rel_err)
 
     def unit_sphere_vector_ref(self, theta, phi):
         """Reference implementation: Unit to sphere vector"""
-        uvec = np.stack([np.sin(theta)*np.cos(phi),
-                            np.sin(theta)*np.sin(phi), np.cos(theta)],
-                            axis=-1)
-        uvec = np.expand_dims(uvec, axis=-1)
+        uvec = tf.stack([tf.sin(theta) * tf.cos(phi),
+                        tf.sin(theta) * tf.sin(phi),
+                        tf.cos(theta)],
+                        axis=-1)
+        uvec = tf.expand_dims(uvec, axis=-1)
         return uvec
 
     def test_unit_sphere_vector(self):
@@ -176,22 +148,21 @@ class Step_11(unittest.TestCase):
     def forward_rotation_matrix_ref(self, orientations):
         """Reference implementation: Forward rotation matrix"""
         a, b, c = orientations[...,0], orientations[...,1], orientations[...,2]
-        #
-        R = np.zeros(list(a.shape) + [3,3])
-        #
-        R[...,0,0] = np.cos(a)*np.cos(b)
-        R[...,1,0] = np.sin(a)*np.cos(b)
-        R[...,2,0] = -np.sin(b)
-        #
-        R[...,0,1] = np.cos(a)*np.sin(b)*np.sin(c) - np.sin(a)*np.cos(c)
-        R[...,1,1] = np.sin(a)*np.sin(b)*np.sin(c) + np.cos(a)*np.cos(c)
-        R[...,2,1] = np.cos(b)*np.sin(c)
-        #
-        R[...,0,2] = np.cos(a)*np.sin(b)*np.cos(c) + np.sin(a)*np.sin(c)
-        R[...,1,2] = np.sin(a)*np.sin(b)*np.cos(c) - np.cos(a)*np.sin(c)
-        R[...,2,2] = np.cos(b)*np.cos(c)
-        #
-        return R
+
+        row_1 = tf.stack([cos(a)*cos(b),
+            cos(a)*sin(b)*sin(c)-sin(a)*cos(c),
+            cos(a)*sin(b)*cos(c)+sin(a)*sin(c)], axis=-1)
+
+        row_2 = tf.stack([sin(a)*cos(b),
+            sin(a)*sin(b)*sin(c)+cos(a)*cos(c),
+            sin(a)*sin(b)*cos(c)-cos(a)*sin(c)], axis=-1)
+
+        row_3 = tf.stack([-sin(b),
+            cos(b)*sin(c),
+            cos(b)*cos(c)], axis=-1)
+
+        rot_mat = tf.stack([row_1, row_2, row_3], axis=-2)
+        return rot_mat
 
     def test_forward_rotation_matrix(self):
         """Test 3GPP channel coefficient calculation: Forward rotation matrix"""
@@ -206,11 +177,8 @@ class Step_11(unittest.TestCase):
     def reverse_rotation_matrix_ref(self, orientations):
         """Reference implementation: Reverse rotation matrix"""
         R = self.forward_rotation_matrix_ref(orientations)
-        dim_ind = np.arange(len(R.shape))
-        dim_ind = np.concatenate([dim_ind[:-2], [dim_ind[-1]], [dim_ind[-2]]],
-                                    axis=0)
-        R_inv = np.transpose(R, dim_ind)
-        return R_inv
+        rot_mat_inv = tf.linalg.matrix_transpose(R)
+        return rot_mat_inv
 
     def test_reverse_rotation_matrix(self):
         """Test 3GPP channel coefficient calculation: Reverse rotation matrix"""
@@ -279,11 +247,11 @@ class Step_11(unittest.TestCase):
         b = orientations[...,1]
         c = orientations[...,2]
 
-        real = np.sin(c)*np.cos(theta)*np.sin(phi-a)\
-            + np.cos(c)*(np.cos(b)*np.sin(theta)\
-                -np.sin(b)*np.cos(theta)*np.cos(phi-a))
-        imag = np.sin(c)*np.cos(phi-a) + np.sin(b)*np.cos(c)*np.sin(phi-a)
-        return np.angle(real+1j*imag)
+        real = sin(c)*cos(theta)*sin(phi-a)
+        real += cos(c)*(cos(b)*sin(theta)-sin(b)*cos(theta)*cos(phi-a))
+        imag = sin(c)*cos(phi-a) + sin(b)*cos(c)*sin(phi-a)
+        psi = tf.math.angle(tf.complex(real, imag))
+        return psi
 
     def l2g_response_ref(self, F_prime, orientations, theta, phi):
         """Reference implementation: L2G response"""
@@ -710,43 +678,55 @@ class Step_11(unittest.TestCase):
         """Reference implementation: Compute the channel matrix of the NLoS
         component 2"""
 
-        # Step 1: Sort clusters in descending order of power
-        strongest_clusters = tf.argsort(powers, axis=-1, direction="DESCENDING")
+        # Sorting clusters in descending roder
+        cluster_ordered = np.flip(np.argsort(powers, axis=3), axis=3)
 
-        # Step 2: Sort delays and H_full according to cluster order
-        delays_sorted = tf.gather(delays, strongest_clusters, batch_dims=3, axis=3)
-        H_full_sorted = tf.gather(H_full, strongest_clusters, batch_dims=3, axis=3)
+        delays_ordered = np.take_along_axis(delays, cluster_ordered, axis=3)
+        H_full_ordered = tf.gather(H_full, cluster_ordered, axis=3,
+                                                        batch_dims=3).numpy()
 
-        # Step 3: Split delays into strong and weak clusters
-        delays_strong = delays_sorted[..., :2]
-        delays_weak = delays_sorted[..., 2:]
+        ## Weak clusters (all except first two)
+        delays_weak = delays_ordered[:,:,:,2:]
+        H_full_weak = np.sum(H_full_ordered[:,:,:,2:,:,:,:], axis=4)
 
-        # Step 4: Compute sub-cluster delays for strong clusters
-        offsets = tf.reshape([0.0, 1.28, 2.56], [1, 1, 1, 1, -1])
-        c_DS_expanded = tf.expand_dims(tf.expand_dims(c_DS, axis=-1), axis=-1)
-        delays_sub_cl = (tf.expand_dims(delays_strong, -2) + offsets * c_DS_expanded)
-        delays_sub_cl = tf.reshape(delays_sub_cl, tf.concat([tf.shape(delays_sub_cl)[:-2], [-1]], axis=0))
+        ## Strong clusters (first two)
+        # Each strong cluster is split into 3 sub-cluster
 
-        # Step 5: Split H_full into strong and weak clusters
-        H_strong = tf.gather(H_full_sorted, range(2), batch_dims=3, axis=3)
-        H_weak = tf.gather(H_full_sorted, range(2, tf.shape(H_full_sorted)[3]), batch_dims=3, axis=3)
+        # Subcluster delays
+        strong_delays = delays_ordered[:,:,:,:2]
+        strong_delays = np.expand_dims(strong_delays, -1)
+        delays_expension = np.array([[[[[0.0, 1.28, 2.56]]]]])
+        c_DS = np.expand_dims(np.expand_dims(c_DS, axis=-1), axis=-1)
+        strong_delays = strong_delays + delays_expension*c_DS
+        strong_delays = np.reshape(strong_delays,
+                                        list(strong_delays.shape[:-2]) + [-1])
 
-        # Step 6: Aggregate rays for sub-clusters of strong clusters
-        H_sub_cl_1 = tf.reduce_sum(tf.gather(H_strong, [0, 1, 2, 3, 4, 5, 6, 7, 18, 19], axis=4), axis=4)
-        H_sub_cl_2 = tf.reduce_sum(tf.gather(H_strong, [8, 9, 10, 11, 16, 17], axis=4), axis=4)
-        H_sub_cl_3 = tf.reduce_sum(tf.gather(H_strong, [12, 13, 14, 15], axis=4), axis=4)
+        # Subcluster coefficient
+        H_full_strong = H_full_ordered[:,:,:,:2,:,:,:]
+        H_full_subcl_1 = np.sum(np.take(H_full_strong, [0,1,2,3,4,5,6,7,18,19],
+                                axis=4), axis=4)
+        H_full_subcl_2 = np.sum(np.take(H_full_strong, [8,9,10,11,16,17],
+                                axis=4), axis=4)
+        H_full_subcl_3 = np.sum(np.take(H_full_strong, [12,13,14,15],
+                                axis=4), axis=4)
+        H_full_strong_subcl = np.stack([H_full_subcl_1,H_full_subcl_2,
+                                        H_full_subcl_3], axis=3)
+        H_full_strong_subcl = np.transpose(H_full_strong_subcl,
+                                            [0,1,2,4,3,5,6,7])
+        H_full_strong_subcl = np.reshape(H_full_strong_subcl,
+            np.concatenate([H_full_strong_subcl.shape[:3], [-1],
+            H_full_strong_subcl.shape[5:]], axis=0))
 
-        # Step 7: Aggregate rays for weak clusters
-        H_weak = tf.reduce_sum(H_weak, axis=4)
+        ## Putting together strong and weak clusters
 
-        # Step 8: Concatenate sub-cluster coefficients and weak clusters
-        H_nlos = tf.concat([H_sub_cl_1, H_sub_cl_2, H_sub_cl_3, H_weak], axis=3)
-        delays_nlos = tf.concat([delays_sub_cl, delays_weak], axis=3)
+        H_nlos = np.concatenate([H_full_strong_subcl, H_full_weak], axis=3)
+        delays_nlos = np.concatenate([strong_delays, delays_weak], axis=3)
 
-        # Step 9: Sort delays in ascending order and reorder H_nlos accordingly
-        delays_sorted_indices = tf.argsort(delays_nlos, axis=-1, direction="ASCENDING")
-        delays_nlos = tf.gather(delays_nlos, delays_sorted_indices, batch_dims=3, axis=3)
-        H_nlos = tf.gather(H_nlos, delays_sorted_indices, batch_dims=3, axis=3)
+        ## Sorting
+        delays_sorted_ind = np.argsort(delays_nlos, axis=3)
+        delays_nlos = np.take_along_axis(delays_nlos, delays_sorted_ind, axis=3)
+        H_nlos = tf.gather(H_nlos, delays_sorted_ind,
+                            axis=3, batch_dims=3).numpy()
 
         return (H_nlos, delays_nlos)
 
@@ -780,6 +760,126 @@ class Step_11(unittest.TestCase):
         max_err = self.max_rel_err(H_nlos_ref, H_nlos)
         self.assertLessEqual(max_err, err_tol)
 
+        max_err = self.max_rel_err(delays_nlos_ref, delays_nlos)
+        self.assertLessEqual(max_err, err_tol)
+
+    def step_11_los_ref(self, t, topology, carrier_frequency):
+        """Reference implementation: Compute the channel matrix of the NLoS
+        component 2"""
+
+        # LoS departure and arrival angles
+        los_aoa = np.expand_dims(np.expand_dims(topology.los_aoa.numpy(),
+            axis=3), axis=4)
+        los_zoa = np.expand_dims(np.expand_dims(topology.los_zoa.numpy(),
+            axis=3), axis=4)
+        los_aod = np.expand_dims(np.expand_dims(topology.los_aod.numpy(),
+            axis=3), axis=4)
+        los_zod = np.expand_dims(np.expand_dims(topology.los_zod.numpy(),
+            axis=3), axis=4)
+
+        # Field matrix
+        H_phase = tf.reshape(tf.constant([[1.,0.],
+                                         [0.,-1.]],
+                                         dtype = tf.complex64),
+                                         [1,1,1,1,1,2,2])
+        if tf.greater_equal(topology.bs_height, 600000.0):
+            rays_shape = tf.shape(los_aoa)
+            faraday_phase_rotation = self.ccg._step_11_faraday_rotation(carrier_frequency=carrier_frequency, aod_shape=rays_shape)
+            H_phase = tf.matmul(H_phase,faraday_phase_rotation)
+        H_field = self.step_11_field_matrix_ref(topology, los_aoa, los_aod,
+                                                    los_zoa, los_zod, H_phase)
+
+        # Array offset matrix
+        H_array = self.step_11_array_offsets_ref(los_aoa, los_aod, los_zoa,
+                                                            los_zod, topology)
+
+        # Doppler matrix
+        H_doppler = self.step_11_doppler_matrix_ref(topology, los_aoa,
+                                                    los_zoa, los_aod, los_zod, t)
+
+        # Phase shift due to propagation delay
+        d3D = topology.distance_3d.numpy()
+        lambda_0 = self.scenario._scenario.lambda_0.numpy()
+        H_delay = tf.exp(tf.complex(tf.constant(0.,
+                        tf.float32), 2*PI*d3D/lambda_0))
+
+        # Combining all to compute channel coefficient
+        H_field = np.expand_dims(np.squeeze(H_field, axis=4), axis=-1)
+        H_array = np.expand_dims(np.squeeze(H_array, axis=4), axis=-1)
+        H_doppler = np.expand_dims(H_doppler, axis=4)
+        H_delay = np.expand_dims(np.expand_dims(np.expand_dims(
+                np.expand_dims(H_delay, axis=3), axis=4), axis=5), axis=6)
+
+        H_los = H_field*H_array*H_doppler*H_delay
+        return H_los
+
+    def test_step11_los(self):
+        """Test 3GPP channel coefficient calculation: LoS channel matrix"""
+        H_los_ref = self.step_11_los_ref(self.sample_times, self.topology, Step_11.CARRIER_FREQUENCY)
+        H_los = self.ccg._step_11_los(self.topology, self.sample_times, Step_11.CARRIER_FREQUENCY)
+        H_los = H_los.numpy()
+        max_err = self.max_rel_err(H_los_ref, H_los)
+        err_tol = Step_11.MAX_ERR
+        self.assertLessEqual(max_err, err_tol)
+
+    def step_11_ref(self, phi, k_factor, aoa, aod, zoa, zod, kappa, powers,
+                                                    delays, t, topology, c_ds, carrier_frequency):
+        """Reference implementation: Step 11"""
+
+        ## NLoS
+        H_full = self.step_11_nlos_ref(phi, aoa, aod, zoa, zod, kappa, powers,
+                                                                t, topology)
+        H_nlos, delays_nlos = self.step_11_reduce_nlos_ref(H_full, powers,
+                                                                delays, c_ds)
+
+        ## LoS
+        H_los = self.step_11_los_ref(t, topology, carrier_frequency)
+
+        k_factor = np.reshape(k_factor, list(k_factor.shape) + [1,1,1,1])
+        los_scaling = np.sqrt(k_factor/(k_factor+1.))
+        nlos_scaling = np.sqrt(1./(k_factor+1.))
+
+        H_los_nlos = nlos_scaling*H_nlos
+        H_los_los = los_scaling*H_los
+        H_los_los = H_los_los + H_los_nlos[:,:,:,:1,...]
+        H_los = np.concatenate([H_los_los, H_los_nlos[:,:,:,1:,...]], axis=3)
+
+        ## Setting up the CIR according to the link configuration
+        los_status = topology.los.numpy()
+        los_status = np.reshape(los_status, list(los_status.shape) + [1,1,1,1])
+        H = np.where(los_status, H_los, H_nlos)
+
+        return H, delays_nlos
+
+    def test_step_11(self):
+        """Test 3GPP channel coefficient calculation: Step 11"""
+        H, delays_nlos = self.ccg._step_11(tf.constant(self.phi, tf.float32),
+                                            self.topology,
+                                            self.lsp.k_factor,
+                                            self.rays,
+                                            tf.constant(self.sample_times,
+                                                        tf.float32),
+                                            self.c_ds, Step_11.CARRIER_FREQUENCY)
+        H = H.numpy()
+        delays_nlos = delays_nlos.numpy()
+
+        H_ref, delays_nlos_ref = self.step_11_ref(self.phi,
+                                                self.lsp.k_factor.numpy(),
+                                                self.rays.aoa.numpy(),
+                                                self.rays.aod.numpy(),
+                                                self.rays.zoa.numpy(),
+                                                self.rays.zod.numpy(),
+                                                self.rays.xpr.numpy(),
+                                                self.rays.powers.numpy(),
+                                                self.rays.delays.numpy(),
+                                                self.sample_times,
+                                                self.topology,
+                                                self.c_ds,
+                                                Step_11.CARRIER_FREQUENCY)
+
+        err_tol = Step_11.MAX_ERR
+        max_err = self.max_rel_err(H_ref, H)
+        self.assertLessEqual(max_err, err_tol)
         max_err = self.max_rel_err(delays_nlos_ref, delays_nlos)
         self.assertLessEqual(max_err, err_tol)
 if __name__ == "__main__":
