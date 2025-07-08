@@ -138,8 +138,8 @@ class Step_11(unittest.TestCase):
         """Test 3GPP channel coefficient calculation: Unit sphere vector"""
         #
         batch_size = Step_11.BATCH_SIZE
-        theta = config.tf_rng.normal(shape=[batch_size]).numpy()
-        phi = config.tf_rng.normal(shape=[batch_size]).numpy()
+        theta = tf.random.normal(shape=[batch_size]).numpy()
+        phi = tf.random.normal(shape=[batch_size]).numpy()
         uvec_ref = self.unit_sphere_vector_ref(theta, phi)
         uvec = self.ccg._unit_sphere_vector(theta, phi).numpy()
         max_err = self.max_rel_err(uvec_ref, uvec)
@@ -167,7 +167,7 @@ class Step_11(unittest.TestCase):
     def test_forward_rotation_matrix(self):
         """Test 3GPP channel coefficient calculation: Forward rotation matrix"""
         batch_size = Step_11.BATCH_SIZE
-        orientation = config.tf_rng.normal(shape=[batch_size,3]).numpy()
+        orientation = tf.random.normal(shape=[batch_size,3]).numpy()
         R_ref = self.forward_rotation_matrix_ref(orientation)
         R = self.ccg._forward_rotation_matrix(orientation).numpy()
         max_err = self.max_rel_err(R_ref, R)
@@ -183,7 +183,7 @@ class Step_11(unittest.TestCase):
     def test_reverse_rotation_matrix(self):
         """Test 3GPP channel coefficient calculation: Reverse rotation matrix"""
         batch_size = Step_11.BATCH_SIZE
-        orientation = config.tf_rng.normal(shape=[batch_size,3]).numpy()
+        orientation = tf.random.normal(shape=[batch_size,3]).numpy()
         R_ref = self.reverse_rotation_matrix_ref(orientation)
         R = self.ccg._reverse_rotation_matrix(orientation).numpy()
         max_err = self.max_rel_err(R_ref, R)
@@ -222,9 +222,9 @@ class Step_11(unittest.TestCase):
     def test_gcs_to_lcs(self):
         """Test 3GPP channel coefficient calculation: GCS to LCS"""
         batch_size = Step_11.BATCH_SIZE
-        orientation = config.tf_rng.normal(shape=[batch_size,3]).numpy()
-        theta = config.tf_rng.normal(shape=[batch_size]).numpy()
-        phi = config.tf_rng.normal(shape=[batch_size]).numpy()
+        orientation = tf.random.normal(shape=[batch_size,3]).numpy()
+        theta = tf.random.normal(shape=[batch_size]).numpy()
+        phi = tf.random.normal(shape=[batch_size]).numpy()
 
         theta_prime_ref, phi_prime_ref = self.gcs_to_lcs_ref(orientation, theta,
                                                             phi)
@@ -270,10 +270,10 @@ class Step_11(unittest.TestCase):
     def test_l2g_response(self):
         """Test 3GPP channel coefficient calculation: L2G antenna response"""
         batch_size = Step_11.BATCH_SIZE
-        orientation = config.tf_rng.normal(shape=[batch_size,3]).numpy()
-        theta = config.tf_rng.normal(shape=[batch_size]).numpy()
-        phi = config.tf_rng.normal(shape=[batch_size]).numpy()
-        F_prime = config.tf_rng.normal(shape=[batch_size,2]).numpy()
+        orientation = tf.random.normal(shape=[batch_size,3]).numpy()
+        theta = tf.random.normal(shape=[batch_size]).numpy()
+        phi = tf.random.normal(shape=[batch_size]).numpy()
+        F_prime = tf.random.normal(shape=[batch_size,2]).numpy()
 
         F_ref = self.l2g_response_ref(F_prime, orientation, theta, phi)
         F = self.ccg._l2g_response( tf.cast(F_prime, tf.float32),
@@ -300,8 +300,8 @@ class Step_11(unittest.TestCase):
         """Test 3GPP channel coefficient calculation: Rotate position according
         to orientation"""
         batch_size = Step_11.BATCH_SIZE
-        orientations = config.tf_rng.normal(shape=[batch_size,3]).numpy()
-        positions = config.tf_rng.normal(shape=[batch_size,3, 1]).numpy()
+        orientations = tf.random.normal(shape=[batch_size,3]).numpy()
+        positions = tf.random.normal(shape=[batch_size,3, 1]).numpy()
 
         pos_r_ref = self.rot_pos_ref(orientations, positions)
         pos_r = self.ccg._rot_pos(  tf.cast(orientations, tf.float32),
