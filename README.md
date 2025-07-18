@@ -37,9 +37,9 @@ For more information on the different installation options we refer the reader t
 1. Install Sionna <br>
   <code>pip install sionna==0.19</code> <br>
 For more information on the different installation options we refer the reader to the [sionna documentation](https://nvlabs.github.io/sionna/installation.html).
-2. Download the install.sh file found in this git 
-3. Execute the install.sh file <br>
-   <code>. install.sh</code>
+2. Download the install_legacy.sh file found in this git 
+3. Execute the install_legacy.sh file <br>
+   <code>. install_legacy.sh</code>
 
 # Contents of OpenNTN
 OpenNTN implements the models for Non-Terrestrial Networks in the dense urban, urban, and suburban scenarios as defined in the standard 3GPP TR38.811. These are similar to the models defined in 3GPP TR38.901 for terrestrial channels, which are already implemented in Sionna™. To make the use of OpenNTN as easy as possible and make the existing projects and tutorials as reusable as possible, the user interface of the OpenNTN 38811 channels is kept as similar as possible to the user interface of the existing 38901 channels. The user interface was kept as similar as only, only adding necessary new parameters, such as the satellite height, user elevation angle, and new antenna radiation patterns. For a practical demonstration, we refer the reader to the notebooks found in the examples section. <br>
