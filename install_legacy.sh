@@ -3,10 +3,10 @@
 # Script to install the OpenNTN package from GitHub
 
 # Run pip install command
-pip install git+https://github.com/ant-uni-bremen/OpenNTN
+pip install git+https://github.com/ant-uni-bremen/OpenNTN@legacy
 
 # Download python file which integrates OpenNTN into Sionna
-POST_INSTALL_URL="https://raw.githubusercontent.com/ant-uni-bremen/OpenNTN/refs/heads/main/post_install.py"
+POST_INSTALL_URL="https://raw.githubusercontent.com/ant-uni-bremen/OpenNTN/refs/heads/main/post_install_legacy.py"
 POST_INSTALL_NAME=$(basename "$POST_INSTALL_URL")
 curl -L -o "$POST_INSTALL_NAME" "$POST_INSTALL_URL"
 
