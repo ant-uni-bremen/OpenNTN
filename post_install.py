@@ -10,13 +10,8 @@ def modify_vanilla_sionna():
     try:
         # Locate the framework installation path
         framework_path = pkg_resources.get_distribution("sionna").location
-        #if "sionna" in sys.modules:
-        #    framework_path = Path(sys.modules["sionna"].__file__).parent
-        #    print(f"Sionna is installed at: {framework_path}")
-        #else:
-        #    print("Sionna is not installed.")
 
-        sionna_channel_path = framework_path + "/sionna/channel"
+        sionna_channel_path = framework_path + "/sionna/phy/channel"
         channel_init_file_path = sionna_channel_path + "/__init__.py"
 
         line_to_add = 'from . import tr38811'
