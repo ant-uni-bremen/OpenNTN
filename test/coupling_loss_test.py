@@ -101,14 +101,14 @@ class TestLinkBudget(unittest.TestCase):
         cdf_sample_pl = np.arange(1, len(sorted_sample_pl) + 1) / len(sorted_sample_pl)
 
         # Plot the CDF
-        plt.figure(figsize=(8, 6))
-        plt.plot(sorted_sample_pl, cdf_sample_pl, label="Sample Path Loss CDF", color="orange")
-        plt.title("CDF of Sample Path Loss")
-        plt.xlabel("Sample Path Loss (dB)")
-        plt.ylabel("CDF")
-        plt.grid()
-        plt.legend()
-        plt.show()
+        #plt.figure(figsize=(8, 6))
+        #plt.plot(sorted_sample_pl, cdf_sample_pl, label="Sample Path Loss CDF", color="orange")
+        #plt.title("CDF of Sample Path Loss")
+        #plt.xlabel("Sample Path Loss (dB)")
+        #plt.ylabel("CDF")
+        #plt.grid()
+        #plt.legend()
+        #plt.show()
 
         # Print statistics
         print("Sample Path Loss Statistics:")
