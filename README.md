@@ -21,7 +21,7 @@ You can still find the [documentation of the legacy version of Sionna here](http
 
 # Installation
 
-Sionna™ is currently in its version 1.0+, but multiple older projects still require the lagacy version 0.19.2. Based on the Sionna™ version you use, select either the main installation for Sionna™ 1.0+ or the legacy installtion for Sionna™ 0.19.2<br>
+Sionna™ is currently in its version 1.0+, but multiple older projects still require the lagacy version 0.19.2. Based on the Sionna™ version you use, select either the main installation for Sionna™ 1.0+ or the legacy installtion for Sionna™ 0.19.2. The provided installation files install.sh and install_legacy.sh are written for Linux based systems. OpenNTN can be used on Windows, however, the convinient installation scripts are not yet provided. Adding these is planned for a future update. <br>
 
 ## Main installation for Sionna™ 1.0+
 
