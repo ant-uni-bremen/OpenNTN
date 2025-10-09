@@ -1,8 +1,8 @@
 # This file tests the correct calculation of the Link Budget for the Scnerios described in 3GPP TR38.821 Table 6.1.3.3-1: Link budgets results
 
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
 
 class TestLinkBudget(unittest.TestCase):
 

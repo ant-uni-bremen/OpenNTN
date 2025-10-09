@@ -1,6 +1,6 @@
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, Urban, DenseUrban, SubUrban
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, Urban, DenseUrban, SubUrban, Rural
 import tensorflow as tf
 import math
 
@@ -350,6 +350,242 @@ class Test_SubUrban(unittest.TestCase):
                  batch_size = self.batch_size,
                  num_ut= self.num_ut)
 
+class Test_Rural(unittest.TestCase):
+    def setUp(self):
+        self.batch_size = 1000
+        self.num_ut = 100
+    # Test for Urban downlink with 10 degrees elevation
+    def test_s_band_10_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=10.0,
+                 carrier_frequency=2.2e9,
+                 nlos_cl=19.52,
+                 sf_los_sigma=1.79,
+                 sf_nlos_sigma=8.93,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Rural downlink with 20 degrees elevation
+    def test_s_band_20_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=20.0,
+                 carrier_frequency=2.2e9,
+                 nlos_cl=18.17,
+                 sf_los_sigma=1.14,
+                 sf_nlos_sigma=9.08,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Rural downlink with 30 degrees elevation
+    def test_s_band_30_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=30.0,
+                 carrier_frequency=2.2e9,
+                 nlos_cl=18.42,
+                 sf_los_sigma=1.14,
+                 sf_nlos_sigma=8.78,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Rural downlink with 40 degrees elevation
+    def test_s_band_40_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=40.0,
+                 carrier_frequency=2.2e9,
+                 nlos_cl=18.28,
+                 sf_los_sigma=0.92,
+                 sf_nlos_sigma=10.25,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Rural downlink with 50 degrees elevation
+    def test_s_band_50_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=50.0,
+                 carrier_frequency=2.2e9,
+                 nlos_cl=18.63,
+                 sf_los_sigma=1.42,
+                 sf_nlos_sigma=10.56,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Rural downlink with 60 degrees elevation
+    def test_s_band_60_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=60.0,
+                 carrier_frequency=2.2e9,
+                 nlos_cl=17.68,
+                 sf_los_sigma=1.56,
+                 sf_nlos_sigma=10.74,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+    # Test for Rural downlink with 70 degrees elevation    
+    def test_s_band_70_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=70.0,
+                 carrier_frequency=2.2e9,
+                 nlos_cl=16.50,
+                 sf_los_sigma=0.85,
+                 sf_nlos_sigma=10.17,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Rural downlink with 80 degrees elevation
+    def test_s_band_80_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=80.0,
+                 carrier_frequency=2.2e9,
+                 nlos_cl=16.30,
+                 sf_los_sigma=0.72,
+                 sf_nlos_sigma=11.52,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Rural downlink with 90 degrees elevation
+    def test_s_band_90_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=90.0,
+                 carrier_frequency=2.2e9,
+                 nlos_cl=16.30,
+                 sf_los_sigma=0.72,
+                 sf_nlos_sigma=11.52,
+                 scenario='rur',
+                 batch_size = 1000,
+                 num_ut= 200)
+        
+    # Test for Ka-band downlink with 10 degrees elevation
+    def test_ka_band_10_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=10.0,
+                 carrier_frequency=20e9,  
+                 nlos_cl=29.5,
+                 sf_los_sigma=1.9,
+                 sf_nlos_sigma=10.7,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Ka-band downlink with 20 degrees elevation
+    def test_ka_band_20_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=20.0,
+                 carrier_frequency=20e9,  
+                 nlos_cl=24.6,
+                 sf_los_sigma=1.6,
+                 sf_nlos_sigma=10.0,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Ka-band downlink with 30 degrees elevation
+    def test_ka_band_30_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=30.0,
+                 carrier_frequency=20e9,  
+                 nlos_cl=21.9,
+                 sf_los_sigma=1.9,
+                 sf_nlos_sigma=11.2,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Ka-band downlink with 40 degrees elevation
+    def test_ka_band_40_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=40.0,
+                 carrier_frequency=20e9,  
+                 nlos_cl=20.0,
+                 sf_los_sigma=2.3,
+                 sf_nlos_sigma=11.6,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Ka-band downlink with 50 degrees elevation
+    def test_ka_band_50_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=50.0,
+                 carrier_frequency=20e9,  
+                 nlos_cl=18.7,
+                 sf_los_sigma=2.7,
+                 sf_nlos_sigma=11.8,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Ka-band downlink with 60 degrees elevation
+    def test_ka_band_60_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=60.0,
+                 carrier_frequency=20e9,  
+                 nlos_cl=17.8,
+                 sf_los_sigma=3.1,
+                 sf_nlos_sigma=10.8,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+        
+    # Test for Ka-band downlink with 70 degrees elevation
+    def test_ka_band_70_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=70.0,
+                 carrier_frequency=20e9,  
+                 nlos_cl=17.2,
+                 sf_los_sigma=3.0,
+                 sf_nlos_sigma=10.8,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Ka-band downlink with 80 degrees elevation
+    def test_ka_band_80_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=80.0,
+                 carrier_frequency=20e9,  
+                 nlos_cl=16.9,
+                 sf_los_sigma=3.6,
+                 sf_nlos_sigma=10.8,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
+
+    # Test for Ka-band downlink with 90 degrees elevation
+    def test_ka_band_90_degrees_dl(self):
+        run_test(channel_model_class=Rural,
+                 direction="downlink",
+                 elevation_angle=90.0,
+                 carrier_frequency=20e9,  
+                 nlos_cl=16.8,
+                 sf_los_sigma=0.4,
+                 sf_nlos_sigma=10.8,
+                 scenario='rur',
+                 batch_size = self.batch_size,
+                 num_ut= self.num_ut)
 
 if __name__ == '__main__':
     unittest.main()

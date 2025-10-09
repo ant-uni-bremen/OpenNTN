@@ -1,10 +1,10 @@
 #This file simuates the coupling losses and does the calibration test.
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from sionna.channel.tr38811 import Antenna, AntennaArray, Urban
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, Urban
 
 
 class TestLinkBudget(unittest.TestCase):
