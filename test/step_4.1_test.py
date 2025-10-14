@@ -6,9 +6,9 @@
 # As this part can be reused from the existing 3GPP TR38.901 implementation in Sionna, it is currently not tested and only lsp_log_std and 
 # lsp_log_mean are being verified
 
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, Rural, CDL
 import numpy as np
 import tensorflow as tf
 import math
@@ -13032,6 +13032,718 @@ class Test_SUR(unittest.TestCase):
         mu_ZSA_nlos = 1.38
         sigma_ZSA_nlos = 0.2
         
+
+        #Toleance of 0.1 for 10000 samples, which should catch incorrect behavior realibly enough, but tolerate variation in 100000 samples
+        #with split in NLOS and los cases
+        assert math.isclose(DS_mean_los, mu_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_mean_los, mu_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_mean_los, mu_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_mean_los, mu_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_los, mu_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_los, mu_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_std_los, sigma_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_std_los, sigma_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_std_los, sigma_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_std_los, sigma_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_std_los, sigma_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_std_los, sigma_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_mean_nlos, mu_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_mean_nlos, mu_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_mean_nlos, mu_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_nlos, mu_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_nlos, mu_ZSA_nlos, abs_tol=0.1)
+
+        assert math.isclose(DS_std_nlos, sigma_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_std_nlos, sigma_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_std_nlos, sigma_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_std_nlos, sigma_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_std_nlos, sigma_ZSA_nlos, abs_tol=0.1)
+
+class Test_Rural(unittest.TestCase):
+# Values taken Table 6.7.2-7a: Channel model parameters for Suburban Scenario (LOS) in S band and 
+# Table 6.7.2-8a: Channel model parameters for Suburban Scenario (NLOS) in S band
+    def test_s_band_10_degrees_dl(self):
+        elevation_angle = 10.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
+        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+
+        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
+        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+
+        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
+        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+
+        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
+        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+
+        DS_mean_los = lsp_means_los[0]
+        ASD_mean_los = lsp_means_los[1]
+        ASA_mean_los = lsp_means_los[2]
+        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        K_mean_los = lsp_means_los[4]
+        ZSA_mean_los = lsp_means_los[5]
+        ZSD_mean_los = lsp_means_los[6]
+
+        DS_mean_nlos = lsp_means_nlos[0]
+        ASD_mean_nlos = lsp_means_nlos[1]
+        ASA_mean_nlos = lsp_means_nlos[2]
+        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
+        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        ZSA_mean_nlos = lsp_means_nlos[5]
+        ZSD_mean_nlos = lsp_means_nlos[6]
+
+        DS_std_los = lsp_std_los[0]
+        ASD_std_los = lsp_std_los[1]
+        ASA_std_los = lsp_std_los[2]
+        SF_std_los = lsp_std_los[3]
+        K_std_los = lsp_std_los[4]
+        ZSA_std_los = lsp_std_los[5]
+        ZSD_std_los = lsp_std_los[6]
+
+        DS_std_nlos = lsp_std_nlos[0]
+        ASD_std_nlos = lsp_std_nlos[1]
+        ASA_std_nlos = lsp_std_nlos[2]
+        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
+        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        ZSA_std_nlos = lsp_std_nlos[5]
+        ZSD_std_nlos = lsp_std_nlos[6]
+        
+        #Values from tables
+        mu_DS_los = -9.55
+        sigma_DS_los = 0.66
+        mu_ASD_los = float('-inf')
+        sigma_ASD_los = 0.0
+        mu_ASA_los = -9.45
+        sigma_ASA_los = 7.83
+        #Divide mu_K by 10 as the Table in the standard is in dB
+        mu_K_los = 24.72/10.0
+        #Divide sigma_k by 10 as the Table in the standard is in dB
+        sigma_K_los = 5.07/10.0
+        mu_ZSD_los = float('-inf')
+        sigma_ZSD_los = 0.0
+        mu_ZSA_los = -4.2
+        sigma_ZSA_los = 6.3
+
+        mu_DS_nlos = -9.01
+        sigma_DS_nlos = 1.59
+        mu_ASD_nlos = float('-inf')
+        sigma_ASD_nlos = 0.0
+        mu_ASA_nlos = -3.33
+        sigma_ASA_nlos = 6.22
+        mu_ZSD_nlos = float('-inf')
+        sigma_ZSD_nlos = 0.0
+        mu_ZSA_nlos = -0.88
+        sigma_ZSA_nlos = 3.26
+
+        #Toleance of 0.1 for 10000 samples, which should catch incorrect behavior realibly enough, but tolerate variation in 100000 samples
+        #with split in NLOS and los cases
+        assert math.isclose(DS_mean_los, mu_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_mean_los, mu_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_mean_los, mu_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_mean_los, mu_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_los, mu_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_los, mu_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_std_los, sigma_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_std_los, sigma_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_std_los, sigma_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_std_los, sigma_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_std_los, sigma_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_std_los, sigma_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_mean_nlos, mu_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_mean_nlos, mu_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_mean_nlos, mu_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_nlos, mu_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_nlos, mu_ZSA_nlos, abs_tol=0.1)
+
+        assert math.isclose(DS_std_nlos, sigma_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_std_nlos, sigma_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_std_nlos, sigma_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_std_nlos, sigma_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_std_nlos, sigma_ZSA_nlos, abs_tol=0.1)
+
+
+    def test_s_band_10_degrees_ul(self):
+        elevation_angle = 10.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
+        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+
+        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
+        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+
+        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
+        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+
+        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
+        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+
+        DS_mean_los = lsp_means_los[0]
+        ASD_mean_los = lsp_means_los[1]
+        ASA_mean_los = lsp_means_los[2]
+        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        K_mean_los = lsp_means_los[4]
+        ZSA_mean_los = lsp_means_los[5]
+        ZSD_mean_los = lsp_means_los[6]
+
+        DS_mean_nlos = lsp_means_nlos[0]
+        ASD_mean_nlos = lsp_means_nlos[1]
+        ASA_mean_nlos = lsp_means_nlos[2]
+        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
+        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        ZSA_mean_nlos = lsp_means_nlos[5]
+        ZSD_mean_nlos = lsp_means_nlos[6]
+
+        DS_std_los = lsp_std_los[0]
+        ASD_std_los = lsp_std_los[1]
+        ASA_std_los = lsp_std_los[2]
+        SF_std_los = lsp_std_los[3]
+        K_std_los = lsp_std_los[4]
+        ZSA_std_los = lsp_std_los[5]
+        ZSD_std_los = lsp_std_los[6]
+
+        DS_std_nlos = lsp_std_nlos[0]
+        ASD_std_nlos = lsp_std_nlos[1]
+        ASA_std_nlos = lsp_std_nlos[2]
+        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
+        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        ZSA_std_nlos = lsp_std_nlos[5]
+        ZSD_std_nlos = lsp_std_nlos[6]
+        
+        #Values from tables
+        mu_DS_los = -9.55
+        sigma_DS_los = 0.66
+        mu_ASD_los = -3.42
+        sigma_ASD_los = 0.89
+        mu_ASA_los = -9.45
+        sigma_ASA_los = 7.83
+        mu_K_los = 24.72/10.0
+        sigma_K_los = 5.07/10.0
+        mu_ZSD_los = -6.03
+        sigma_ZSD_los = 5.19
+        mu_ZSA_los = -4.20
+        sigma_ZSA_los = 6.30
+
+        mu_DS_nlos = -9.01
+        sigma_DS_nlos = 1.59
+        mu_ASD_nlos = -2.9
+        sigma_ASD_nlos = 1.34
+        mu_ASA_nlos = -3.33
+        sigma_ASA_nlos = 6.22
+        mu_ZSD_nlos = -4.92
+        sigma_ZSD_nlos = 3.96
+        mu_ZSA_nlos = -0.88
+        sigma_ZSA_nlos = 3.26
+
+        #Toleance of 0.1 for 10000 samples, which should catch incorrect behavior realibly enough, but tolerate variation in 100000 samples
+        #with split in NLOS and los cases
+        assert math.isclose(DS_mean_los, mu_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_mean_los, mu_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_mean_los, mu_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_mean_los, mu_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_los, mu_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_los, mu_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_std_los, sigma_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_std_los, sigma_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_std_los, sigma_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_std_los, sigma_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_std_los, sigma_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_std_los, sigma_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_mean_nlos, mu_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_mean_nlos, mu_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_mean_nlos, mu_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_nlos, mu_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_nlos, mu_ZSA_nlos, abs_tol=0.1)
+
+        assert math.isclose(DS_std_nlos, sigma_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_std_nlos, sigma_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_std_nlos, sigma_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_std_nlos, sigma_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_std_nlos, sigma_ZSA_nlos, abs_tol=0.1)
+
+    def test_s_band_20_degrees_dl(self):
+        elevation_angle = 20.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
+        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+
+        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
+        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+
+        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
+        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+
+        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
+        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+
+        DS_mean_los = lsp_means_los[0]
+        ASD_mean_los = lsp_means_los[1]
+        ASA_mean_los = lsp_means_los[2]
+        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        K_mean_los = lsp_means_los[4]
+        ZSA_mean_los = lsp_means_los[5]
+        ZSD_mean_los = lsp_means_los[6]
+
+        DS_mean_nlos = lsp_means_nlos[0]
+        ASD_mean_nlos = lsp_means_nlos[1]
+        ASA_mean_nlos = lsp_means_nlos[2]
+        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
+        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        ZSA_mean_nlos = lsp_means_nlos[5]
+        ZSD_mean_nlos = lsp_means_nlos[6]
+
+        DS_std_los = lsp_std_los[0]
+        ASD_std_los = lsp_std_los[1]
+        ASA_std_los = lsp_std_los[2]
+        SF_std_los = lsp_std_los[3]
+        K_std_los = lsp_std_los[4]
+        ZSA_std_los = lsp_std_los[5]
+        ZSD_std_los = lsp_std_los[6]
+
+        DS_std_nlos = lsp_std_nlos[0]
+        ASD_std_nlos = lsp_std_nlos[1]
+        ASA_std_nlos = lsp_std_nlos[2]
+        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
+        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        ZSA_std_nlos = lsp_std_nlos[5]
+        ZSD_std_nlos = lsp_std_nlos[6]
+        
+        #Values from tables
+        mu_DS_los = -8.68
+        sigma_DS_los = 0.44
+        mu_ASD_los = float('-inf')
+        sigma_ASD_los = 0.0
+        mu_ASA_los = -4.45
+        sigma_ASA_los = 6.86
+        mu_K_los = 12.31/10.0
+        sigma_K_los = 5.75/10.0
+        mu_ZSD_los = float('-inf')
+        sigma_ZSD_los = 0.0
+        mu_ZSA_los = -2.31
+        sigma_ZSA_los = 5.04
+
+        mu_DS_nlos = -8.37
+        sigma_DS_nlos = 0.95
+        mu_ASD_nlos = float('-inf')
+        sigma_ASD_nlos = 0.0
+        mu_ASA_nlos = -0.74
+        sigma_ASA_nlos = 4.22
+        mu_ZSD_nlos = float('-inf')
+        sigma_ZSD_nlos = 0.0
+        mu_ZSA_nlos = -0.07
+        sigma_ZSA_nlos = 3.29
+
+        
+
+        #Toleance of 0.1 for 10000 samples, which should catch incorrect behavior realibly enough, but tolerate variation in 100000 samples
+        #with split in NLOS and los cases
+        assert math.isclose(DS_mean_los, mu_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_mean_los, mu_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_mean_los, mu_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_mean_los, mu_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_los, mu_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_los, mu_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_std_los, sigma_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_std_los, sigma_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_std_los, sigma_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_std_los, sigma_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_std_los, sigma_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_std_los, sigma_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_mean_nlos, mu_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_mean_nlos, mu_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_mean_nlos, mu_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_nlos, mu_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_nlos, mu_ZSA_nlos, abs_tol=0.1)
+
+        assert math.isclose(DS_std_nlos, sigma_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_std_nlos, sigma_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_std_nlos, sigma_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_std_nlos, sigma_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_std_nlos, sigma_ZSA_nlos, abs_tol=0.1)
+
+
+    def test_s_band_20_degrees_ul(self):
+        elevation_angle = 20.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
+        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+
+        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
+        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+
+        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
+        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+
+        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
+        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+
+        DS_mean_los = lsp_means_los[0]
+        ASD_mean_los = lsp_means_los[1]
+        ASA_mean_los = lsp_means_los[2]
+        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        K_mean_los = lsp_means_los[4]
+        ZSA_mean_los = lsp_means_los[5]
+        ZSD_mean_los = lsp_means_los[6]
+
+        DS_mean_nlos = lsp_means_nlos[0]
+        ASD_mean_nlos = lsp_means_nlos[1]
+        ASA_mean_nlos = lsp_means_nlos[2]
+        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
+        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        ZSA_mean_nlos = lsp_means_nlos[5]
+        ZSD_mean_nlos = lsp_means_nlos[6]
+
+        DS_std_los = lsp_std_los[0]
+        ASD_std_los = lsp_std_los[1]
+        ASA_std_los = lsp_std_los[2]
+        SF_std_los = lsp_std_los[3]
+        K_std_los = lsp_std_los[4]
+        ZSA_std_los = lsp_std_los[5]
+        ZSD_std_los = lsp_std_los[6]
+
+        DS_std_nlos = lsp_std_nlos[0]
+        ASD_std_nlos = lsp_std_nlos[1]
+        ASA_std_nlos = lsp_std_nlos[2]
+        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
+        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        ZSA_std_nlos = lsp_std_nlos[5]
+        ZSD_std_nlos = lsp_std_nlos[6]
+        
+        #Values from tables
+        mu_DS_los = -8.68
+        sigma_DS_los = 0.44
+        mu_ASD_los = -3.00
+        sigma_ASD_los = 0.63
+        mu_ASA_los = -4.45
+        sigma_ASA_los = 6.86
+        mu_K_los = 12.31/10.0
+        sigma_K_los = 5.75/10.0
+        mu_ZSD_los = -4.31
+        sigma_ZSD_los = 4.18
+        mu_ZSA_los = -2.31
+        sigma_ZSA_los = 5.04
+
+        mu_DS_nlos = -8.37
+        sigma_DS_nlos = 0.95
+        mu_ASD_nlos = -2.50
+        sigma_ASD_nlos = 1.18
+        mu_ASA_nlos = -0.74
+        sigma_ASA_nlos = 4.22
+        mu_ZSD_nlos = -4.06
+        sigma_ZSD_nlos = 4.07
+        mu_ZSA_nlos = -0.07
+        sigma_ZSA_nlos = 3.29
+
+        #Toleance of 0.1 for 10000 samples, which should catch incorrect behavior realibly enough, but tolerate variation in 100000 samples
+        #with split in NLOS and los cases
+        assert math.isclose(DS_mean_los, mu_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_mean_los, mu_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_mean_los, mu_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_mean_los, mu_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_los, mu_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_los, mu_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_std_los, sigma_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_std_los, sigma_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_std_los, sigma_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_std_los, sigma_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_std_los, sigma_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_std_los, sigma_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_mean_nlos, mu_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_mean_nlos, mu_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_mean_nlos, mu_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_nlos, mu_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_nlos, mu_ZSA_nlos, abs_tol=0.1)
+
+        assert math.isclose(DS_std_nlos, sigma_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_std_nlos, sigma_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_std_nlos, sigma_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_std_nlos, sigma_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_std_nlos, sigma_ZSA_nlos, abs_tol=0.1)
+
+    def test_s_band_30_degrees_dl(self):
+        elevation_angle = 30.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
+        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+
+        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
+        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+
+        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
+        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+
+        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
+        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+
+        DS_mean_los = lsp_means_los[0]
+        ASD_mean_los = lsp_means_los[1]
+        ASA_mean_los = lsp_means_los[2]
+        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        K_mean_los = lsp_means_los[4]
+        ZSA_mean_los = lsp_means_los[5]
+        ZSD_mean_los = lsp_means_los[6]
+
+        DS_mean_nlos = lsp_means_nlos[0]
+        ASD_mean_nlos = lsp_means_nlos[1]
+        ASA_mean_nlos = lsp_means_nlos[2]
+        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
+        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        ZSA_mean_nlos = lsp_means_nlos[5]
+        ZSD_mean_nlos = lsp_means_nlos[6]
+
+        DS_std_los = lsp_std_los[0]
+        ASD_std_los = lsp_std_los[1]
+        ASA_std_los = lsp_std_los[2]
+        SF_std_los = lsp_std_los[3]
+        K_std_los = lsp_std_los[4]
+        ZSA_std_los = lsp_std_los[5]
+        ZSD_std_los = lsp_std_los[6]
+
+        DS_std_nlos = lsp_std_nlos[0]
+        ASD_std_nlos = lsp_std_nlos[1]
+        ASA_std_nlos = lsp_std_nlos[2]
+        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
+        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        ZSA_std_nlos = lsp_std_nlos[5]
+        ZSD_std_nlos = lsp_std_nlos[6]
+        
+        #Values from tables
+        mu_DS_los = -8.46
+        sigma_DS_los = 0.28
+        mu_ASD_los = float('-inf')
+        sigma_ASD_los = 0.0
+        mu_ASA_los = -2.39
+        sigma_ASA_los = 5.14
+        mu_K_los = 8.05/10.0
+        sigma_K_los = 5.46/10.0
+        mu_ZSD_los = float('-inf')
+        sigma_ZSD_los = 0.0
+        mu_ZSA_los = -0.28
+        sigma_ZSA_los = 0.81
+
+        mu_DS_nlos = -8.05
+        sigma_DS_nlos = 0.92
+        mu_ASD_nlos = float('-inf')
+        sigma_ASD_nlos = 0.0
+        mu_ASA_nlos = 0.08
+        sigma_ASA_nlos = 3.02
+        mu_ZSD_nlos = float('-inf')
+        sigma_ZSD_nlos = 0.0
+        mu_ZSA_nlos = 0.75
+        sigma_ZSA_nlos = 1.92
+
+        #Toleance of 0.1 for 10000 samples, which should catch incorrect behavior realibly enough, but tolerate variation in 100000 samples
+        #with split in NLOS and los cases
+        assert math.isclose(DS_mean_los, mu_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_mean_los, mu_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_mean_los, mu_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_mean_los, mu_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_los, mu_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_los, mu_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_std_los, sigma_DS_los, abs_tol=0.1)
+        assert math.isclose(ASD_std_los, sigma_ASD_los, abs_tol=0.1)
+        assert math.isclose(ASA_std_los, sigma_ASA_los, abs_tol=0.1)
+        assert math.isclose(K_std_los, sigma_K_los, abs_tol=0.1)
+        assert math.isclose(ZSD_std_los, sigma_ZSD_los, abs_tol=0.1)
+        assert math.isclose(ZSA_std_los, sigma_ZSA_los, abs_tol=0.1)
+
+        assert math.isclose(DS_mean_nlos, mu_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_mean_nlos, mu_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_mean_nlos, mu_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_mean_nlos, mu_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_mean_nlos, mu_ZSA_nlos, abs_tol=0.1)
+
+        assert math.isclose(DS_std_nlos, sigma_DS_nlos, abs_tol=0.1)
+        assert math.isclose(ASD_std_nlos, sigma_ASD_nlos, abs_tol=0.1)
+        assert math.isclose(ASA_std_nlos, sigma_ASA_nlos, abs_tol=0.1)
+        assert math.isclose(ZSD_std_nlos, sigma_ZSD_nlos, abs_tol=0.1)
+        assert math.isclose(ZSA_std_nlos, sigma_ZSA_nlos, abs_tol=0.1)
+
+
+    def test_s_band_30_degrees_ul(self):
+        elevation_angle = 30.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
+        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+
+        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
+        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+
+        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
+        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+
+        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
+        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+
+        DS_mean_los = lsp_means_los[0]
+        ASD_mean_los = lsp_means_los[1]
+        ASA_mean_los = lsp_means_los[2]
+        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        K_mean_los = lsp_means_los[4]
+        ZSA_mean_los = lsp_means_los[5]
+        ZSD_mean_los = lsp_means_los[6]
+
+        DS_mean_nlos = lsp_means_nlos[0]
+        ASD_mean_nlos = lsp_means_nlos[1]
+        ASA_mean_nlos = lsp_means_nlos[2]
+        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
+        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        ZSA_mean_nlos = lsp_means_nlos[5]
+        ZSD_mean_nlos = lsp_means_nlos[6]
+
+        DS_std_los = lsp_std_los[0]
+        ASD_std_los = lsp_std_los[1]
+        ASA_std_los = lsp_std_los[2]
+        SF_std_los = lsp_std_los[3]
+        K_std_los = lsp_std_los[4]
+        ZSA_std_los = lsp_std_los[5]
+        ZSD_std_los = lsp_std_los[6]
+
+        DS_std_nlos = lsp_std_nlos[0]
+        ASD_std_nlos = lsp_std_nlos[1]
+        ASA_std_nlos = lsp_std_nlos[2]
+        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
+        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        ZSA_std_nlos = lsp_std_nlos[5]
+        ZSD_std_nlos = lsp_std_nlos[6]
+        
+        #Values from tables
+        mu_DS_los = -8.46
+        sigma_DS_los = 0.28
+        mu_ASD_los = -2.86
+        sigma_ASD_los = 0.52
+        mu_ASA_los = -2.39
+        sigma_ASA_los = 5.14
+        mu_K_los = 8.05/10.0
+        sigma_K_los = 5.46/10.0
+        mu_ZSD_los = -2.57
+        sigma_ZSD_los = 0.61
+        mu_ZSA_los = -0.28
+        sigma_ZSA_los = 0.81
+
+        mu_DS_nlos = -8.05
+        sigma_DS_nlos = 0.92
+        mu_ASD_nlos = -2.12
+        sigma_ASD_nlos = 1.08
+        mu_ASA_nlos = 0.08
+        sigma_ASA_nlos = 3.02
+        mu_ZSD_nlos = -2.33
+        sigma_ZSD_nlos = 1.70
+        mu_ZSA_nlos = 0.75
+        sigma_ZSA_nlos = 1.92
 
         #Toleance of 0.1 for 10000 samples, which should catch incorrect behavior realibly enough, but tolerate variation in 100000 samples
         #with split in NLOS and los cases
