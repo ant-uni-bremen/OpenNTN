@@ -100,15 +100,15 @@
     "sigmaZSD_90": 2.52,
 
 
-    "sigmaSF_10": 8.0,
-    "sigmaSF_20": 8.0,
-    "sigmaSF_30": 8.0,
-    "sigmaSF_40": 8.0,
-    "sigmaSF_50": 8.0,
-    "sigmaSF_60": 8.0,
-    "sigmaSF_70": 8.0,
-    "sigmaSF_80": 8.0,
-    "sigmaSF_90": 8.0,
+    "sigmaSF_10": 8.93,
+    "sigmaSF_20": 9.08,
+    "sigmaSF_30": 8.78,
+    "sigmaSF_40": 10.25,
+    "sigmaSF_50": 10.56,
+    "sigmaSF_60": 10.74,
+    "sigmaSF_70": 10.17,
+    "sigmaSF_80": 11.52,
+    "sigmaSF_90": 11.52,
 
 
     "CL_10": 19.52,
