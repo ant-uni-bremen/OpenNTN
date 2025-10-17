@@ -6,10 +6,11 @@
 # 3GPP TR38.811 uses the value N/A for a fewcorrelations, which is interpreted as 0.0 in this implementation. Additionally, despite the standard not
 # mentioning it, the correlation between ZSD and ASD to any other paramter is set to 0.0 in the DL case, the both ZSD and ASD are set to -inf in every case,
 # removing the correlation to other parameters.
-
-from sionna.channel.tr38811 import utils   # The code to test
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or '2' to keep only errors
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL, Rural
 import numpy as np
 import tensorflow as tf
 import math
@@ -20333,7 +20334,7 @@ class Test_SUR(unittest.TestCase):
         assert tf.reduce_all(main_diag_6_los)
 
         
-
+    
         ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
         ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
         ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
@@ -29593,8 +29594,8 @@ class Test_SUR(unittest.TestCase):
         ZSDvsASD_nlos = 0.5
         ZSAvsASD_nlos = -0.1
         ZSDvsASA_nlos = 0.0
-        ZSAvsASA_nlos = -0.0
-        ZSDvsZSA_nlos = -0.0
+        ZSAvsASA_nlos = 0.0
+        ZSDvsZSA_nlos = 0.0
 
         ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
         ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
@@ -29802,5 +29803,5006 @@ class Test_SUR(unittest.TestCase):
         assert tf.reduce_all(main_diag_5_nlos)
         assert tf.reduce_all(main_diag_6_nlos)
          
+class Test_Rural(unittest.TestCase):
+# Values taken Table 6.7.2-7a: Channel model parameters for Rural Scenario (LOS) in S band and 
+# Table 6.7.2-8a: Channel model parameters for Rural Scenario (NLOS) in S band
+    def test_s_band_10_degrees_dl(self):
+        elevation_angle = 10.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.0
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = 0.0
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.0
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = 0.0
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = 0.0
+
+        ASDvsDS_nlos = 0.0
+        ASAvsDS_nlos = 0.30
+        ASAvsSF_nlos = 0.02
+        ASDvsSF_nlos = 0.0
+        DSvsSF_nlos = -0.36
+        ASDvsASA_nlos = 0.0
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = 0.0
+        ZSAvsSF_nlos = -0.07
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.0
+        ZSAvsDS_nlos = 0.06
+        ZSDvsASD_nlos = 0.0
+        ZSAvsASD_nlos = 0.21
+        ZSDvsASA_nlos = 0.0
+        ZSAvsASA_nlos = 0.10
+        ZSDvsZSA_nlos = 0.0
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+
+    def test_s_band_10_degrees_ul(self):
+        elevation_angle = 10.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+       
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.01
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = -0.05
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.73
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = -0.20
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = -0.07
+
+
+        # --- S-band 10° NLOS ---
+        ASDvsDS_nlos = 0.32
+        ASAvsDS_nlos = 0.30
+        ASAvsSF_nlos = 0.02
+        ASDvsSF_nlos = 0.45
+        DSvsSF_nlos = -0.36
+        ASDvsASA_nlos = 0.45
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = -0.06
+        ZSAvsSF_nlos = -0.07
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.58
+        ZSAvsDS_nlos = 0.06
+        ZSDvsASD_nlos = 0.60
+        ZSAvsASD_nlos = 0.21
+        ZSDvsASA_nlos = 0.33
+        ZSAvsASA_nlos = 0.10
+        ZSDvsZSA_nlos = 0.01
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+    def test_s_band_20_degrees_dl(self):
+        elevation_angle = 20.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.0
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = 0.0
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.0
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = 0.0
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = 0.0
+
+        ASDvsDS_nlos = 0.0
+        ASAvsDS_nlos = 0.32
+        ASAvsSF_nlos = 0.0
+        ASDvsSF_nlos = 0.0
+        DSvsSF_nlos = -0.39
+        ASDvsASA_nlos = 0.0
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = 0.0
+        ZSAvsSF_nlos = -0.17
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.0
+        ZSAvsDS_nlos = 0.03
+        ZSDvsASD_nlos = 0.0
+        ZSAvsASD_nlos = -0.02
+        ZSDvsASA_nlos = 0.0
+        ZSAvsASA_nlos = 0.21
+        ZSDvsZSA_nlos = 0.0
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+
+    def test_s_band_20_degrees_ul(self):
+        elevation_angle = 20.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.01
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = -0.05
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.73
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = -0.20
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = -0.07
+
+        ASDvsDS_nlos = 0.19
+        ASAvsDS_nlos = 0.32
+        ASAvsSF_nlos = 0.0
+        ASDvsSF_nlos = 0.52
+        DSvsSF_nlos = -0.39
+        ASDvsASA_nlos = 0.12
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = -0.04
+        ZSAvsSF_nlos = -0.17
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.67
+        ZSAvsDS_nlos = 0.03
+        ZSDvsASD_nlos = 0.41
+        ZSAvsASD_nlos = -0.02
+        ZSDvsASA_nlos = 0.35
+        ZSAvsASA_nlos = 0.21
+        ZSDvsZSA_nlos = -0.02
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+    def test_s_band_30_degrees_dl(self):
+        elevation_angle = 30.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        # --- S-band 30° LOS ---
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.0
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = 0.0
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.0
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = 0.0
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = 0.0
+
+
+        # --- S-band 30° NLOS ---
+        ASDvsDS_nlos = 0.0
+        ASAvsDS_nlos = 0.32
+        ASAvsSF_nlos = 0.00
+        ASDvsSF_nlos = 0.0
+        DSvsSF_nlos = -0.41
+        ASDvsASA_nlos = 0.0
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = 0.0
+        ZSAvsSF_nlos = -0.19
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.0
+        ZSAvsDS_nlos = 0.00
+        ZSDvsASD_nlos = 0.0
+        ZSAvsASD_nlos = -0.09
+        ZSDvsASA_nlos = 0.0
+        ZSAvsASA_nlos = 0.22
+        ZSDvsZSA_nlos = 0.0
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+
+    def test_s_band_30_degrees_ul(self):
+        elevation_angle = 30.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        # --- S-band 30° LOS ---
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.01
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = -0.05
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.73
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = -0.20
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = -0.07
+
+
+        # --- S-band 30° NLOS ---
+        ASDvsDS_nlos = 0.23
+        ASAvsDS_nlos = 0.32
+        ASAvsSF_nlos = 0.00
+        ASDvsSF_nlos = 0.54
+        DSvsSF_nlos = -0.41
+        ASDvsASA_nlos = 0.07
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = -0.04
+        ZSAvsSF_nlos = -0.19
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.65
+        ZSAvsDS_nlos = 0.00
+        ZSDvsASD_nlos = 0.37
+        ZSAvsASD_nlos = -0.09
+        ZSDvsASA_nlos = 0.31
+        ZSAvsASA_nlos = 0.22
+        ZSDvsZSA_nlos = -0.12
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+    def test_s_band_40_degrees_dl(self):
+        elevation_angle = 40.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.0
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = 0.0
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.0
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = 0.0
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = 0.0
+
+        ASDvsDS_nlos = 0.0
+        ASAvsDS_nlos = 0.40
+        ASAvsSF_nlos = 0.01
+        ASDvsSF_nlos = 0.0
+        DSvsSF_nlos = -0.37
+        ASDvsASA_nlos = 0.0
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = 0.0
+        ZSAvsSF_nlos = -0.17
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.0
+        ZSAvsDS_nlos = -0.09
+        ZSDvsASD_nlos = 0.0
+        ZSAvsASD_nlos = -0.10
+        ZSDvsASA_nlos = 0.0
+        ZSAvsASA_nlos = 0.07
+        ZSDvsZSA_nlos = 0.0
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+
+    def test_s_band_40_degrees_ul(self):
+        elevation_angle = 40.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.01
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = -0.05
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.73
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = -0.20
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = -0.07
+
+
+        ASDvsDS_nlos = 0.25
+        ASAvsDS_nlos = 0.40
+        ASAvsSF_nlos = 0.01
+        ASDvsSF_nlos = 0.53
+        DSvsSF_nlos = -0.37
+        ASDvsASA_nlos = 0.22
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = -0.05
+        ZSAvsSF_nlos = -0.17
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.73
+        ZSAvsDS_nlos = -0.09
+        ZSDvsASD_nlos = 0.32
+        ZSAvsASD_nlos = -0.10
+        ZSDvsASA_nlos = 0.37
+        ZSAvsASA_nlos = 0.07
+        ZSDvsZSA_nlos = -0.21
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+    def test_s_band_50_degrees_dl(self):
+        elevation_angle = 50.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+         
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.0
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = 0.0
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.0
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = 0.0
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = 0.0
+
+
+        # --- S-band 50° NLOS ---
+        ASDvsDS_nlos = 0.0
+        ASAvsDS_nlos = 0.45
+        ASAvsSF_nlos = 0.02
+        ASDvsSF_nlos = 0.0
+        DSvsSF_nlos = -0.40
+        ASDvsASA_nlos = 0.0
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = 0.0
+        ZSAvsSF_nlos = -0.19
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.0
+        ZSAvsDS_nlos = -0.20
+        ZSDvsASD_nlos = 0.0
+        ZSAvsASD_nlos = -0.12
+        ZSDvsASA_nlos = 0.0
+        ZSAvsASA_nlos = -0.04
+        ZSDvsZSA_nlos = 0.0
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+
+    def test_s_band_50_degrees_ul(self):
+        elevation_angle = 50.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+         
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.01
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = -0.05
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.73
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = -0.20
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = -0.07
+
+
+        ASDvsDS_nlos = 0.15
+        ASAvsDS_nlos = 0.45
+        ASAvsSF_nlos = 0.02
+        ASDvsSF_nlos = 0.55
+        DSvsSF_nlos = -0.40
+        ASDvsASA_nlos = 0.16
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = -0.06
+        ZSAvsSF_nlos = -0.19
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.79
+        ZSAvsDS_nlos = -0.20
+        ZSDvsASD_nlos = 0.19
+        ZSAvsASD_nlos = -0.12
+        ZSDvsASA_nlos = 0.46
+        ZSAvsASA_nlos = -0.04
+        ZSDvsZSA_nlos = -0.27
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+    def test_s_band_60_degrees_dl(self):
+        elevation_angle = 60.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        # --- S-band 60° LOS ---
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.0
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = 0.0
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.0
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = 0.0
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = 0.0
+
+
+        # --- S-band 60° NLOS ---
+        ASDvsDS_nlos = 0.0
+        ASAvsDS_nlos = 0.39
+        ASAvsSF_nlos = 0.02
+        ASDvsSF_nlos = 0.0
+        DSvsSF_nlos = -0.41
+        ASDvsASA_nlos = 0.0
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = 0.0
+        ZSAvsSF_nlos = -0.20
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.0
+        ZSAvsDS_nlos = -0.22
+        ZSDvsASD_nlos = 0.0
+        ZSAvsASD_nlos = -0.11
+        ZSDvsASA_nlos = 0.0
+        ZSAvsASA_nlos = -0.12
+        ZSDvsZSA_nlos = 0.0
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+
+    def test_s_band_60_degrees_ul(self):
+        elevation_angle = 60.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        # --- S-band 60° LOS ---
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.01
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = -0.05
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.73
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = -0.20
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = -0.07
+
+
+        # --- S-band 60° NLOS ---
+        ASDvsDS_nlos = 0.08
+        ASAvsDS_nlos = 0.39
+        ASAvsSF_nlos = 0.02
+        ASDvsSF_nlos = 0.56
+        DSvsSF_nlos = -0.41
+        ASDvsASA_nlos = 0.14
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = -0.07
+        ZSAvsSF_nlos = -0.20
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.81
+        ZSAvsDS_nlos = -0.22
+        ZSDvsASD_nlos = 0.16
+        ZSAvsASD_nlos = -0.11
+        ZSDvsASA_nlos = 0.44
+        ZSAvsASA_nlos = -0.12
+        ZSDvsZSA_nlos = -0.27
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+    def test_s_band_70_degrees_dl(self):
+        elevation_angle = 70.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        # --- S-band 70° LOS ---
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.0
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = 0.0
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.0
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = 0.0
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = 0.0
+
+
+        # --- S-band 70° NLOS ---
+        ASDvsDS_nlos = 0.0
+        ASAvsDS_nlos = 0.51
+        ASAvsSF_nlos = 0.04
+        ASDvsSF_nlos = 0.0
+        DSvsSF_nlos = -0.40
+        ASDvsASA_nlos = 0.0
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = 0.0
+        ZSAvsSF_nlos = -0.19
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.0
+        ZSAvsDS_nlos = -0.32
+        ZSDvsASD_nlos = 0.0
+        ZSAvsASD_nlos = -0.10
+        ZSDvsASA_nlos = 0.0
+        ZSAvsASA_nlos = -0.29
+        ZSDvsZSA_nlos = 0.0
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+
+    def test_s_band_70_degrees_ul(self):
+        elevation_angle = 70.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        # --- S-band 70° LOS ---
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.01
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = -0.05
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.73
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = -0.20
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = -0.07
+
+
+        # --- S-band 70° NLOS ---
+        ASDvsDS_nlos = 0.13
+        ASAvsDS_nlos = 0.51
+        ASAvsSF_nlos = 0.04
+        ASDvsSF_nlos = 0.56
+        DSvsSF_nlos = -0.40
+        ASDvsASA_nlos = 0.20
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = -0.11
+        ZSAvsSF_nlos = -0.19
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.79
+        ZSAvsDS_nlos = -0.32
+        ZSDvsASD_nlos = 0.20
+        ZSAvsASD_nlos = -0.10
+        ZSDvsASA_nlos = 0.49
+        ZSAvsASA_nlos = -0.29
+        ZSDvsZSA_nlos = -0.38
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+    def test_s_band_80_degrees_dl(self):
+        elevation_angle = 80.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        # --- S-band 80° LOS ---
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.0
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = 0.0
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.0
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = 0.0
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = 0.0
+
+
+        # --- S-band 80° NLOS ---
+        ASDvsDS_nlos = 0.0
+        ASAvsDS_nlos = 0.27
+        ASAvsSF_nlos = 0.01
+        ASDvsSF_nlos = 0.0
+        DSvsSF_nlos = -0.46
+        ASDvsASA_nlos = 0.0
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = 0.0
+        ZSAvsSF_nlos = -0.23
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.0
+        ZSAvsDS_nlos = -0.41
+        ZSDvsASD_nlos = 0.0
+        ZSAvsASD_nlos = -0.14
+        ZSDvsASA_nlos = 0.0
+        ZSAvsASA_nlos = -0.26
+        ZSDvsZSA_nlos = 0.0
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+
+    def test_s_band_80_degrees_ul(self):
+        elevation_angle = 80.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        # --- S-band 80° LOS ---
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.01
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = -0.05
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.73
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = -0.20
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = -0.07
+
+
+        # --- S-band 80° NLOS ---
+        ASDvsDS_nlos = 0.15
+        ASAvsDS_nlos = 0.27
+        ASAvsSF_nlos = 0.01
+        ASDvsSF_nlos = 0.58
+        DSvsSF_nlos = -0.46
+        ASDvsASA_nlos = -0.04
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = -0.05
+        ZSAvsSF_nlos = -0.23
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.70
+        ZSAvsDS_nlos = -0.41
+        ZSDvsASD_nlos = 0.15
+        ZSAvsASD_nlos = -0.14
+        ZSDvsASA_nlos = 0.27
+        ZSAvsASA_nlos = -0.26
+        ZSDvsZSA_nlos = -0.35
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+    def test_s_band_90_degrees_dl(self):
+        elevation_angle = 90.0
+
+        direction = "downlink"
+        scenario = "rur"
+        carrier_frequency = 2.2e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        # --- S-band 90° LOS ---
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.0
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = 0.0
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.0
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = 0.0
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = 0.0
+
+
+        # --- S-band 90° NLOS ---
+        ASDvsDS_nlos = 0.0
+        ASAvsDS_nlos = 0.05
+        ASAvsSF_nlos = 0.06
+        ASDvsSF_nlos = 0.0
+        DSvsSF_nlos = -0.30
+        ASDvsASA_nlos = 0.0
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = 0.0
+        ZSAvsSF_nlos = -0.13
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.0
+        ZSAvsDS_nlos = -0.35
+        ZSDvsASD_nlos = 0.0
+        ZSAvsASD_nlos = -0.25
+        ZSDvsASA_nlos = 0.0
+        ZSAvsASA_nlos = -0.36
+        ZSDvsZSA_nlos = 0.0
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+
+    def test_s_band_90_degrees_ul(self):
+        elevation_angle = 90.0
+
+        direction = "uplink"
+        scenario = "rur"
+        carrier_frequency = 2.0e9
+        ut_array = create_ut_ant(carrier_frequency)
+        bs_array = create_bs_ant(carrier_frequency)
+
+        channel_model = Rural(carrier_frequency=carrier_frequency,
+                                            ut_array=ut_array,
+                                            bs_array=bs_array,
+                                            direction=direction,
+                                            elevation_angle=elevation_angle,
+                                            enable_pathloss=True,
+                                            enable_shadow_fading=True)
+        
+        topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
+        channel_model.set_topology(*topology)
+        
+        # DS, ASD, ASA, SF, K, ZSA, ZSD
+        squared_corr_matrix = square_matrix(channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt)
+        los_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los)
+        nlos_squared_corr_matrix = tf.boolean_mask(squared_corr_matrix, channel_model._scenario.los == False)
+
+        # --- S-band 90° LOS ---
+        ASDvsDS_los = 0.0
+        ASAvsDS_los = 0.0
+        ASAvsSF_los = 0.0
+        ASDvsSF_los = 0.0
+        DSvsSF_los = -0.5
+        ASDvsASA_los = 0.0
+        ASDvsK_los = 0.0
+        ASAvsK_los = 0.0
+        DSvsK_los = 0.0
+        SFvsK_los = 0.0
+        ZSDvsSF_los = 0.01
+        ZSAvsSF_los = -0.17
+        ZSDvsK_los = 0.0
+        ZSAvsK_los = -0.02
+        ZSDvsDS_los = -0.05
+        ZSAvsDS_los = 0.27
+        ZSDvsASD_los = 0.73
+        ZSAvsASD_los = -0.14
+        ZSDvsASA_los = -0.20
+        ZSAvsASA_los = 0.24
+        ZSDvsZSA_los = -0.07
+
+
+        # --- S-band 90° NLOS ---
+        ASDvsDS_nlos = 0.64
+        ASAvsDS_nlos = 0.05
+        ASAvsSF_nlos = 0.06
+        ASDvsSF_nlos = 0.47
+        DSvsSF_nlos = -0.30
+        ASDvsASA_nlos = -0.11
+        ASDvsK_nlos = 0.0
+        ASAvsK_nlos = 0.0
+        DSvsK_nlos = 0.0
+        SFvsK_nlos = 0.0
+        ZSDvsSF_nlos = -0.10
+        ZSAvsSF_nlos = -0.13
+        ZSDvsK_nlos = 0.0
+        ZSAvsK_nlos = 0.0
+        ZSDvsDS_nlos = 0.42
+        ZSAvsDS_nlos = -0.35
+        ZSDvsASD_nlos = 0.28
+        ZSAvsASD_nlos = -0.25
+        ZSDvsASA_nlos = 0.07
+        ZSAvsASA_nlos = -0.36
+        ZSDvsZSA_nlos = -0.36
+
+        ASDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,1] - ASDvsDS_los) <= 0.0001
+        ASDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,0] - ASDvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,0] - ASAvsDS_los) <= 0.0001
+        ASAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,2] - ASAvsDS_los) <= 0.0001
+        ASAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,3] - ASAvsSF_los) <= 0.0001
+        ASAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,2] - ASAvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,3] - ASDvsSF_los) <= 0.0001
+        ASDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,1] - ASDvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,3] - DSvsSF_los) <= 0.0001
+        DSvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,0] - DSvsSF_los) <= 0.0001
+        ASDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,1] - ASDvsASA_los) <= 0.0001
+        ASDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,2] - ASDvsASA_los) <= 0.0001
+        ASDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,1,4] - ASDvsK_los) <= 0.0001
+        ASDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,1] - ASDvsK_los) <= 0.0001
+        ASAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,2,4] - ASAvsK_los) <= 0.0001
+        ASAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,2] - ASAvsK_los) <= 0.0001
+        DSvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,0,4] - DSvsK_los) <= 0.0001
+        DSvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,0] - DSvsK_los) <= 0.0001
+        SFvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,4,3] - SFvsK_los) <= 0.0001
+        SFvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,4] - SFvsK_los) <= 0.0001
+        ZSDvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,3] - ZSDvsSF_los) <= 0.0001
+        ZSDvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,6] - ZSDvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,3] - ZSAvsSF_los) <= 0.0001
+        ZSAvsSF_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,3,5] - ZSAvsSF_los) <= 0.0001
+        ZSDvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,4] - ZSDvsK_los) <= 0.0001
+        ZSDvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,6] - ZSDvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,4] - ZSAvsK_los) <= 0.0001
+        ZSAvsK_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,4,5] - ZSAvsK_los) <= 0.0001
+        ZSDvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,0] - ZSDvsDS_los) <= 0.0001
+        ZSDvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,6] - ZSDvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,0] - ZSAvsDS_los) <= 0.0001
+        ZSAvsDS_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,0,5] - ZSAvsDS_los) <= 0.0001
+        ZSDvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,1] - ZSDvsASD_los) <= 0.0001
+        ZSDvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,6] - ZSDvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,1] - ZSAvsASD_los) <= 0.0001
+        ZSAvsASD_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,1,5] - ZSAvsASD_los) <= 0.0001
+        ZSDvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,2] - ZSDvsASA_los) <= 0.0001
+        ZSDvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,6] - ZSDvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,5,2] - ZSAvsASA_los) <= 0.0001
+        ZSAvsASA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,2,5] - ZSAvsASA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_1 = tf.abs(los_squared_corr_matrix[:,6,5] - ZSDvsZSA_los) <= 0.0001
+        ZSDvsZSA_within_range_los_2 = tf.abs(los_squared_corr_matrix[:,5,6] - ZSDvsZSA_los) <= 0.0001
+
+        main_diag_0_los = tf.abs(los_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_los = tf.abs(los_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_los = tf.abs(los_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_los = tf.abs(los_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_los = tf.abs(los_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_los = tf.abs(los_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_los = tf.abs(los_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_los_1)
+        assert tf.reduce_all(ASDvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsDS_within_range_los_1)
+        assert tf.reduce_all(ASAvsDS_within_range_los_2)
+        assert tf.reduce_all(ASAvsSF_within_range_los_1)
+        assert tf.reduce_all(ASAvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsSF_within_range_los_1)
+        assert tf.reduce_all(ASDvsSF_within_range_los_2)
+        assert tf.reduce_all(DSvsSF_within_range_los_1)
+        assert tf.reduce_all(DSvsSF_within_range_los_2)
+        assert tf.reduce_all(ASDvsASA_within_range_los_1)
+        assert tf.reduce_all(ASDvsASA_within_range_los_2)
+        assert tf.reduce_all(ASDvsK_within_range_los_1)
+        assert tf.reduce_all(ASDvsK_within_range_los_2)
+        assert tf.reduce_all(ASAvsK_within_range_los_1)
+        assert tf.reduce_all(ASAvsK_within_range_los_2)
+        assert tf.reduce_all(DSvsK_within_range_los_1)
+        assert tf.reduce_all(DSvsK_within_range_los_2)
+        assert tf.reduce_all(SFvsK_within_range_los_1)
+        assert tf.reduce_all(SFvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_los_2)
+        assert tf.reduce_all(ZSDvsK_within_range_los_1)
+        assert tf.reduce_all(ZSDvsK_within_range_los_2)
+        assert tf.reduce_all(ZSAvsK_within_range_los_1)
+        assert tf.reduce_all(ZSAvsK_within_range_los_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_los_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_los_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_los_2)
+
+        assert tf.reduce_all(main_diag_0_los)
+        assert tf.reduce_all(main_diag_1_los)
+        assert tf.reduce_all(main_diag_2_los)
+        assert tf.reduce_all(main_diag_3_los)
+        assert tf.reduce_all(main_diag_4_los)
+        assert tf.reduce_all(main_diag_5_los)
+        assert tf.reduce_all(main_diag_6_los)
+
+        
+
+        ASDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,1] - ASDvsDS_nlos) <= 0.0001
+        ASDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,0] - ASDvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,0] - ASAvsDS_nlos) <= 0.0001
+        ASAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,2] - ASAvsDS_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,3] - ASAvsSF_nlos) <= 0.0001
+        ASAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,2] - ASAvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,3] - ASDvsSF_nlos) <= 0.0001
+        ASDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,1] - ASDvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,3] - DSvsSF_nlos) <= 0.0001
+        DSvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,0] - DSvsSF_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,1] - ASDvsASA_nlos) <= 0.0001
+        ASDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,2] - ASDvsASA_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,1,4] - ASDvsK_nlos) <= 0.0001
+        ASDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,1] - ASDvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,2,4] - ASAvsK_nlos) <= 0.0001
+        ASAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,2] - ASAvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,0,4] - DSvsK_nlos) <= 0.0001
+        DSvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,0] - DSvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,4,3] - SFvsK_nlos) <= 0.0001
+        SFvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,4] - SFvsK_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,3] - ZSDvsSF_nlos) <= 0.0001
+        ZSDvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,6] - ZSDvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,3] - ZSAvsSF_nlos) <= 0.0001
+        ZSAvsSF_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,3,5] - ZSAvsSF_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,4] - ZSDvsK_nlos) <= 0.0001
+        ZSDvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,6] - ZSDvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,4] - ZSAvsK_nlos) <= 0.0001
+        ZSAvsK_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,4,5] - ZSAvsK_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,0] - ZSDvsDS_nlos) <= 0.0001
+        ZSDvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,6] - ZSDvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,0] - ZSAvsDS_nlos) <= 0.0001
+        ZSAvsDS_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,0,5] - ZSAvsDS_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,1] - ZSDvsASD_nlos) <= 0.0001
+        ZSDvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,6] - ZSDvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,1] - ZSAvsASD_nlos) <= 0.0001
+        ZSAvsASD_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,1,5] - ZSAvsASD_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,2] - ZSDvsASA_nlos) <= 0.0001
+        ZSDvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,6] - ZSDvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,5,2] - ZSAvsASA_nlos) <= 0.0001
+        ZSAvsASA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,2,5] - ZSAvsASA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_1 = tf.abs(nlos_squared_corr_matrix[:,6,5] - ZSDvsZSA_nlos) <= 0.0001
+        ZSDvsZSA_within_range_nlos_2 = tf.abs(nlos_squared_corr_matrix[:,5,6] - ZSDvsZSA_nlos) <= 0.0001
+
+        main_diag_0_nlos = tf.abs(nlos_squared_corr_matrix[:,0,0] - 1.0) <= 0.0001
+        main_diag_1_nlos = tf.abs(nlos_squared_corr_matrix[:,1,1] - 1.0) <= 0.0001
+        main_diag_2_nlos = tf.abs(nlos_squared_corr_matrix[:,2,2] - 1.0) <= 0.0001
+        main_diag_3_nlos = tf.abs(nlos_squared_corr_matrix[:,3,3] - 1.0) <= 0.0001
+        main_diag_4_nlos = tf.abs(nlos_squared_corr_matrix[:,4,4] - 1.0) <= 0.0001
+        main_diag_5_nlos = tf.abs(nlos_squared_corr_matrix[:,5,5] - 1.0) <= 0.0001
+        main_diag_6_nlos = tf.abs(nlos_squared_corr_matrix[:,6,6] - 1.0) <= 0.0001
+
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_1)
+        assert tf.reduce_all(DSvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ASAvsK_within_range_nlos_2)
+        assert tf.reduce_all(DSvsK_within_range_nlos_1)
+        assert tf.reduce_all(DSvsK_within_range_nlos_2)
+        assert tf.reduce_all(SFvsK_within_range_nlos_1)
+        assert tf.reduce_all(SFvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsSF_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsK_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsDS_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASD_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_1)
+        assert tf.reduce_all(ZSAvsASA_within_range_nlos_2)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_1)
+        assert tf.reduce_all(ZSDvsZSA_within_range_nlos_2)
+
+        assert tf.reduce_all(main_diag_0_nlos)
+        assert tf.reduce_all(main_diag_1_nlos)
+        assert tf.reduce_all(main_diag_2_nlos)
+        assert tf.reduce_all(main_diag_3_nlos)
+        assert tf.reduce_all(main_diag_4_nlos)
+        assert tf.reduce_all(main_diag_5_nlos)
+        assert tf.reduce_all(main_diag_6_nlos)
+
+
 if __name__ == '__main__':
     unittest.main()
