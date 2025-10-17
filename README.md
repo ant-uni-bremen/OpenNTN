@@ -47,17 +47,17 @@ OpenNTN implements the models for Non-Terrestrial Networks in the dense urban, u
 As the standards on the channel models are very large and complex, it can be difficult for newcomers to get an overview of the capabilities of the channel models and an understanding of their process. To adress this, we have written [this paper](https://www.ant.uni-bremen.de/sixcms/media.php/102/15080/An%20Open%20Source%20Channel%20Emulator%20for%20Non-Terrestrial%20Networks.pdf), in which we summarize the capabilities of the channels and how they actually work in a short and easy fashion.
 
 # Citing OpenNTN
-When you use OpenNTN for research, please cite us as: "An Open Source Channel Emulator for Non-Terrestrial Networks,T. Düe, M. Vakilifard, C. Bockelmann, D. Wübben, A. Dekorsy​, Advanced Satellite Multimedia Systems Conference/Signal Processing for Space Communications Workshop (ASMS/SPSC 2025), Sitges, Spanien, 26. - 28. Februar 2025",\
+When you use OpenNTN for research, please cite us as: "OpenNTN: An Open-Source Framework for Non-Terrestrial Network Channel Simulations,T. Düe, M. Vakilifard, C. Bockelmann, D. Wübben, A. Dekorsy​,  	International Workshop on Smart Antennas (WSA), Erlangen, Germany, 16. - 18. September 2025",\
 or by using the BibTeX:\
 @inproceedings{OpenNTNPaper\
   author = {T. D\"{u}e and M. Vakilifard and C. Bockelmann and D. W\"{u}bben and A. Dekorsy​},\
   year = {2025},\
-  month = {Feb},\
-  title = {An Open Source Channel Emulator for Non-Terrestrial Networks},\
-  URL = {https://www.ant.uni-bremen.de/sixcms/media.php/102/15080/An%20Open%20Source%20Channel%20Emulator%20for%20Non-Terrestrial%20Networks.pdf}, \
-  address={Sitges, Spain},\
-  abstract={Non-Terrestrial Networks (NTNs) are one of the key technologies to achieve the goal of ubiquitous connectivity in 6G. However, as real world data in NTNs is expensive, there is a need for accurate simulations with appropriate channel models that can be used for the development and testing communication technologies for various NTN scenarios. In this work, we present our implementation of multiple channel models for NTNs provided by the 3rd Generation Partnership Project (3GPP) in an open source framework. The framework can be integrated into the existing Python framework Sionna™ , enabling the investigations of NTNs using link-level simulations. By keeping the framework open source, we allow users to adapt it for specific use cases without needing to implement the complex underlying mathematical framework. The framework is implemented in Python as an extension to the existing Sionna™ framework, which already provides a large number of existing 5G-compliant communications components. As the models in the framework are based on Tensorflow and Keras, they are compatible with not only Sionna™ , but also many existing software solutions implemented in Tensorflow and Keras, including a significant amount of the Machine Learning (ML) related research.},\
-  booktitle={Advanced Satellite Multimedia Systems Conference/Signal Processing for Space Communications Workshop (ASMS/SPSC 2025)}\
+  month = {Sep},\
+  title = {OpenNTN: An Open-Source Framework for Non-Terrestrial Network Channel Simulations},\
+  URL = {https://www.ant.uni-bremen.de/sixcms/media.php/102/15183/OpenNTN_An_OpenSource_Framework_For_NTN_Simulations.pdf}, \
+  address={Erlangen, Germany},\
+  abstract={Non-Terrestrial Networks (NTNs) are critical enablers of ubiquitous connectivity in future 6G systems, but they also face challenges such as long propagation delays, significant Doppler effects, and diverse channel conditions. Developing and testing communication technologies for NTNs requires realistic and flexible simulation tools. In this work, we present OpenNTN, an open-source software framework for simulating NTN channel models based on the 3GPP TR38.811 standard. OpenNTN is de- signed as an extension to the Python-based Sionna™ framework, providing channel models compatible with existing interfaces, enabling the use of the powerful tools found in Sionna™ . The framework offers a flexible user interface, enabling researchers to investigate diverse scenarios. As an open-source implementation, OpenNTN empowers the research community to fully use and adapt the framework, offering a solution for both fast and easy NTN research using realistic channel models, while also providing the opportunity to extend the model for custom research interests beyond the current state of the standards.},\
+  booktitle={International Workshop on Smart Antennas (WSA)}\
 }
 
 ## License
