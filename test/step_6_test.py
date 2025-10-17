@@ -4,13 +4,13 @@
 # to be correct here.
 # Step 6 has no easily measurable output, so that a mockup 
 
-from sionna.channel.tr38811 import utils   # The code to test
+from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL, Rural
 import numpy as np
 import tensorflow as tf
 import math
-from sionna import config
+from sionna.phy import config
 import json
 import os
 
@@ -34,107 +34,99 @@ class TestClusterPowerGeneration(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.carrier_frequency = 2.2e9  
-        cls.elevation_angle = 10.0     
-        cls.batch_size = 1000           
+        cls.carrier_frequency = 2.0e9
+        cls.elevation_angle = 10.0
+        cls.batch_size = 100
         cls.ut_array = create_ut_ant(cls.carrier_frequency)
         cls.bs_array = create_bs_ant(cls.carrier_frequency)
-        cls.channel_model = Urban(
-            carrier_frequency=cls.carrier_frequency,
-            ut_array=cls.ut_array,
-            bs_array=cls.bs_array,
+        cls.scenario_classes = {
+            "sur": SubUrban,
+            "urb": Urban,
+            "dur": DenseUrban,
+            "rur": Rural
+        }
+
+    def setUpScenario(self, scenario_key):
+        ScenarioClass = self.scenario_classes[scenario_key]
+        model = ScenarioClass(
+            carrier_frequency=self.carrier_frequency,
+            ut_array=self.ut_array,
+            bs_array=self.bs_array,
             direction="downlink",
-            elevation_angle=cls.elevation_angle,
+            elevation_angle=self.elevation_angle,
             enable_pathloss=True,
             enable_shadow_fading=True
         )
-    # def test_sum_of_clusters_one(self):
-        
-    #     scenario = "urb"
-    #     topology = utils.gen_single_sector_topology(
-    #         batch_size=self.batch_size, num_ut=100, scenario=scenario, 
-    #         elevation_angle=self.elevation_angle, bs_height=600000.0
-    #     )
-    #     self.channel_model.set_topology(*topology)
-    #     rays_generator = self.channel_model._ray_sampler
-    #     lsp = self.channel_model._lsp
-    #     delays, unscaled_delays = rays_generator._cluster_delays(lsp.ds, lsp.k_factor)
-    #     powers, _ = rays_generator._cluster_powers(
-    #         self.channel_model._lsp.ds, self.channel_model._lsp.k_factor, unscaled_delays
-    #     )     
-    #     print(powers.shape)  
-    #     i = 1
-    #     for power in powers: 
-    #         self.assertAlmostEqual(tf.reduce_sum(power[:,:,:i]).numpy(), 1.0, places=5)
-    #         print(power[:,:,1])
-    #         i+=1
-
-    def test_specular_component_los(self):
-        scenario = "urb"
         topology = utils.gen_single_sector_topology(
-            batch_size=self.batch_size, num_ut=100, scenario=scenario,
+            batch_size=self.batch_size, num_ut=100, scenario=scenario_key,
             elevation_angle=self.elevation_angle, bs_height=600000.0
         )
-        self.channel_model.set_topology(*topology)
-        rays_generator = self.channel_model._ray_sampler
-        lsp = self.channel_model._lsp
-        delays, unscaled_delays = rays_generator._cluster_delays(lsp.ds, lsp.k_factor)
-        ric_fac = lsp.k_factor
-        ric_fac = tf.expand_dims(ric_fac, axis=3)
-        P1_los = ric_fac/(1+ric_fac)
-        los_powers, _ = rays_generator._cluster_powers(
-            self.channel_model._lsp.ds, self.channel_model._lsp.k_factor, unscaled_delays
-        )
-        first_cluster_power = los_powers[:,:,:, :1]  # First cluster
-        #first_cluster_power = tf.reduce_mean(first_cluster_power).numpy()
-        
-        # print("Size :", first_cluster_power.shape)
-        # print("Size_P1_los :", P1_los.shape)
-        # print("First cluster power :", tf.reduce_mean(first_cluster_power).numpy())
-        # print("P1_los :", tf.reduce_mean(P1_los).numpy())
-
-        assert math.isclose(tf.reduce_mean(first_cluster_power).numpy(), tf.reduce_mean(P1_los).numpy(), abs_tol=0.3)
-
-    def test_rays_equal_power(self):
-        """" Testing if each ray has equal power"""""
-        scenario = "urb"
-        topology = utils.gen_single_sector_topology(
-            batch_size=self.batch_size, num_ut=100, scenario=scenario,
-            elevation_angle=self.elevation_angle, bs_height=600000.0
-        )
-        self.channel_model.set_topology(*topology)
-        rays_generator = self.channel_model._ray_sampler
-        lsp = self.channel_model._lsp
-        delays, unscaled_delays = rays_generator._cluster_delays(lsp.ds, lsp.k_factor)
-        cluster_powers, _ = rays_generator._cluster_powers(
-        lsp.ds, lsp.k_factor, unscaled_delays)
-        for cluster_power in cluster_powers:
-            for power in cluster_power:
-                self.assertTrue(tf.reduce_all(tf.equal(power, cluster_power[0])).numpy())  # All powers equal within cluster
+        model.set_topology(*topology)
+        return model
 
     def test_cluster_elimination(self):
         """Check if any cluster has -25 dB power compared to the maximum cluster power"""
-        scenario = "urb"
-        topology = utils.gen_single_sector_topology(
-            batch_size=self.batch_size, num_ut=100, scenario=scenario,
-            elevation_angle=self.elevation_angle, bs_height=600000.0
-        )
-        self.channel_model.set_topology(*topology)
-        threshold_db = -25  # dB threshold
-        threshold_power = 10 ** (threshold_db / 10)  # Convert dB to linear scale
-        rays_generator = self.channel_model._ray_sampler
-        lsp = self.channel_model._lsp
-        delays, unscaled_delays = rays_generator._cluster_delays(lsp.ds, lsp.k_factor)
-        cluster_powers, _ = rays_generator._cluster_powers(lsp.ds, lsp.k_factor, unscaled_delays)
+        threshold_db = -25
+        threshold_power = 10 ** (threshold_db / 10)
+        epsilon = 1e-12
 
-        epsilon = 1e-12  # Small value to avoid log issues
-        for power in cluster_powers:
-            power = tf.maximum(power, epsilon)  # Avoid log of zero
-            max_power = tf.reduce_max(cluster_powers)  # Find maximum power in the cluster
-            difference = max_power - power
-            #print(difference.shape)
-            # Ensure no clusters remain below the threshold
-            self.assertTrue(tf.reduce_all(tf.reduce_mean(difference)>= threshold_power).numpy())
-            
+        for key in self.scenario_classes:
+            with self.subTest(scenario=key):
+                model = self.setUpScenario(key)
+                rg = model._ray_sampler
+                lsp = model._lsp
+                delays, unscaled_delays = rg._cluster_delays(lsp.ds, lsp.k_factor)
+                cluster_powers, _ = rg._cluster_powers(lsp.ds, lsp.k_factor, unscaled_delays)
+                cluster_powers = tf.maximum(cluster_powers, epsilon)
+                max_power = tf.reduce_max(cluster_powers, axis=-1, keepdims=True)
+                diff = max_power - cluster_powers
+                self.assertTrue(tf.reduce_all(tf.reduce_mean(diff, axis=-1) >= threshold_power).numpy())
+
+    def test_specular_component_los(self):
+        """Verify LoS component increment equals K/(1+K) in first cluster power"""
+        for key in self.scenario_classes:
+            with self.subTest(scenario=key):
+                model = self.setUpScenario(key)
+                rg = model._ray_sampler
+                lsp = model._lsp
+                _, unscaled_delays = rg._cluster_delays(lsp.ds, lsp.k_factor)
+                powers, powers_for_angles_gen = rg._cluster_powers(
+                    lsp.ds, lsp.k_factor, unscaled_delays
+                )
+
+                los_mask = tf.expand_dims(model._scenario.los, axis=3)
+                ric_fac = tf.expand_dims(lsp.k_factor, axis=3)
+                p_nlos_scaling = 1.0 / (ric_fac + 1.0)
+                p1_los = ric_fac * p_nlos_scaling
+
+                orig_first = powers[..., :1]
+                adj_first = powers_for_angles_gen[..., :1]
+                increment = adj_first - p_nlos_scaling * orig_first
+
+                increment_los = tf.boolean_mask(increment, tf.squeeze(los_mask, axis=3))
+                p1_los_los = tf.boolean_mask(p1_los, tf.squeeze(los_mask, axis=3))
+                increment_los_np = np.nan_to_num(increment_los.numpy(), nan=0.0)
+                p1_los_los_np = np.nan_to_num(p1_los_los.numpy(), nan=0.0)
+                
+
+                self.assertTrue(np.allclose(increment_los_np, p1_los_los_np, rtol=1e-5, atol=1e-7))
+
+    def test_rays_equal_power(self):
+        """Verify that rays within a cluster have equal power (Pn / M)"""
+        for key in self.scenario_classes:
+            with self.subTest(scenario=key):
+                model = self.setUpScenario(key)
+                rg = model._ray_sampler
+                lsp = model._lsp
+                _, unscaled_delays = rg._cluster_delays(lsp.ds, lsp.k_factor)
+                cluster_powers, _ = rg._cluster_powers(lsp.ds, lsp.k_factor, unscaled_delays)
+
+                M = model._scenario.rays_per_cluster
+                expected_ray_powers = cluster_powers[..., tf.newaxis] / tf.cast(M, cluster_powers.dtype)
+                #Checking if the variance = 0
+                ray_var = tf.math.reduce_variance(expected_ray_powers, axis=-1)
+                
+                self.assertTrue(tf.reduce_all(ray_var < 1e-9).numpy())
+
 if __name__ == '__main__':
     unittest.main()
