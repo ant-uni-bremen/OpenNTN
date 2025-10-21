@@ -3,10 +3,8 @@
 import unittest
 import tensorflow as tf
 import numpy as np
-import sionna.channel.tr38811.rays as rays
-import sionna.channel.tr38811.dense_urban_scenario as sys_scenario
-import sionna.channel.tr38811.antenna as antenna
-from sionna.channel.tr38811.utils import gen_single_sector_topology as gen_topology
+from sionna.phy.channel.tr38811.utils import gen_single_sector_topology as gen_topology
+from sionna.phy.channel.tr38811 import Antenna, RaysGenerator, DenseUrbanScenario,  RuralScenario
 
 class Step_9(unittest.TestCase):
     def setUp(self):
@@ -14,14 +12,11 @@ class Step_9(unittest.TestCase):
         self.batch_size = 2
         self.num_bs = 1
         self.num_ut = 1
-        self.num_clusters_max = 4
-        self.rays_per_cluster = 20
-        self.dtype = tf.dtypes.complex64
-        self.mu_xpr = 17.6
-        self.sigma_xpr = 12.7
+        self.mu_xpr = 12.0
+        self.sigma_xpr = 4.0
 
         # Create the antenna
-        self.mock_antenna = antenna.Antenna(
+        self.mock_antenna = Antenna(
             polarization="single",
             polarization_type="V",
             antenna_pattern="38.901",
@@ -29,7 +24,7 @@ class Step_9(unittest.TestCase):
         )
 
         # Create the scenario
-        self.mock_scenario = sys_scenario.DenseUrbanScenario(
+        self.mock_scenario = RuralScenario(
             carrier_frequency=30e9,
             ut_array=self.mock_antenna,
             bs_array=self.mock_antenna,
@@ -37,15 +32,14 @@ class Step_9(unittest.TestCase):
             elevation_angle=90.0,
             enable_pathloss=True,
             enable_shadow_fading=True,
-            doppler_enabled=True,
-            dtype=self.dtype
+            doppler_enabled=True
         )
 
         # Generate the topology
         topology = gen_topology(
             batch_size=self.batch_size,
             num_ut=self.num_ut,
-            scenario="dur",
+            scenario="rur",
             elevation_angle=90,
             bs_height=600000.0
         )
@@ -54,7 +48,9 @@ class Step_9(unittest.TestCase):
         self.mock_scenario.set_topology(*topology)
 
         # Create an instance of the RaysGenerator
-        self.rays_generator = rays.RaysGenerator(self.mock_scenario)
+        self.rays_generator = RaysGenerator(self.mock_scenario)
+        self.num_clusters_max = self.mock_scenario.num_clusters_max
+        self.rays_per_cluster = self.mock_scenario.rays_per_cluster
 
     def test_cross_polarization_power_ratios(self):
         # Generate the cross-polarization power ratios
@@ -85,8 +81,8 @@ class Step_9(unittest.TestCase):
         measured_mean = np.mean(log_result)
         measured_std = np.std(log_result)
 
-        self.assertAlmostEqual(measured_mean, expected_mean, tol=1.0)
-        self.assertAlmostEqual(measured_std, expected_std, tol=1.0)
+        self.assertAlmostEqual(measured_mean, expected_mean, delta=1.0)
+        self.assertAlmostEqual(measured_std, expected_std, delta=1.0)
 
 if __name__ == "__main__":
     unittest.main()

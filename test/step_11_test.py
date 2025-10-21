@@ -4,14 +4,14 @@ import tensorflow as tf
 import unittest
 import numpy as np
 from tensorflow import sin, cos, acos
-from sionna import PI, SPEED_OF_LIGHT
+from sionna.phy.constants import PI, SPEED_OF_LIGHT
 import sionna
-from sionna import config
-from sionna.channel.tr38811 import utils
-from sionna.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
-from sionna.channel.tr38811 import DenseUrban, SubUrban, Urban, CDL
-from sionna.channel.utils import deg_2_rad
-from sionna.channel.tr38811.utils import gen_single_sector_topology as gen_ntn_topology
+from sionna.phy import config
+from sionna.phy.channel.tr38811 import utils
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
+from sionna.phy.channel.tr38811 import DenseUrban, SubUrban, Urban, Rural, CDL
+from sionna.phy.channel.utils import deg_2_rad
+from sionna.phy.channel.tr38811.utils import gen_single_sector_topology as gen_ntn_topology
 
 
 class Step_11(unittest.TestCase):
@@ -52,8 +52,8 @@ class Step_11(unittest.TestCase):
         h_bs = Step_11.H_BS
         fc = Step_11.CARRIER_FREQUENCY
         
-        los = tf.ones(shape=[batch_size, nb_bs, nb_ut], dtype=tf.bool)
-        distance_3d = tf.random.uniform([batch_size, nb_ut, nb_ut], 0.0, 2000.0, dtype=tf.float32)
+        # los = tf.ones(shape=[batch_size, nb_bs, nb_ut], dtype=tf.bool)
+        # distance_3d = tf.random.uniform([batch_size, nb_ut, nb_ut], 0.0, 2000.0, dtype=tf.float32)
 
         
         self.tx_array = Antenna(polarization="single",
@@ -72,14 +72,14 @@ class Step_11(unittest.TestCase):
             subclustering=True)
 
 
-        channel_model = DenseUrban(
+        channel_model = Rural(
             carrier_frequency=fc,
             ut_array=self.rx_array,
             bs_array=self.tx_array,
             direction='downlink',
             elevation_angle=30.0)
         topology = utils.gen_single_sector_topology(
-            batch_size=batch_size, num_ut=nb_ut, scenario='dur', bs_height=h_bs
+            batch_size=batch_size, num_ut=nb_ut, scenario='rur', bs_height=h_bs
         )
         channel_model.set_topology(*topology)
         self.scenario = channel_model
@@ -90,7 +90,7 @@ class Step_11(unittest.TestCase):
         
         # # lsp = lsp_sampler()
         self.rays = ray_sampler(self.lsp)   
-        topology = sionna.channel.tr38811.Topology(velocities=channel_model._scenario.ut_velocities,
+        topology = sionna.phy.channel.tr38811.Topology(velocities=channel_model._scenario.ut_velocities,
                                 moving_end="tx", 
                                 los_aoa=channel_model._scenario.los_aoa,
                                 los_aod=channel_model._scenario.los_aod,

@@ -4,9 +4,10 @@ import unittest
 import tensorflow as tf
 import numpy as np
 import math
-from sionna import PI
-from sionna.channel.tr38811 import utils
-from sionna.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
+from sionna.phy.constants import PI
+
+from sionna.phy.channel.tr38811 import utils
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
 
 
 class Test_Step10(unittest.TestCase):
@@ -26,8 +27,7 @@ class Test_Step10(unittest.TestCase):
             carrier_frequency=30e9,
             tx_array=self.mock_antenna, 
             rx_array=self.mock_antenna,  
-            subclustering=False,
-            dtype=tf.complex64
+            subclustering=False
         )
 
     def test_step_10(self):
