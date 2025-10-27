@@ -27,7 +27,7 @@ Sionna™ is currently in its version 1.0+, but multiple older projects still re
 
 1. Install Sionna <br>
   <code>pip install sionna</code> <br>
-For more information on the different installation options we refer the reader to the [sionna documentation](https://nvlabs.github.io/sionna/installation.html).
+For more information on the different installation options we refer the reader to the [sionna documentation](https://nvlabs.github.io/sionna/installation.html). 
 2. Download the install.sh file found in this git 
 3. Execute the install.sh file <br>
    <code>. install.sh</code>
@@ -41,10 +41,29 @@ For more information on the different installation options we refer the reader t
 3. Execute the install_legacy.sh file <br>
    <code>. install_legacy.sh</code>
 
+## Possible installation issues
+
+This section addresses potential issues that might occur when installing OpenNTN. If you encounter a problem that is not listed here, please feel free to contact us, both to receive support for your installation and to help us work on solutions for releases. Our goal is to provide an easy-to-set-up and easy-to-use tool, and your feedback is highly appreciated as it helps us further enhance OpenNTN. The contact information is listed at the end of the section.
+
+1. Installation on Windows <br>
+As mentioned above, installer files are currently only provided for Linux. Until a Windows installer is available, please follow the installation steps manually: download a copy of OpenNTN, move it into the channels directory of your Sionna™ installation, open the __init__.py file inside the channel directory, and add the import statement for OpenNTN: from . import tr38811
+2. Installing Sionna™ for the First Time <br>
+When using OpenNTN with Sionna™, OpenNTN can only function correctly if Sionna™ is properly installed and working. Therefore, we strongly recommend verifying a working Sionna™ installation before installing OpenNTN. Further instructions can be found in the [sionna documentation](https://nvlabs.github.io/sionna/installation.html).
+3. Conflicts With Other Packages <br>
+Currently, we are not aware of any package conflicts when using OpenNTN. However, we generally recommend creating separate environments for dedicated applications. If you encounter issues that appear to be caused by other packages, please first try using a clean environment with only the required dependencies. Additionally, please report any observed conflicts so that we can investigate and provide potential solutions.
+4. Installation for GPU Usage <br>
+Installing Sionna™ with GPU support tends to be more challenging than installing the CPU version, as this also requires CUDA and DrJit installation which must match your device. However, if Sionna™ works correctly on the GPU, OpenNTN should work properly as well. If GPU-related issues only occur when using OpenNTN (but not with Sionna™ itself), please contact us for further support.
+5. Example Notebooks Not Running / Kernel Issues <br>
+The provided examples are implemented as Jupyter Notebooks. When running these, please ensure that your environment includes all required dependencies to be selectable Jupyter kernel in order to execute the examples successfully.
+
+Contact:
+- First contact: Tim Düe — duee@ant.uni-bremen.de
+- Second contact: MohammadAmin Vakilifard — vakilifard@ant.uni-bremen.de
+
 # Contents of OpenNTN
 OpenNTN implements the models for Non-Terrestrial Networks in the dense urban, urban, and suburban scenarios as defined in the standard 3GPP TR38.811. These are similar to the models defined in 3GPP TR38.901 for terrestrial channels, which are already implemented in Sionna™. To make the use of OpenNTN as easy as possible and make the existing projects and tutorials as reusable as possible, the user interface of the OpenNTN 38811 channels is kept as similar as possible to the user interface of the existing 38901 channels. The user interface was kept as similar as only, only adding necessary new parameters, such as the satellite height, user elevation angle, and new antenna radiation patterns. For a practical demonstration, we refer the reader to the notebooks found in the examples section. <br>
 
-As the standards on the channel models are very large and complex, it can be difficult for newcomers to get an overview of the capabilities of the channel models and an understanding of their process. To adress this, we have written [this paper](https://www.ant.uni-bremen.de/sixcms/media.php/102/15080/An%20Open%20Source%20Channel%20Emulator%20for%20Non-Terrestrial%20Networks.pdf), in which we summarize the capabilities of the channels and how they actually work in a short and easy fashion.
+As the standards on the channel models are very large and complex, it can be difficult for newcomers to get an overview of the capabilities of the channel models and an understanding of their process. To adress this, we have written [this paper](https://ieeexplore.ieee.org/document/11202820), in which we summarize the capabilities of the channels and how they actually work in a short and easy fashion.
 
 # Citing OpenNTN
 When you use OpenNTN for research, please cite us as: "OpenNTN: An Open-Source Framework for Non-Terrestrial Network Channel Simulations,T. Düe, M. Vakilifard, C. Bockelmann, D. Wübben, A. Dekorsy​,  	International Workshop on Smart Antennas (WSA), Erlangen, Germany, 16. - 18. September 2025",\
