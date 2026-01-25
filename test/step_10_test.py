@@ -7,12 +7,11 @@ import math
 from sionna.phy.constants import PI
 
 from sionna.phy.channel.tr38811 import utils
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
+from sionna.phy.channel.tr38811 import Antenna, ChannelCoefficientsGenerator
 
 
 class Test_Step10(unittest.TestCase):
     def setUp(self):
-        # Initialize the required attributes
         self.shape = tf.constant([2, 3], dtype=tf.int32)
     
         self.mock_antenna = Antenna(
@@ -22,7 +21,6 @@ class Test_Step10(unittest.TestCase):
             carrier_frequency=30e9
         )
         
-        # Create an instance of ChannelCoefficientsGenerator
         self.channel_generator = ChannelCoefficientsGenerator(
             carrier_frequency=30e9,
             tx_array=self.mock_antenna, 
@@ -31,7 +29,6 @@ class Test_Step10(unittest.TestCase):
         )
 
     def test_step_10(self):
-        # Call the _step_10 method
         phi = self.channel_generator._step_10(self.shape)
 
         # Compare the shapes

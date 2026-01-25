@@ -4,7 +4,7 @@
 
 from sionna.phy.channel.tr38811 import utils   # The code to test
 import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL, Rural
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, Rural
 import numpy as np
   
 def create_ut_ant(carrier_frequency):

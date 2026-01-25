@@ -4,13 +4,11 @@
 # to be correct here.
 # Step 5 has no easily measurable output, so that a mockup 
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or '2' to keep only errors
-from sionna.phy.channel.tr38811 import utils   # The code to test
-import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, Rural, CDL
-import numpy as np
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  
+from sionna.phy.channel.tr38811 import utils   
+import unittest   
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, Rural
 import tensorflow as tf
-import math
 from sionna.phy.utils import log10
 
 

@@ -3,45 +3,28 @@
 import tensorflow as tf
 import unittest
 import numpy as np
-from tensorflow import sin, cos, acos
-from sionna.phy.constants import PI, SPEED_OF_LIGHT
+from tensorflow import sin, cos
+from sionna.phy.constants import PI
 import sionna
 from sionna.phy import config
 from sionna.phy.channel.tr38811 import utils
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
-from sionna.phy.channel.tr38811 import DenseUrban, SubUrban, Urban, Rural, CDL
-from sionna.phy.channel.utils import deg_2_rad
-from sionna.phy.channel.tr38811.utils import gen_single_sector_topology as gen_ntn_topology
+from sionna.phy.channel.tr38811 import Antenna, ChannelCoefficientsGenerator
+from sionna.phy.channel.tr38811 import Rural
+from sionna.phy.channel.tr38811.utils import gen_single_sector_topology 
 
 
 class Step_11(unittest.TestCase):
     r"""Test the computation of channel coefficients"""
 
-    # Batch size used to check the LSP distribution
+  
     BATCH_SIZE = 10
-
-    # Carrier frequency
     CARRIER_FREQUENCY = 2.0e9 # Hz
-
-    # Maximum allowed deviation for calculation (relative error)
     MAX_ERR = 1e-2
-
-    # # Heigh of UTs
     H_UT = 1.5
-
-    # # Heigh of BSs
     H_BS = 600000.0
-
-    # # Number of BS
     NB_BS =1
-
-    # Number of UT
     NB_UT = 1
-
-    # Number of channel time samples
     NUM_SAMPLES = 32
-
-    # Sampling frequency
     SAMPLING_FREQUENCY = 20e6
 
     def setUp(self):
@@ -52,8 +35,6 @@ class Step_11(unittest.TestCase):
         h_bs = Step_11.H_BS
         fc = Step_11.CARRIER_FREQUENCY
         
-        # los = tf.ones(shape=[batch_size, nb_bs, nb_ut], dtype=tf.bool)
-        # distance_3d = tf.random.uniform([batch_size, nb_ut, nb_ut], 0.0, 2000.0, dtype=tf.float32)
 
         
         self.tx_array = Antenna(polarization="single",
@@ -88,7 +69,6 @@ class Step_11(unittest.TestCase):
         ray_sampler = self.scenario._ray_sampler
         self.lsp = self.scenario._lsp
         
-        # # lsp = lsp_sampler()
         self.rays = ray_sampler(self.lsp)   
         topology = sionna.phy.channel.tr38811.Topology(velocities=channel_model._scenario.ut_velocities,
                                 moving_end="tx", 
@@ -108,7 +88,6 @@ class Step_11(unittest.TestCase):
         
         num_time_samples = Step_11.NUM_SAMPLES 
         sampling_frequency = Step_11.SAMPLING_FREQUENCY
-        # c_ds = scenario.get_param("cDS")*1e-9
         c_ds = 1.6*1e-9
         _, _, phi, sample_times = self.ccg(num_time_samples,
             sampling_frequency, self.lsp.k_factor, self.rays, topology, c_ds,

@@ -4,15 +4,11 @@
 # to be correct here.
 # Step 6 has no easily measurable output, so that a mockup 
 
-from sionna.phy.channel.tr38811 import utils   # The code to test
-import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL, Rural
+from sionna.phy.channel.tr38811 import utils   
+import unittest  
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, Rural
 import numpy as np
 import tensorflow as tf
-import math
-from sionna.phy import config
-import json
-import os
 
 def create_ut_ant(carrier_frequency):
     ut_ant = Antenna(polarization="single",

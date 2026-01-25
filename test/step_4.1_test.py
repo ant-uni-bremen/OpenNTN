@@ -6,9 +6,9 @@
 # As this part can be reused from the existing 3GPP TR38.901 implementation in Sionna, it is currently not tested and only lsp_log_std and 
 # lsp_log_mean are being verified
 
-from sionna.phy.channel.tr38811 import utils   # The code to test
-import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, Rural, CDL
+from sionna.phy.channel.tr38811 import utils   
+import unittest   
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, Rural
 import numpy as np
 import tensorflow as tf
 import math
@@ -68,18 +68,7 @@ class Test_URB(unittest.TestCase):
 
         # DS, ASD, ASA, SF, K, ZSA, ZSD
         corr_matrix = channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt
-        #print("corr_matrix is ", corr_matrix)
-
-
-        #corr_matrix_los = tf.boolean_mask(corr_matrix, channel_model._scenario.los)
-        #corr_matrix_nlos = tf.boolean_mask(corr_matrix, channel_model._scenario.los == False)
-
-        #print("corr_matrix_los are ", corr_matrix_los)
-        #ASDvsDS = 0.4
-        #corr_matrix_los = tf.math.square(corr_matrix_los)
-        #print("new format is ", corr_matrix_nlos[:,2,0])
-        #mean_ASDvsDS = tf.math.reduce_mean(corr_matrix_los[:,0,2])
-        #print("mean_ASDvsDS ", mean_ASDvsDS)
+ 
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -92,8 +81,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        #K1_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -204,7 +193,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -213,7 +202,7 @@ class Test_URB(unittest.TestCase):
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
         #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -228,8 +217,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -323,7 +312,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -331,8 +320,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -347,8 +336,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -443,7 +432,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -451,8 +440,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -467,8 +456,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -562,7 +551,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -570,8 +559,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -586,8 +575,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -682,7 +671,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -690,8 +679,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -706,8 +695,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -803,7 +792,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -811,8 +800,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -827,8 +816,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -923,7 +912,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -931,8 +920,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -947,8 +936,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -1044,7 +1033,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -1052,8 +1041,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -1068,8 +1057,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -1164,7 +1153,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -1172,8 +1161,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -1188,8 +1177,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -1285,7 +1274,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -1293,8 +1282,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -1309,8 +1298,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -1405,7 +1394,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -1413,8 +1402,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -1429,8 +1418,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -1526,7 +1515,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -1534,8 +1523,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -1550,8 +1539,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -1646,7 +1635,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -1654,8 +1643,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -1670,8 +1659,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -1767,7 +1756,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -1775,8 +1764,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -1791,8 +1780,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -1887,7 +1876,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -1895,8 +1884,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -1911,8 +1900,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -2008,7 +1997,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -2016,8 +2005,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -2032,8 +2021,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -2128,7 +2117,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -2136,8 +2125,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -2152,8 +2141,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -2264,7 +2253,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -2272,8 +2261,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -2288,8 +2277,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -2384,7 +2373,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -2392,8 +2381,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -2408,8 +2397,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -2503,7 +2492,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -2511,8 +2500,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -2527,8 +2516,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -2623,7 +2612,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -2631,8 +2620,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -2647,8 +2636,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -2742,7 +2731,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -2750,8 +2739,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -2766,8 +2755,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -2862,7 +2851,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -2870,8 +2859,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -2886,8 +2875,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -2983,7 +2972,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -2991,8 +2980,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -3007,8 +2996,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -3103,7 +3092,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -3111,8 +3100,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -3127,8 +3116,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -3224,7 +3213,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -3232,8 +3221,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -3248,8 +3237,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -3344,7 +3333,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -3352,8 +3341,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -3368,8 +3357,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -3465,7 +3454,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -3473,8 +3462,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -3489,8 +3478,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -3585,7 +3574,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -3593,8 +3582,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -3609,8 +3598,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -3706,7 +3695,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -3714,8 +3703,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -3730,8 +3719,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -3826,7 +3815,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -3834,8 +3823,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -3850,8 +3839,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -3947,7 +3936,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -3955,8 +3944,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -3971,8 +3960,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -4067,7 +4056,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -4075,8 +4064,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -4091,8 +4080,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -4188,7 +4177,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -4196,8 +4185,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -4212,8 +4201,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -4308,7 +4297,7 @@ class Test_URB(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -4316,8 +4305,8 @@ class Test_URB(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -4332,8 +4321,8 @@ class Test_URB(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -4432,7 +4421,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -4440,8 +4429,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -4456,8 +4445,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -4552,7 +4541,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -4560,8 +4549,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -4576,8 +4565,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -4671,7 +4660,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -4679,8 +4668,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -4695,8 +4684,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -4791,7 +4780,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -4799,8 +4788,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -4815,8 +4804,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -4910,7 +4899,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -4918,8 +4907,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -4934,8 +4923,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -5030,7 +5019,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -5038,8 +5027,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -5054,8 +5043,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -5151,7 +5140,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -5159,8 +5148,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -5175,8 +5164,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -5271,7 +5260,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -5279,8 +5268,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -5295,8 +5284,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -5392,7 +5381,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -5400,8 +5389,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -5416,8 +5405,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -5512,7 +5501,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -5520,8 +5509,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -5536,8 +5525,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -5633,7 +5622,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -5641,8 +5630,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -5657,8 +5646,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -5753,7 +5742,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -5761,8 +5750,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -5777,8 +5766,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -5874,7 +5863,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -5882,8 +5871,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -5898,8 +5887,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -5994,7 +5983,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -6002,8 +5991,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -6018,8 +6007,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -6115,7 +6104,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -6123,8 +6112,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -6139,8 +6128,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -6235,7 +6224,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -6243,8 +6232,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -6259,8 +6248,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -6356,7 +6345,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -6364,8 +6353,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -6380,8 +6369,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -6476,7 +6465,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -6484,8 +6473,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -6500,8 +6489,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -6600,7 +6589,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -6608,8 +6597,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -6624,8 +6613,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -6720,7 +6709,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -6728,8 +6717,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -6744,8 +6733,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -6839,7 +6828,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -6847,8 +6836,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -6863,8 +6852,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -6959,7 +6948,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -6967,8 +6956,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -6983,8 +6972,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -7078,7 +7067,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -7086,8 +7075,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -7102,8 +7091,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -7198,7 +7187,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -7206,8 +7195,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -7222,8 +7211,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -7319,7 +7308,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -7327,8 +7316,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -7343,8 +7332,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -7439,7 +7428,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -7447,8 +7436,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -7463,8 +7452,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -7560,7 +7549,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -7568,8 +7557,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -7584,8 +7573,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -7680,7 +7669,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -7688,8 +7677,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -7704,8 +7693,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -7801,7 +7790,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -7809,8 +7798,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -7825,8 +7814,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -7921,7 +7910,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -7929,8 +7918,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -7945,8 +7934,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -8041,7 +8030,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -8049,8 +8038,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -8065,8 +8054,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -8161,7 +8150,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -8169,8 +8158,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -8185,8 +8174,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -8282,7 +8271,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -8290,8 +8279,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -8306,8 +8295,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -8402,7 +8391,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -8410,8 +8399,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -8426,8 +8415,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -8523,7 +8512,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -8531,8 +8520,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -8547,8 +8536,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -8643,7 +8632,7 @@ class Test_DUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -8651,8 +8640,8 @@ class Test_DUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -8667,8 +8656,8 @@ class Test_DUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -8767,7 +8756,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -8775,8 +8764,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -8791,8 +8780,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -8887,7 +8876,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -8895,8 +8884,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -8911,8 +8900,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -9006,7 +8995,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -9014,8 +9003,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -9030,8 +9019,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -9126,7 +9115,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -9134,8 +9123,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -9150,8 +9139,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -9245,7 +9234,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -9253,8 +9242,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -9269,8 +9258,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -9365,7 +9354,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -9373,8 +9362,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -9389,8 +9378,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -9486,7 +9475,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -9494,8 +9483,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -9510,8 +9499,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -9606,7 +9595,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -9614,8 +9603,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -9630,8 +9619,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -9727,7 +9716,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -9735,8 +9724,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -9751,8 +9740,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -9847,7 +9836,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -9855,8 +9844,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -9871,8 +9860,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -9968,7 +9957,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -9976,8 +9965,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -9992,8 +9981,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -10088,7 +10077,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -10096,8 +10085,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -10112,8 +10101,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -10209,7 +10198,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -10217,8 +10206,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -10233,8 +10222,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -10329,7 +10318,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -10337,8 +10326,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -10353,8 +10342,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -10450,7 +10439,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -10458,8 +10447,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -10474,8 +10463,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -10570,7 +10559,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -10578,8 +10567,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -10594,8 +10583,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -10691,7 +10680,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -10699,8 +10688,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -10715,8 +10704,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -10811,7 +10800,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -10819,8 +10808,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -10835,8 +10824,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -10932,7 +10921,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -10940,8 +10929,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -10956,8 +10945,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -11052,7 +11041,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -11060,8 +11049,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -11076,8 +11065,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -11171,7 +11160,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -11179,8 +11168,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -11195,8 +11184,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -11291,7 +11280,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -11299,8 +11288,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -11315,8 +11304,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -11410,7 +11399,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -11418,8 +11407,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -11434,8 +11423,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -11530,7 +11519,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -11538,8 +11527,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -11554,8 +11543,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -11651,7 +11640,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -11659,8 +11648,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -11675,8 +11664,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -11771,7 +11760,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -11779,8 +11768,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -11795,8 +11784,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -11892,7 +11881,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -11900,8 +11889,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -11916,8 +11905,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -12012,7 +12001,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -12020,8 +12009,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -12036,8 +12025,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -12133,7 +12122,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -12141,8 +12130,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -12157,8 +12146,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -12253,7 +12242,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -12261,8 +12250,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -12277,8 +12266,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -12373,7 +12362,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -12381,8 +12370,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -12397,8 +12386,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -12493,7 +12482,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -12501,8 +12490,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -12517,8 +12506,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -12614,7 +12603,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -12622,8 +12611,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -12638,8 +12627,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -12734,7 +12723,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -12742,8 +12731,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -12758,8 +12747,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -12855,7 +12844,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -12863,8 +12852,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -12879,8 +12868,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -12975,7 +12964,7 @@ class Test_SUR(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -12983,8 +12972,8 @@ class Test_SUR(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -12999,8 +12988,8 @@ class Test_SUR(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -13099,7 +13088,7 @@ class Test_Rural(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -13107,8 +13096,8 @@ class Test_Rural(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -13123,8 +13112,8 @@ class Test_Rural(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -13219,7 +13208,7 @@ class Test_Rural(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -13227,8 +13216,8 @@ class Test_Rural(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -13243,8 +13232,8 @@ class Test_Rural(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -13336,7 +13325,7 @@ class Test_Rural(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -13344,8 +13333,8 @@ class Test_Rural(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -13360,8 +13349,8 @@ class Test_Rural(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -13456,7 +13445,7 @@ class Test_Rural(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -13464,8 +13453,8 @@ class Test_Rural(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -13480,8 +13469,8 @@ class Test_Rural(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -13573,7 +13562,7 @@ class Test_Rural(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -13581,8 +13570,8 @@ class Test_Rural(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -13597,8 +13586,8 @@ class Test_Rural(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         
@@ -13691,7 +13680,7 @@ class Test_Rural(unittest.TestCase):
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
         ASA_mean_los = lsp_means_los[2]
-        #SF_mean_los = lsp_means_los[3] parameter already tested in step_3
+        
         K_mean_los = lsp_means_los[4]
         ZSA_mean_los = lsp_means_los[5]
         ZSD_mean_los = lsp_means_los[6]
@@ -13699,8 +13688,8 @@ class Test_Rural(unittest.TestCase):
         DS_mean_nlos = lsp_means_nlos[0]
         ASD_mean_nlos = lsp_means_nlos[1]
         ASA_mean_nlos = lsp_means_nlos[2]
-        #SF_mean_nlos = lsp_means_nlos[3] parameter already tested in step_3
-        #K_mean_nlos = lsp_means_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_mean_nlos = lsp_means_nlos[5]
         ZSD_mean_nlos = lsp_means_nlos[6]
 
@@ -13715,8 +13704,8 @@ class Test_Rural(unittest.TestCase):
         DS_std_nlos = lsp_std_nlos[0]
         ASD_std_nlos = lsp_std_nlos[1]
         ASA_std_nlos = lsp_std_nlos[2]
-        #SF_std_nlos = lsp_std_nlos[3] parameter already tested in step_3
-        #K_std_nlos = lsp_std_nlos[4] parameter only used in LOS scenario
+        
+        
         ZSA_std_nlos = lsp_std_nlos[5]
         ZSD_std_nlos = lsp_std_nlos[6]
         

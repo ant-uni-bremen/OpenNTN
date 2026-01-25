@@ -1,5 +1,8 @@
-from sionna.phy.channel.tr38811 import utils   # The code to test
-import unittest   # The test framework
+# This file tests the generation/calculation of the pathloss according to Step 2 of 3GPP TR38.901 7.5
+# using the equations and formulae defined in Section 6.6.2 of 3GPP TR38.811 
+
+from sionna.phy.channel.tr38811 import utils  
+import unittest   
 from sionna.phy.channel.tr38811 import Antenna, AntennaArray, Urban, DenseUrban, SubUrban, Rural
 import tensorflow as tf
 import math

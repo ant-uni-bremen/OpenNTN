@@ -61,10 +61,7 @@ class TestLinkBudget(unittest.TestCase):
         pl_basic_db = channel_model._scenario.basic_pathloss[0, 0, 0]
         pl_entry_db = channel_model._scenario.entry_pathloss[0, 0, 0]
 
-        # print("Gas Path Loss:", GPL)
-        # print("Scintillation Path Loss:", SPL)
-        # print("Free Space Path Loss:", FSPL)
-        # print(CNR)
+        
         print("basic pathloss :",pl_basic_db)
         print("\nEntry pathloss :", pl_entry_db)
         print("\nFree Space Path loss", free_space_path_loss)
@@ -72,27 +69,6 @@ class TestLinkBudget(unittest.TestCase):
         print("\nScintilation Path loss", scintillation_path_loss)
         print("\nSample Path loss", sample_path_loss)
 
-        # # Calculate the CDF
-        # sorted_cl = np.sort(coupling_loss)
-        # cdf = np.arange(1, len(sorted_cl) + 1) / len(sorted_cl)
-
-        # # Plot the CDF
-        # plt.figure(figsize=(8, 6))
-        # plt.plot(sorted_cl, cdf, label="Coupling Loss CDF")
-        # plt.title("CDF of Coupling Loss")
-        # plt.xlabel("Coupling Loss (dB)")
-        # plt.ylabel("CDF")
-        # plt.grid()
-        # plt.legend()
-        # plt.show()
-
-        # # Print statistics
-        # print("Coupling Loss Statistics:")
-        # print(f"Mean: {np.mean(coupling_loss):.2f} dB")
-        # print(f"Median: {np.median(coupling_loss):.2f} dB")
-        # print(f"Min: {np.min(coupling_loss):.2f} dB")
-        # print(f"Max: {np.max(coupling_loss):.2f} dB")
-        # Flatten the sample path loss for all users
         sample_path_loss_np = sample_path_loss_los.numpy()
         sample_path_loss_flattened = sample_path_loss_np.flatten()
 

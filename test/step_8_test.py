@@ -4,7 +4,6 @@
 import unittest
 import tensorflow as tf
 import numpy as np
-
 from sionna.phy.channel.tr38811.utils import gen_single_sector_topology as gen_topology
 from sionna.phy.channel.tr38811 import Antenna, RaysGenerator, DenseUrbanScenario, SubUrbanScenario, UrbanScenario, RuralScenario
 

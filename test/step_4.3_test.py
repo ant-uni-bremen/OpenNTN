@@ -6,13 +6,12 @@
 # The spatial correlation is calculated as exp(d*c) for correlated parameters, in which d is the 2d distance and c is the correlation factor, which
 # is equal to -1/the value in the corresponding table. 
 
-from sionna.phy.channel.tr38811 import utils   # The code to test
-import unittest   # The test framework
+from sionna.phy.channel.tr38811 import utils   
+import unittest   
 from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL, Rural
 import numpy as np
 import tensorflow as tf
-import math
-# from sionna.phy.utils import matrix_sqrt
+
 
 def create_ut_ant(carrier_frequency):
     ut_ant = Antenna(polarization="single",
@@ -124,7 +123,7 @@ class Test_URB(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -250,7 +249,6 @@ class Test_URB(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -376,7 +374,7 @@ class Test_URB(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -502,7 +500,7 @@ class Test_URB(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -627,7 +625,7 @@ class Test_DUR(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -754,7 +752,7 @@ class Test_DUR(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -880,7 +878,7 @@ class Test_DUR(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -1005,7 +1003,7 @@ class Test_DUR(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -1132,7 +1130,7 @@ class Test_SUR(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -1260,7 +1258,7 @@ class Test_SUR(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -1386,7 +1384,7 @@ class Test_SUR(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -1512,7 +1510,7 @@ class Test_SUR(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -1637,7 +1635,7 @@ class Test_Rural(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -1765,7 +1763,7 @@ class Test_Rural(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -1891,7 +1889,7 @@ class Test_Rural(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])
@@ -2017,7 +2015,7 @@ class Test_Rural(unittest.TestCase):
                     channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
                 
                 distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
-                #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
+                
                 distance_scaling_matrix = tf.tile(tf.expand_dims(
                     distance_scaling_matrix, axis=3),
                     [1, 1, 1, channel_model._scenario.num_ut])

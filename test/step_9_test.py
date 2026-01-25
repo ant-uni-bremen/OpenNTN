@@ -8,7 +8,6 @@ from sionna.phy.channel.tr38811 import Antenna, RaysGenerator, DenseUrbanScenari
 
 class Step_9(unittest.TestCase):
     def setUp(self):
-        # Initialize the required attributes and setup the scenario
         self.batch_size = 2
         self.num_bs = 1
         self.num_ut = 1
@@ -44,10 +43,7 @@ class Step_9(unittest.TestCase):
             bs_height=600000.0
         )
 
-        # Set the topology for the scenario
         self.mock_scenario.set_topology(*topology)
-
-        # Create an instance of the RaysGenerator
         self.rays_generator = RaysGenerator(self.mock_scenario)
         self.num_clusters_max = self.mock_scenario.num_clusters_max
         self.rays_per_cluster = self.mock_scenario.rays_per_cluster
@@ -71,7 +67,6 @@ class Step_9(unittest.TestCase):
         # Check if the values are positive
         self.assertTrue(tf.reduce_all(result > 0).numpy())
 
-        # Check the mean and std of the distribution against hardcoded values
         # Linear to dB
         log_result = 10 * np.log10(result.numpy())
 

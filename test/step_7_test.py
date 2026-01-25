@@ -1,12 +1,8 @@
 # This file tests the implementation of step 7, the angles of arrival and departure. 
 
-# This file tests the implementation of step 7, the angles of arrival and departure. 
 
 import unittest
 import tensorflow as tf
-import numpy as np
-
-# Importing necessary modules from Sionna
 from sionna.phy.channel.tr38811.utils import gen_single_sector_topology as gen_topology
 from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, Rural
 
@@ -74,7 +70,6 @@ class Test_A_D_angles(unittest.TestCase):
                 ut = scenario._scenario.num_ut
                 batch_size = scenario._scenario.batch_size
 
-                # Mock azimuth spreads
                 asa = tf.random.uniform([batch_size, bs, ut], minval=5.0, maxval=15.0)
                 asd = tf.random.uniform([batch_size, bs, ut], minval=5.0, maxval=15.0)
                 rician_k = lsp.k_factor
@@ -96,7 +91,6 @@ class Test_A_D_angles(unittest.TestCase):
                 ut = scenario._scenario.num_ut
                 batch_size = scenario._scenario.batch_size
 
-                # Mock zenith spreads
                 zsa = tf.random.uniform([batch_size, bs, ut], minval=5.0, maxval=15.0)
                 zsd = tf.random.uniform([batch_size, bs, ut], minval=5.0, maxval=15.0)
                 rician_k = lsp.k_factor

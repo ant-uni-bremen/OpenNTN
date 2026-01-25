@@ -7,10 +7,10 @@
 # mentioning it, the correlation between ZSD and ASD to any other paramter is set to 0.0 in the DL case, the both ZSD and ASD are set to -inf in every case,
 # removing the correlation to other parameters.
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or '2' to keep only errors
-from sionna.phy.channel.tr38811 import utils   # The code to test
-import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL, Rural
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+from sionna.phy.channel.tr38811 import utils   
+import unittest   
+from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, Rural
 import numpy as np
 import tensorflow as tf
 import math

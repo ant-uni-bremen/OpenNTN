@@ -5,20 +5,15 @@ import unittest
 import numpy as np
 import tensorflow as tf
 import sionna
-from sionna.phy import config
 from sionna.phy.channel.tr38811 import utils
-from sionna.phy.channel.tr38811 import (
-    Antenna, AntennaArray, PanelArray,
-    ChannelCoefficientsGenerator,
-    DenseUrban, SubUrban, Urban, Rural
-)
+from sionna.phy.channel.tr38811 import Antenna, ChannelCoefficientsGenerator, DenseUrban, SubUrban, Urban, Rural
+
 
 class Test_PathLossAndShadowFading(unittest.TestCase):
     """Test the application of path loss and shadow fading on path coefficients (Step 12)."""
 
     @classmethod
     def setUpClass(cls):
-        # Constants
         cls.BATCH_SIZE = 10
         cls.CARRIER_FREQUENCY = 2.0e9
         cls.H_UT = 1.5
