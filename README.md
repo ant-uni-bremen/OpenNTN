@@ -1,6 +1,6 @@
 # PLEASE NOTE, UPDATE REGARDING THE NEW SIONNA VERSION!
 
-On the 20th of March, Sionna released the new Version 2.0.0. OpenNTN has not yet been adapted for this new Sionna version. As of now, the main version of OpenNTN is compatible with all Sionna versions 1.x, and the legacy OpenNTN version is compatible with Sionna 0.x. We will do our best to add compatibility between OpenNTN and Sionna 2.x as soon as possible. Until then, we wish everyone ongoing success in their work using OpenNTN!
+On the 19th of March, Sionna released the new Version 2.0.0. OpenNTN has not yet been adapted for this new Sionna version. As of now, the main version of OpenNTN is compatible with all Sionna versions 1.x, and the legacy OpenNTN version is compatible with Sionna 0.x. We will do our best to add compatibility between OpenNTN and Sionna 2.x as soon as possible. Until then, we wish everyone ongoing success in their work using OpenNTN!
 
 # Getting Started
 
