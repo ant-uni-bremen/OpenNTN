@@ -10,6 +10,8 @@
 addition the aperture and dlp radiation patterns.
 """
 
+import torch
+
 import tensorflow as tf
 from tensorflow import sin, cos, sqrt
 
@@ -20,7 +22,7 @@ import matplotlib.pyplot as plt
 from matplotlib.markers import MarkerStyle
 
 from sionna.phy.constants import SPEED_OF_LIGHT, PI
-from sionna.phy.utils import log10
+#from sionna.phy.utils import log10
 from sionna.phy.block import Object
 
 class AntennaElement(Object):
@@ -86,8 +88,8 @@ class AntennaElement(Object):
         """
         theta = tf.linspace(0.0, PI, 361)
         phi = tf.linspace(-PI, PI, 361)
-        a_v = 10*log10(self._radiation_pattern(theta, tf.zeros_like(theta) ))
-        a_h = 10*log10(self._radiation_pattern(PI/2*tf.ones_like(phi) , phi))
+        a_v = 10*torch.log10(self._radiation_pattern(theta, tf.zeros_like(theta) ))
+        a_h = 10*torch.log10(self._radiation_pattern(PI/2*tf.ones_like(phi) , phi))
 
         fig = plt.figure()
         plt.polar(theta, a_v)
@@ -236,7 +238,7 @@ class AntennaElement(Object):
         # Compute field strength over the grid
         f_theta, f_phi =  self.field(theta_grid, phi_grid)
         u = f_theta**2 + f_phi**2
-        gain_db = 10*log10(tf.reduce_max(u))
+        gain_db = 10*torch.log10(tf.reduce_max(u))
 
         # Numerical integration of the field components
         dtheta = theta[1]-theta[0]
@@ -246,7 +248,7 @@ class AntennaElement(Object):
         # Compute directivity
         u_bar = po/(4*PI) # Equivalent isotropic radiator
         d = u/u_bar # Directivity grid
-        directivity_db = 10*log10(tf.reduce_max(d))
+        directivity_db = 10*torch.log10(tf.reduce_max(d))
         return (gain_db, directivity_db)
 
 

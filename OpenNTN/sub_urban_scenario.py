@@ -11,7 +11,7 @@ import tensorflow as tf
 import numpy as np
 
 from sionna.phy.constants import SPEED_OF_LIGHT, PI
-from sionna.phy.utils import log10
+#from sionna.phy.utils import log10
 from . import SystemLevelScenario
 from . import utils
 

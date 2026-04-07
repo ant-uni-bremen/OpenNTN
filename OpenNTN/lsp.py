@@ -12,9 +12,11 @@ The process is defined mainly in Section 6 and especially 6.5 of 3GPP TR38.811.
 The process is based on 3GPP TR38.901, with TR38.811 serving mainly as an extension.
 """
 
+import torch
+
 import tensorflow as tf
 
-from sionna.phy.utils import log10
+#from sionna.phy.utils import log10
 from sionna.phy import config
 from sionna.phy.block import Object
 
@@ -435,7 +437,7 @@ class LSPGenerator(Object):
         l_concrete = 5. + 4.*fc
 
         # Path loss through external wall
-        pl_tw = 5.0 - 10.*log10(0.3*tf.math.pow(tf.constant(10.,
+        pl_tw = 5.0 - 10.*torch.log10(0.3*tf.math.pow(tf.constant(10.,
             self.rdtype), -l_glass/10.0) + 0.7*tf.math.pow(
                 tf.constant(10., self.rdtype),
                     -l_concrete/10.0))
@@ -495,7 +497,7 @@ class LSPGenerator(Object):
         l_concrete = 5. + 4.*fc
 
         # Path loss through external wall
-        pl_tw = 5.0 - 10.*log10(0.7*tf.math.pow(tf.constant(10.,
+        pl_tw = 5.0 - 10.*torch.log10(0.7*tf.math.pow(tf.constant(10.,
             self.rdtype), -l_iirglass/10.0)
                 + 0.3*tf.math.pow(tf.constant(10.,
                 self.rdtype), -l_concrete/10.0))

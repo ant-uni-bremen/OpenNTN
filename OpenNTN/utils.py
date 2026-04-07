@@ -7,13 +7,15 @@
 #
 """Utility functions for the channel module"""
 
+import torch
+
 import tensorflow as tf
 import warnings
 
 from sionna.phy.constants import PI
 from sionna.phy.utils import expand_to_rank
 import math 
-from sionna.phy.utils import log10
+#from sionna.phy.utils import log10
 import numpy as np
 from sionna.phy import PI, config, dtypes
 
@@ -1768,7 +1770,7 @@ def compute_pathloss_basic(self):
         fc = self._carrier_frequency/(10**9)
         angle_str = str(round(self._elevation_angle/10.0)*10)
 
-        fspl = 32.45 + 20*log10(fc) + 20*log10(distance_3d)
+        fspl = 32.45 + 20*torch.log10(fc) + 20*torch.log10(distance_3d)
         self._fspl = fspl
         cl = self._params_nlos["CL" + '_' + angle_str]
         sigmaSF_los = self._params_los["sigmaSF" + '_' + angle_str]
@@ -1839,10 +1841,10 @@ def compute_pathloss_additional(self):
 
         # Iterate over j values from 1 to 4 and calculate the sum
         for j in range(len(a)):
-            log_k = log_k + (a[j] * math.exp(-((log10(f) - b[j]) / c[j])**2))
+            log_k = log_k + (a[j] * math.exp(-((torch.log10(f) - b[j]) / c[j])**2))
 
         # Add (m * log10(f)) and d to the final log_k value
-        log_k = log_k + (m * log10(f)) + d
+        log_k = log_k + (m * torch.log10(f)) + d
 
         # Calculate k by taking the antilogarithm (10**x) of log_k
         kH = 10**log_k
@@ -1859,10 +1861,10 @@ def compute_pathloss_additional(self):
 
         # Iterate over j values from 1 to 4 and calculate the sum
         for l in range(len(a1)):
-            log_k1 = log_k1 + (a1[l] * math.exp(-((log10(f) - b1[l]) / c1[l])**2))
+            log_k1 = log_k1 + (a1[l] * math.exp(-((torch.log10(f) - b1[l]) / c1[l])**2))
 
         # Add (m * log10(f)) and d to the final log_k value
-        log_k1 = log_k1 + (x1 * log10(f)) + d1
+        log_k1 = log_k1 + (x1 * torch.log10(f)) + d1
 
         # Calculate k by taking the antilogarithm (10**x) of log_k
         kV = 10**log_k1
@@ -1879,10 +1881,10 @@ def compute_pathloss_additional(self):
 
         # Iterate over j values from 1 to 5 and calculate the sum
         for i in range(len(a2)):
-            log_k2= log_k2 + (a2[i] * math.exp(-((log10(f) - b2[i]) / c2[i])**2))
+            log_k2= log_k2 + (a2[i] * math.exp(-((torch.log10(f) - b2[i]) / c2[i])**2))
 
         # Add (m * log10(f)) and d to the final log_k value
-        log_k2 = log_k2 + (x2 * log10(f)) + d2
+        log_k2 = log_k2 + (x2 * torch.log10(f)) + d2
 
         # Calculate k by taking the antilogarithm (10**x) of log_k
         aH = log_k2
@@ -1899,10 +1901,10 @@ def compute_pathloss_additional(self):
 
         # Iterate over j values from 1 to 5 and calculate the sum
         for n in range(len(a3)):
-            log_k3= log_k3 + (a3[n] * math.exp(-((log10(f) - b3[n]) / c3[n])**2))
+            log_k3= log_k3 + (a3[n] * math.exp(-((torch.log10(f) - b3[n]) / c3[n])**2))
 
         # Add (m * log10(f)) and d to the final log_k value
-        log_k3 = log_k3 + (x3 * log10(f)) + d3
+        log_k3 = log_k3 + (x3 * torch.log10(f)) + d3
 
         # Calculate k by taking the antilogarithm (10**x) of log_k
         aV = log_k3

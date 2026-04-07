@@ -12,11 +12,13 @@ and especially 6.5 of 3GPP TR38.811. The process is based on 3GPP TR38.901, with
 TR38.811 serving mainly as an extension.
 """
 
+import torch
+
 import tensorflow as tf
 
 from sionna.phy import config
 from sionna.phy.block import Object
-from sionna.phy.utils import log10
+#from sionna.phy.utils import log10
 from sionna.phy.channel.utils import deg_2_rad, wrap_angle_0_360
 
 
