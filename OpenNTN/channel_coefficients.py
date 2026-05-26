@@ -1113,7 +1113,7 @@ class ChannelCoefficientsGenerator(Object):
         psi_in_rad = psi_in_deg * (PI/180.0)
         faraday_cos = tf.fill(dims=aod_shape, value=tf.complex(tf.math.cos(psi_in_rad), 0.0))
         faraday_sin = tf.fill(dims=aod_shape, value=tf.complex(tf.math.sin(psi_in_rad), 0.0))
-        faraday_minus_sin = tf.fill(dims=aod_shape, value=tf.complex(tf.math.sin(psi_in_rad), 0.0))
+        faraday_minus_sin = tf.fill(dims=aod_shape, value=tf.complex(-tf.math.sin(psi_in_rad), 0.0))
         shape = tf.concat([tf.shape(faraday_cos), [2,2]], axis=-1)
         faraday_phase_rot = tf.reshape(tf.stack([faraday_cos, faraday_minus_sin, faraday_sin, faraday_cos], axis=-1), shape)
         return faraday_phase_rot
