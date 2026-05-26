@@ -1106,7 +1106,7 @@ class ChannelCoefficientsGenerator(Object):
         return h, delays_nlos
     
     def _step_11_faraday_rotation(self, carrier_frequency, aod_shape):
-        carrier_frequency_in_GHz = carrier_frequency/(10e9)
+        carrier_frequency_in_GHz = carrier_frequency/(1e9)
         psi_in_deg = 108.0/(carrier_frequency_in_GHz*carrier_frequency_in_GHz)
         # TODO there is a bug report here,  appearently passing a Tensor to a NumPy call, which is not supported. Assumably psi in the functions is the issue,
         # but the bug could not yet be replicated. This comment serves as a reminder in case of future resurgence of the issue
