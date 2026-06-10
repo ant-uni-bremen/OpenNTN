@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="OpenNTN",  # Change this to your package name
+    name="OpenNTN",
     version="0.1.0",
     author="Tim Due",
     author_email="duee@ant.uni-bremen.de",
@@ -11,7 +11,7 @@ setup(
     url="https://github.com/ant-uni-bremen/OpenNTN",
     packages=find_packages(),
     install_requires=[
-        "sionna"  # Add dependencies
+        "sionna>=1.0,<2.0"  # Forcing dependency on currently supported Sionna versions
     ],
     python_requires=">=3.8",
     classifiers=[
