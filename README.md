@@ -30,7 +30,7 @@ Sionna™ is currently in its version 1.0+, but multiple older projects still re
 ## Main installation for Sionna™ 1.0+
 
 1. Install Sionna <br>
-  <code>pip install sionna</code> <br>
+  <code>pip install sionna==1.2.2</code> <br>
 For more information on the different installation options we refer the reader to the [sionna documentation](https://nvlabs.github.io/sionna/installation.html). 
 2. Download the install.sh file found in this git 
 3. Execute the install.sh file <br>
