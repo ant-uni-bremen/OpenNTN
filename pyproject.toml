@@ -1,6 +1,32 @@
 [build-system]
 requires = [
-    "setuptools>=42",
+    "setuptools>=61",
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "openntn"
+version = "0.1.0"
+description = "An extension of the Sionna framework with 3GPP TR38.811 non-terrestrial-network channel models"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Tim Due", email = "duee@ant.uni-bremen.de" },
+    { name = "Louis Lagona", email = "lagona@ant.uni-bremen.de" }
+]
+dependencies = [
+    "sionna>=2.0,<3.0",
+    "importlib-resources>=6.5.2"
+]
+
+[project.urls]
+Homepage = "https://github.com/ant-uni-bremen/OpenNTN"
+
+[tool.setuptools.packages.find]
+include = ["openntn*"]
+exclude = ["test*", "example*"]
+
+[tool.setuptools.package-data]
+openntn = ["models/*.json", "models/*.npy"]

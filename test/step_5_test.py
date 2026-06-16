@@ -4,13 +4,14 @@
 # to be correct here.
 # Step 5 has no easily measurable output, so that a mockup 
 
-from sionna.phy.channel.tr38811 import utils   # The code to test
+from openntn import utils   # The code to test
 import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 import numpy as np
-import tensorflow as tf
+import torch
 import math
-from sionna.phy.utils import log10
+from sionna.phy.utils import uniform
+from sionna.phy import config
 
 
 
@@ -71,34 +72,35 @@ class Test_URB(unittest.TestCase):
             cluster_mask = rays_generator._cluster_mask  # Binary mask to apply to clusters
 
             # Define delay scaling based on LOS/NLOS scenario
-            delay_scaling_parameter = tf.where(channel_model._scenario._los, rTau_los, rTau_nlos)
+            delay_scaling_parameter = torch.where(channel_model._scenario._los, rTau_los, rTau_nlos)
             delay_spread = lsp.ds  
-            x = tf.random.uniform(
-                shape=[self.batch_size, channel_model._scenario.num_bs, 
-                       channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
-                minval=1e-6, maxval=1.0,
-                dtype=channel_model._scenario.rdtype
+            x = uniform(
+                [self.batch_size, channel_model._scenario.num_bs,
+                 channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
+                low=1e-6, high=1.0,
+                dtype=channel_model._scenario.dtype,
+                generator=config.torch_rng(str(config.device))
             )
-            delay_scaling_parameter = tf.expand_dims(delay_scaling_parameter,axis=3)
+            delay_scaling_parameter = torch.unsqueeze(delay_scaling_parameter, 3)
             
-            delay_spread = tf.expand_dims(delay_spread, axis=3)
+            delay_spread = torch.unsqueeze(delay_spread, 3)
 
             # Calculate unscaled delays by applying scaling based on channel conditions
-            unscaled_delays = -delay_scaling_parameter* delay_spread* tf.math.log(x)
+            unscaled_delays = -delay_scaling_parameter* delay_spread* torch.log(x)
             unscaled_delays = unscaled_delays * (1. - cluster_mask) + cluster_mask  # Apply cluster mask
-            unscaled_delays -= tf.reduce_min(unscaled_delays, axis=3, keepdims=True)  # Normalize by subtracting min value
-            unscaled_delays = tf.sort(unscaled_delays, axis=3)  # Sort delays for ordered processing
+            unscaled_delays -= torch.amin(unscaled_delays, dim=3, keepdim=True)  # Normalize by subtracting min value
+            unscaled_delays = torch.sort(unscaled_delays, dim=3).values  # Sort delays for ordered processing
 
             # Convert Rician K-factor to dB and calculate scaling factor
-            rician_k_factor_db = 10.0 * log10(lsp.k_factor)
+            rician_k_factor_db = 10.0 * torch.log10(lsp.k_factor)
             scaling_factor = (0.7705 - 0.0433 * rician_k_factor_db +
-                              0.0002 * tf.square(rician_k_factor_db) +
-                              0.000017 * tf.math.pow(rician_k_factor_db, 3))
-            scaling_factor = tf.expand_dims(scaling_factor, axis=3)
+                              0.0002 * torch.square(rician_k_factor_db) +
+                              0.000017 * torch.pow(rician_k_factor_db, 3))
+            scaling_factor = torch.unsqueeze(scaling_factor, 3)
             
             # Apply scaling factor for LOS conditions; NLOS delays remain unchanged
-            delays = tf.where(
-                tf.expand_dims(channel_model._scenario.los, axis=3), 
+            delays = torch.where(
+                torch.unsqueeze(channel_model._scenario.los, 3), 
                 unscaled_delays / scaling_factor, 
                 unscaled_delays
             )
@@ -107,11 +109,11 @@ class Test_URB(unittest.TestCase):
             for reference, actual, delay_type in [
                 (reference_delays, delays, "reference_delays")
             ]:
-                mean_diff = tf.abs(tf.reduce_mean(reference) - tf.reduce_mean(actual))
-                std_diff = tf.abs(tf.math.reduce_std(reference) - tf.math.reduce_std(actual))
+                mean_diff = torch.abs(torch.mean(reference) - torch.mean(actual))
+                std_diff = torch.abs(torch.std(reference) - torch.std(actual))
                 # Assert that both mean and std deviation differences are within tolerance
-                assert mean_diff < 1e-5, f"Mean mismatch" f"Expected mean = {tf.math.reduce_std(actual).numpy()}, Calculated mean = {tf.reduce_mean(reference).numpy()}"
-                assert std_diff < 1e-5, f"Std deviation mismatch" f"Expected mean = {tf.math.reduce_std(actual).numpy()}, Calculated mean = {tf.reduce_mean(reference).numpy()}"
+                assert mean_diff < 1e-5, f"Mean mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()}"
+                assert std_diff < 1e-5, f"Std deviation mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()}"
 
     def test_s_band_dl(self):
         self.run_test(direction="downlink", carrier_frequency=2.2e9)
@@ -177,31 +179,32 @@ class Test_SUR(unittest.TestCase):
             reference_delays, _ = rays_generator._cluster_delays(lsp.ds, lsp.k_factor)
             cluster_mask = rays_generator._cluster_mask  # Binary mask to apply to clusters
 
-            delay_scaling_parameter = tf.where(channel_model._scenario._los, rTau_los, rTau_nlos)
+            delay_scaling_parameter = torch.where(channel_model._scenario._los, rTau_los, rTau_nlos)
             delay_spread = lsp.ds  
-            x = tf.random.uniform(
-                shape=[self.batch_size, channel_model._scenario.num_bs, 
-                       channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
-                minval=1e-6, maxval=1.0,
-                dtype=channel_model._scenario.rdtype
+            x = uniform(
+                [self.batch_size, channel_model._scenario.num_bs,
+                 channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
+                low=1e-6, high=1.0,
+                dtype=channel_model._scenario.dtype,
+                generator=config.torch_rng(str(config.device))
             )
 
             # Calculate unscaled delays by applying scaling based on channel conditions
-            unscaled_delays = -delay_scaling_parameter[..., tf.newaxis] * delay_spread[..., tf.newaxis] * tf.math.log(x)
+            unscaled_delays = -delay_scaling_parameter[..., None] * delay_spread[..., None] * torch.log(x)
             unscaled_delays = unscaled_delays * (1. - cluster_mask) + cluster_mask  # Apply cluster mask
-            unscaled_delays -= tf.reduce_min(unscaled_delays, axis=3, keepdims=True)  # Normalize by subtracting min value
-            unscaled_delays = tf.sort(unscaled_delays, axis=3)  # Sort delays for ordered processing
+            unscaled_delays -= torch.amin(unscaled_delays, dim=3, keepdim=True)  # Normalize by subtracting min value
+            unscaled_delays = torch.sort(unscaled_delays, dim=3).values  # Sort delays for ordered processing
 
             # Convert Rician K-factor to dB and calculate scaling factor
-            rician_k_factor_db = 10.0 * log10(lsp.k_factor)
+            rician_k_factor_db = 10.0 * torch.log10(lsp.k_factor)
             scaling_factor = (0.7705 - 0.0433 * rician_k_factor_db +
-                              0.0002 * tf.square(rician_k_factor_db) +
-                              0.000017 * tf.math.pow(rician_k_factor_db, 3))
-            scaling_factor = tf.expand_dims(scaling_factor, axis=3)
+                              0.0002 * torch.square(rician_k_factor_db) +
+                              0.000017 * torch.pow(rician_k_factor_db, 3))
+            scaling_factor = torch.unsqueeze(scaling_factor, 3)
             
             # Apply scaling factor for LOS conditions; NLOS delays remain unchanged
-            delays = tf.where(
-                tf.expand_dims(channel_model._scenario.los, axis=3), 
+            delays = torch.where(
+                torch.unsqueeze(channel_model._scenario.los, 3), 
                 unscaled_delays / scaling_factor, 
                 unscaled_delays
             )
@@ -210,11 +213,11 @@ class Test_SUR(unittest.TestCase):
             for reference, actual  in [
                 (reference_delays, delays)
             ]:
-                mean_diff = tf.abs(tf.reduce_mean(reference) - tf.reduce_mean(actual))
-                std_diff = tf.abs(tf.math.reduce_std(reference) - tf.math.reduce_std(actual))
+                mean_diff = torch.abs(torch.mean(reference) - torch.mean(actual))
+                std_diff = torch.abs(torch.std(reference) - torch.std(actual))
                 # Assert that both mean and std deviation differences are within tolerance
-                assert mean_diff < 1e-5, f"Mean mismatch" f"Expected mean = {tf.math.reduce_std(actual).numpy()}, Calculated mean = {tf.reduce_mean(reference).numpy()}"
-                assert std_diff < 1e-5, f"Std deviation mismatch" f"Expected mean = {tf.math.reduce_std(actual).numpy()}, Calculated mean = {tf.reduce_mean(reference).numpy()}"
+                assert mean_diff < 1e-5, f"Mean mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()}"
+                assert std_diff < 1e-5, f"Std deviation mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()}"
 
     def test_s_band_dl(self):
         self.run_test(direction="downlink", carrier_frequency=2.2e9)
@@ -266,31 +269,32 @@ class Test_DUR(unittest.TestCase):
             reference_delays, _ = rays_generator._cluster_delays(lsp.ds, lsp.k_factor)
             cluster_mask = rays_generator._cluster_mask  # Binary mask to apply to clusters
 
-            delay_scaling_parameter = tf.where(channel_model._scenario._los, rTau_los, rTau_nlos)
+            delay_scaling_parameter = torch.where(channel_model._scenario._los, rTau_los, rTau_nlos)
             delay_spread = lsp.ds  
-            x = tf.random.uniform(
-                shape=[self.batch_size, channel_model._scenario.num_bs, 
-                       channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
-                minval=1e-6, maxval=1.0,
-                dtype=channel_model._scenario.rdtype
+            x = uniform(
+                [self.batch_size, channel_model._scenario.num_bs,
+                 channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
+                low=1e-6, high=1.0,
+                dtype=channel_model._scenario.dtype,
+                generator=config.torch_rng(str(config.device))
             )
 
             # Calculate unscaled delays by applying scaling based on channel conditions
-            unscaled_delays = -delay_scaling_parameter[..., tf.newaxis] * delay_spread[..., tf.newaxis] * tf.math.log(x)
+            unscaled_delays = -delay_scaling_parameter[..., None] * delay_spread[..., None] * torch.log(x)
             unscaled_delays = unscaled_delays * (1. - cluster_mask) + cluster_mask  # Apply cluster mask
-            unscaled_delays -= tf.reduce_min(unscaled_delays, axis=3, keepdims=True)  # Normalize by subtracting min value
-            unscaled_delays = tf.sort(unscaled_delays, axis=3)  # Sort delays for ordered processing
+            unscaled_delays -= torch.amin(unscaled_delays, dim=3, keepdim=True)  # Normalize by subtracting min value
+            unscaled_delays = torch.sort(unscaled_delays, dim=3).values  # Sort delays for ordered processing
 
             # Convert Rician K-factor to dB and calculate scaling factor
-            rician_k_factor_db = 10.0 * log10(lsp.k_factor)
+            rician_k_factor_db = 10.0 * torch.log10(lsp.k_factor)
             scaling_factor = (0.7705 - 0.0433 * rician_k_factor_db +
-                              0.0002 * tf.square(rician_k_factor_db) +
-                              0.000017 * tf.math.pow(rician_k_factor_db, 3))
-            scaling_factor = tf.expand_dims(scaling_factor, axis=3)
+                              0.0002 * torch.square(rician_k_factor_db) +
+                              0.000017 * torch.pow(rician_k_factor_db, 3))
+            scaling_factor = torch.unsqueeze(scaling_factor, 3)
             
             # Apply scaling factor for LOS conditions; NLOS delays remain unchanged
-            delays = tf.where(
-                tf.expand_dims(channel_model._scenario.los, axis=3), 
+            delays = torch.where(
+                torch.unsqueeze(channel_model._scenario.los, 3), 
                 unscaled_delays / scaling_factor, 
                 unscaled_delays
             )
@@ -299,11 +303,11 @@ class Test_DUR(unittest.TestCase):
             for reference, actual  in [
                 (reference_delays, delays)
             ]:
-                mean_diff = tf.abs(tf.reduce_mean(reference) - tf.reduce_mean(actual))
-                std_diff = tf.abs(tf.math.reduce_std(reference) - tf.math.reduce_std(actual))
+                mean_diff = torch.abs(torch.mean(reference) - torch.mean(actual))
+                std_diff = torch.abs(torch.std(reference) - torch.std(actual))
                 # Assert that both mean and std deviation differences are within tolerance
-                assert mean_diff < 1e-5, f"Mean mismatch" f"Expected mean = {tf.math.reduce_std(actual).numpy()}, Calculated mean = {tf.reduce_mean(reference).numpy()}"
-                assert std_diff < 1e-5, f"Std deviation mismatch" f"Expected mean = {tf.math.reduce_std(actual).numpy()}, Calculated mean = {tf.reduce_mean(reference).numpy()} in {elevation_angle} degrees"
+                assert mean_diff < 1e-5, f"Mean mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()}"
+                assert std_diff < 1e-5, f"Std deviation mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()} in {elevation_angle} degrees"
 
     def test_s_band_dl(self):
         self.run_test(direction="downlink", carrier_frequency=2.2e9)

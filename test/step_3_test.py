@@ -1,7 +1,7 @@
-from sionna.phy.channel.tr38811 import utils   # The code to test
+from openntn import utils   # The code to test
 import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, Urban, DenseUrban, SubUrban
-import tensorflow as tf
+from openntn import Antenna, AntennaArray, Urban, DenseUrban, SubUrban
+import torch
 import math
 
 def create_ut_ant(carrier_frequency):
@@ -43,14 +43,14 @@ def run_test(channel_model_class, direction, elevation_angle, carrier_frequency,
     loss_no_fspl = channel_model._scenario.basic_pathloss - channel_model._scenario.free_space_pathloss
 
     # Separate Line-of-Sight (LoS) and Non-Line-of-Sight (NLoS) losses
-    loss_los = tf.boolean_mask(loss_no_fspl, channel_model._scenario.los)
-    loss_nlos = tf.boolean_mask(loss_no_fspl, channel_model._scenario.los == False)
+    loss_los = (loss_no_fspl)[channel_model._scenario.los]
+    loss_nlos = (loss_no_fspl)[channel_model._scenario.los == False]
 
     # Get mean and standard deviation for LoS and NLoS
-    los_mean = tf.math.reduce_mean(loss_los)
-    los_std = tf.math.reduce_std(loss_los)
-    nlos_mean = tf.math.reduce_mean(loss_nlos)
-    nlos_std = tf.math.reduce_std(loss_nlos)
+    los_mean = torch.mean(loss_los)
+    los_std = torch.std(loss_los)
+    nlos_mean = torch.mean(loss_nlos)
+    nlos_std = torch.std(loss_nlos)
 
     # Assertions for Line-of-Sight (LoS) cases
     try:

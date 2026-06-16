@@ -1,3 +1,2 @@
-recursive-include OpenNTN *.csv *.npy *.json *.xml *.ply
-#include ./OpenNTN *.csv, *.npy
+recursive-include openntn *.json *.npy
 prune test

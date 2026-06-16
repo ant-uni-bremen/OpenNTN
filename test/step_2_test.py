@@ -1,11 +1,11 @@
 # This file tests the generation of the LOS states according to Step 2 of 3GPP TR38.901 7.5
 # using the parameters of 3GPP TR38.811 Table 6.6.1-1 LOS probability
 
-from sionna.phy.channel.tr38811 import utils   # The code to test
+from openntn import utils   # The code to test
 import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 import numpy as np
-import tensorflow as tf
+import torch
 import math
   
 def create_ut_ant(carrier_frequency):
@@ -46,7 +46,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 24.6, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 24.6, abs_tol=2)
 
         elevation_angle = 20.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -59,7 +59,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 38.6, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 38.6, abs_tol=2)
 
         elevation_angle = 30.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -72,7 +72,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 49.3, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 49.3, abs_tol=2)
 
         elevation_angle = 40.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -85,7 +85,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 61.3, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 61.3, abs_tol=2)
 
         elevation_angle = 50.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -98,7 +98,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 72.6, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 72.6, abs_tol=2)
 
         elevation_angle = 60.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -111,7 +111,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 80.5, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 80.5, abs_tol=2)
 
         elevation_angle = 70.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -124,7 +124,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 91.9, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 91.9, abs_tol=2)
 
         elevation_angle = 80.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -137,7 +137,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 96.8, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 96.8, abs_tol=2)
 
         elevation_angle = 90.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -150,7 +150,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 99.2, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 99.2, abs_tol=2)
 
 class Test_SUR(unittest.TestCase):
 
@@ -173,7 +173,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 78.2, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 78.2, abs_tol=2)
 
         elevation_angle = 20.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -186,7 +186,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 86.9, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 86.9, abs_tol=2)
 
         elevation_angle = 30.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -199,7 +199,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 91.9, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 91.9, abs_tol=2)
 
         elevation_angle = 40.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -212,7 +212,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 92.9, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 92.9, abs_tol=2)
 
         elevation_angle = 50.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -225,7 +225,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 93.5, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 93.5, abs_tol=2)
 
         elevation_angle = 60.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -238,7 +238,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 94.0, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 94.0, abs_tol=2)
 
         elevation_angle = 70.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -251,7 +251,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 94.9, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 94.9, abs_tol=2)
 
         elevation_angle = 80.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -264,7 +264,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 95.2, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 95.2, abs_tol=2)
 
         elevation_angle = 90.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -277,7 +277,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 99.8, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 99.8, abs_tol=2)
 
 class Test_DUR(unittest.TestCase):
 
@@ -300,7 +300,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 28.2, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 28.2, abs_tol=2)
 
         elevation_angle = 20.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -313,7 +313,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 33.1, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 33.1, abs_tol=2)
 
         elevation_angle = 30.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -326,7 +326,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 39.8, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 39.8, abs_tol=2)
 
         elevation_angle = 40.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -339,7 +339,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 46.8, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 46.8, abs_tol=2)
 
         elevation_angle = 50.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -352,7 +352,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 53.7, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 53.7, abs_tol=2)
 
         elevation_angle = 60.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -365,7 +365,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 61.2, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 61.2, abs_tol=2)
 
         elevation_angle = 70.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -378,7 +378,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 73.8, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 73.8, abs_tol=2)
 
         elevation_angle = 80.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -391,7 +391,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 82.0, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 82.0, abs_tol=2)
 
         elevation_angle = 90.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -404,7 +404,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(tf.cast(tf.reduce_sum(tf.cast(channel_model._scenario.los, tf.int32)),tf.float32)/100.0, 98.1, abs_tol=2)
+        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 98.1, abs_tol=2)
         
        
 if __name__ == '__main__':

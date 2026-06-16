@@ -1,13 +1,14 @@
 # This file tests the implementation of step 12, the application of the path loss and shadow fading
 # to the path coefficients. 
-import tensorflow as tf
+import openntn
+import torch
 import unittest
 import numpy as np
 import sionna
 
-from sionna.phy.channel.tr38811 import utils
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
-from sionna.phy.channel.tr38811 import DenseUrban, SubUrban, Urban, CDL
+from openntn import utils
+from openntn import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
+from openntn import DenseUrban, SubUrban, Urban
 
 
 class Step_12(unittest.TestCase):
@@ -83,7 +84,7 @@ class Step_12(unittest.TestCase):
         
         # # lsp = lsp_sampler()
         self.rays = ray_sampler(self.lsp)   
-        topology = sionna.phy.channel.tr38811.Topology(velocities=channel_model._scenario.ut_velocities,
+        topology = openntn.Topology(velocities=channel_model._scenario.ut_velocities,
                                 moving_end="tx", 
                                 los_aoa=channel_model._scenario.los_aoa,
                                 los_aod=channel_model._scenario.los_aod,
@@ -128,14 +129,14 @@ class Step_12(unittest.TestCase):
         if self.scenario._scenario.pathloss_enabled:
             pl_db = self.scenario._lsp_sampler.sample_pathloss()
             if self.scenario._scenario._direction == 'uplink':
-                pl_db = tf.transpose(pl_db, [0,2,1])
+                pl_db = pl_db.permute(0, 2, 1)
         else:
-            pl_db = tf.constant(0.0, dtype=tf.float32)
+            pl_db = torch.tensor(0.0, dtype=torch.float32)
         
-        sf = self.sf if self.scenario._scenario.shadow_fading_enabled else tf.ones_like(self.sf)
-        gain = tf.math.pow(10.0, -pl_db/20.0) * tf.sqrt(sf)
-        gain = tf.reshape(gain, tf.concat([tf.shape(gain), tf.ones([tf.rank(self.h)-tf.rank(gain)], tf.int32)], 0))
-        expected_h = self.h * tf.complex(gain, 0.0)
+        sf = self.sf if self.scenario._scenario.shadow_fading_enabled else torch.ones_like(self.sf)
+        gain = torch.pow(10.0, -pl_db/20.0) * torch.sqrt(sf)
+        gain = torch.reshape(gain, list(gain.shape) + [1] * (self.h.dim() - gain.dim()))
+        expected_h = self.h * torch.complex(gain, torch.zeros_like(gain))
         
         h_processed = self.scenario._step_12(self.h, self.sf)
         rel_err = self.max_rel_err(expected_h.numpy(), h_processed.numpy())

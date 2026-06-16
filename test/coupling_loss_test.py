@@ -1,10 +1,10 @@
 #This file simuates the coupling losses and does the calibration test.
-from sionna.phy.channel.tr38811 import utils   # The code to test
+from openntn import utils   # The code to test
 import unittest   # The test framework
 import numpy as np
 import matplotlib.pyplot as plt
-import tensorflow as tf
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, Urban
+import torch
+from openntn import Antenna, AntennaArray, Urban
 
 
 class TestLinkBudget(unittest.TestCase):
@@ -50,8 +50,8 @@ class TestLinkBudget(unittest.TestCase):
         # Extracting coupling loss values
         lsp_generator = channel_model._lsp_sampler
         sample_path_loss =lsp_generator.sample_pathloss()
-        sample_path_loss_los = tf.boolean_mask(sample_path_loss, channel_model._scenario.los)
-        sample_path_loss_nlos = tf.boolean_mask(sample_path_loss, channel_model._scenario.los == False)
+        sample_path_loss_los = (sample_path_loss)[channel_model._scenario.los]
+        sample_path_loss_nlos = (sample_path_loss)[channel_model._scenario.los == False]
         gas_path_loss = channel_model._scenario.gas_pathloss[:, 0, 0]
         scintillation_path_loss = channel_model._scenario.scintillation_pathloss[:, 0, 0]
         free_space_path_loss = channel_model._scenario.free_space_pathloss[:, 0, 0]

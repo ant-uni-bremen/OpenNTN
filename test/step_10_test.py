@@ -1,18 +1,18 @@
 # This file tests the implementation of step 10, the initial random phase generation. 
 # Step 10 test is  a mockup 
 import unittest
-import tensorflow as tf
+import torch
 import numpy as np
 import math
 from sionna.phy.constants import PI
-from sionna.phy.channel.tr38811 import utils
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
+from openntn import utils
+from openntn import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
 
 
 class Test_Step10(unittest.TestCase):
     def setUp(self):
         # Initialize the required attributes
-        self.shape = tf.constant([2, 3], dtype=tf.int32)
+        self.shape = torch.tensor([2, 3], dtype=torch.int32)
     
         self.mock_antenna = Antenna(
             polarization="single",

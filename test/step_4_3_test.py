@@ -6,11 +6,11 @@
 # The spatial correlation is calculated as exp(d*c) for correlated parameters, in which d is the 2d distance and c is the correlation factor, which
 # is equal to -1/the value in the corresponding table. 
 
-from sionna.phy.channel.tr38811 import utils   # The code to test
+from openntn import utils   # The code to test
 import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 import numpy as np
-import tensorflow as tf
+import torch
 import math
 #from sionna.utils import matrix_sqrt
 
@@ -32,7 +32,7 @@ def create_bs_ant(carrier_frequency):
     return bs_ant
 
 def square_matrix(mat):
-    return tf.linalg.matmul(mat,tf.linalg.adjoint(mat))
+    return torch.matmul(mat,mat.adjoint())
 
 
 
@@ -76,20 +76,20 @@ class Test_URB(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -120,47 +120,48 @@ class Test_URB(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
 
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
 
@@ -202,20 +203,20 @@ class Test_URB(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -246,46 +247,47 @@ class Test_URB(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
 
@@ -328,20 +330,20 @@ class Test_URB(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -372,47 +374,48 @@ class Test_URB(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
 
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
 
@@ -454,20 +457,20 @@ class Test_URB(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -498,46 +501,47 @@ class Test_URB(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 class Test_DUR(unittest.TestCase):
 # Values taken from Table 6.7.2-2a: Channel model parameters for Urban Scenario (NLOS) at S band and 
@@ -579,20 +583,20 @@ class Test_DUR(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -623,47 +627,48 @@ class Test_DUR(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
 
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
             
@@ -707,20 +712,20 @@ class Test_DUR(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -751,46 +756,47 @@ class Test_DUR(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
 
@@ -833,20 +839,20 @@ class Test_DUR(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -877,47 +883,48 @@ class Test_DUR(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
 
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
 
@@ -958,20 +965,20 @@ class Test_DUR(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -1002,46 +1009,47 @@ class Test_DUR(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
 
@@ -1085,20 +1093,20 @@ class Test_SUR(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -1129,47 +1137,48 @@ class Test_SUR(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
 
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
             
@@ -1213,20 +1222,20 @@ class Test_SUR(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -1257,46 +1266,47 @@ class Test_SUR(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
 
@@ -1339,20 +1349,20 @@ class Test_SUR(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -1383,47 +1393,48 @@ class Test_SUR(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
 
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
 
@@ -1465,20 +1476,20 @@ class Test_SUR(unittest.TestCase):
             
             topology = utils.gen_single_sector_topology(batch_size=100, num_ut=num_ut, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
             channel_model.set_topology(*topology)
-            indoor = tf.tile(tf.expand_dims(channel_model._scenario.indoor, axis=1),
-                         [1, channel_model._scenario.num_bs, 1])
+            indoor = torch.unsqueeze(channel_model._scenario.indoor, 1).repeat(
+                         1, channel_model._scenario.num_bs, 1)
             # LoS
             los_ut = channel_model._scenario.los
-            los_pair_bool = tf.logical_and(tf.expand_dims(los_ut, axis=3),
-                                        tf.expand_dims(los_ut, axis=2))
+            los_pair_bool = torch.logical_and(torch.unsqueeze(los_ut, 3),
+                                        torch.unsqueeze(los_ut, 2))
             # NLoS
-            nlos_ut = tf.logical_and(tf.logical_not(channel_model._scenario.los),
-                                    tf.logical_not(indoor))
-            nlos_pair_bool = tf.logical_and(tf.expand_dims(nlos_ut, axis=3),
-                                            tf.expand_dims(nlos_ut, axis=2))
+            nlos_ut = torch.logical_and(torch.logical_not(channel_model._scenario.los),
+                                    torch.logical_not(indoor))
+            nlos_pair_bool = torch.logical_and(torch.unsqueeze(nlos_ut, 3),
+                                            torch.unsqueeze(nlos_ut, 2))
             # O2I
-            o2i_pair_bool = tf.logical_and(tf.expand_dims(indoor, axis=3),
-                                        tf.expand_dims(indoor, axis=2))
+            o2i_pair_bool = torch.logical_and(torch.unsqueeze(indoor, 3),
+                                        torch.unsqueeze(indoor, 2))
 
             # Stacking the correlation matrix
             # One correlation matrix per LSP
@@ -1509,46 +1520,47 @@ class Test_SUR(unittest.TestCase):
                     parameter_value_los = ZSD_los
                     parameter_value_nlos = ZSD_nlos
 
-                filtering_matrix = tf.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, batch_shape=[channel_model._scenario.batch_size,
-                    channel_model._scenario.num_bs], dtype=channel_model._scenario.rdtype)
+                filtering_matrix = torch.eye(channel_model._scenario.num_ut,
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.batch_size, channel_model._scenario.num_bs,
+                    channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
-                distance_scaling_matrix = tf.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
+                distance_scaling_matrix = torch.where(channel_model._scenario.los, parameter_value_los,parameter_value_nlos)
                 #distance_scaling_matrix = channel_model._scenario.get_param(parameter_name)
-                distance_scaling_matrix = tf.tile(tf.expand_dims(
-                    distance_scaling_matrix, axis=3),
-                    [1, 1, 1, channel_model._scenario.num_ut])
+                distance_scaling_matrix = torch.unsqueeze(
+                    distance_scaling_matrix, 3).repeat(
+                    1, 1, 1, channel_model._scenario.num_ut)
     
                 epsilon = 1e-12
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
-                filtering_matrix = tf.where(los_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(los_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # NLoS
-                filtering_matrix = tf.where(nlos_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(nlos_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # indoor
-                filtering_matrix = tf.where(o2i_pair_bool,
-                    tf.constant(1.0, channel_model._scenario.rdtype),
+                filtering_matrix = torch.where(o2i_pair_bool,
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
                 distance_scaling_matrices.append(distance_scaling_matrix)
-            filtering_matrices = tf.stack(filtering_matrices, axis=2)
-            distance_scaling_matrices = tf.stack(distance_scaling_matrices, axis=2)
+            filtering_matrices = torch.stack(filtering_matrices, dim=2)
+            distance_scaling_matrices = torch.stack(distance_scaling_matrices, dim=2)
             ut_dist_2d = channel_model._scenario.matrix_ut_distance_2d
             # Adding a dimension for broadcasting with BS
-            ut_dist_2d = tf.expand_dims(tf.expand_dims(ut_dist_2d, axis=1), axis=2)
+            ut_dist_2d = torch.unsqueeze(torch.unsqueeze(ut_dist_2d, 1), 2)
             
-            spatial_lsp_correlation = (tf.math.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
-            spatial_lsp_correlation = tf.linalg.cholesky(spatial_lsp_correlation)
+            spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)  
+            spatial_lsp_correlation = torch.linalg.cholesky_ex(spatial_lsp_correlation).L
 
             difference = channel_model._lsp_sampler._spatial_lsp_correlation_matrix_sqrt - spatial_lsp_correlation
-            difference = tf.abs(difference) < 1e-6
+            difference = torch.abs(difference) < 1e-6
 
-            assert tf.reduce_all(difference)
+            assert torch.all(difference)
 
 
 

@@ -4,11 +4,11 @@
 # to be correct here.
 # Step 6 has no easily measurable output, so that a mockup 
 
-from sionna.phy.channel.tr38811 import utils   # The code to test
+from openntn import utils   # The code to test
 import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 import numpy as np
-import tensorflow as tf
+import torch
 import math
 from sionna.phy import config
 import json
@@ -65,7 +65,7 @@ class TestClusterPowerGeneration(unittest.TestCase):
     #     print(powers.shape)  
     #     i = 1
     #     for power in powers: 
-    #         self.assertAlmostEqual(tf.reduce_sum(power[:,:,:i]).numpy(), 1.0, places=5)
+    #         self.assertAlmostEqual(torch.sum(power[:,:,:i]).numpy(), 1.0, places=5)
     #         print(power[:,:,1])
     #         i+=1
 
@@ -80,20 +80,20 @@ class TestClusterPowerGeneration(unittest.TestCase):
         lsp = self.channel_model._lsp
         delays, unscaled_delays = rays_generator._cluster_delays(lsp.ds, lsp.k_factor)
         ric_fac = lsp.k_factor
-        ric_fac = tf.expand_dims(ric_fac, axis=3)
+        ric_fac = torch.unsqueeze(ric_fac, 3)
         P1_los = ric_fac/(1+ric_fac)
         los_powers, _ = rays_generator._cluster_powers(
             self.channel_model._lsp.ds, self.channel_model._lsp.k_factor, unscaled_delays
         )
         first_cluster_power = los_powers[:,:,:, :1]  # First cluster
-        #first_cluster_power = tf.reduce_mean(first_cluster_power).numpy()
+        #first_cluster_power = torch.mean(first_cluster_power).numpy()
         
         # print("Size :", first_cluster_power.shape)
         # print("Size_P1_los :", P1_los.shape)
-        # print("First cluster power :", tf.reduce_mean(first_cluster_power).numpy())
-        # print("P1_los :", tf.reduce_mean(P1_los).numpy())
+        # print("First cluster power :", torch.mean(first_cluster_power).numpy())
+        # print("P1_los :", torch.mean(P1_los).numpy())
 
-        assert math.isclose(tf.reduce_mean(first_cluster_power).numpy(), tf.reduce_mean(P1_los).numpy(), abs_tol=0.3)
+        assert math.isclose(torch.mean(first_cluster_power).numpy(), torch.mean(P1_los).numpy(), abs_tol=0.3)
 
     def test_rays_equal_power(self):
         """" Testing if each ray has equal power"""""
@@ -110,7 +110,7 @@ class TestClusterPowerGeneration(unittest.TestCase):
         lsp.ds, lsp.k_factor, unscaled_delays)
         for cluster_power in cluster_powers:
             for power in cluster_power:
-                self.assertTrue(tf.reduce_all(tf.equal(power, cluster_power[0])).numpy())  # All powers equal within cluster
+                self.assertTrue(torch.all(torch.eq(power, cluster_power[0])).numpy())  # All powers equal within cluster
 
     def test_cluster_elimination(self):
         """Check if any cluster has -25 dB power compared to the maximum cluster power"""
@@ -129,12 +129,12 @@ class TestClusterPowerGeneration(unittest.TestCase):
 
         epsilon = 1e-12  # Small value to avoid log issues
         for power in cluster_powers:
-            power = tf.maximum(power, epsilon)  # Avoid log of zero
-            max_power = tf.reduce_max(cluster_powers)  # Find maximum power in the cluster
+            power = torch.clamp(power, min=epsilon)  # Avoid log of zero
+            max_power = torch.amax(cluster_powers)  # Find maximum power in the cluster
             difference = max_power - power
             #print(difference.shape)
             # Ensure no clusters remain below the threshold
-            self.assertTrue(tf.reduce_all(tf.reduce_mean(difference)>= threshold_power).numpy())
+            self.assertTrue(torch.all(torch.mean(difference)>= threshold_power).numpy())
             
 if __name__ == '__main__':
     unittest.main()

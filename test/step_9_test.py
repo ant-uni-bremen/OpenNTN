@@ -1,12 +1,12 @@
 # This file tests the implementation of step 9, the Cross polarization ratio generation. 
 # Step 9 test is  a mockup 
 import unittest
-import tensorflow as tf
+import torch
 import numpy as np
-import sionna.phy.channel.tr38811.rays as rays
-import sionna.phy.channel.tr38811.dense_urban_scenario as sys_scenario
-import sionna.phy.channel.tr38811.antenna as antenna
-from sionna.phy.channel.tr38811.utils import gen_single_sector_topology as gen_topology
+import openntn.rays as rays
+import openntn.dense_urban_scenario as sys_scenario
+import openntn.antenna as antenna
+from openntn.utils import gen_single_sector_topology as gen_topology
 
 class Step_9(unittest.TestCase):
     def setUp(self):
@@ -73,7 +73,7 @@ class Step_9(unittest.TestCase):
         self.assertEqual(result.shape, expected_shape)
 
         # Check if the values are positive
-        self.assertTrue(tf.reduce_all(result > 0).numpy())
+        self.assertTrue(torch.all(result > 0).numpy())
 
         # Check the mean and std of the distribution against hardcoded values
         # Linear to dB

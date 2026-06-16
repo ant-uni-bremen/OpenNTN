@@ -6,11 +6,11 @@
 # As this part can be reused from the existing 3GPP TR38.901 implementation in Sionna, it is currently not tested and only lsp_log_std and 
 # lsp_log_mean are being verified
 
-from sionna.phy.channel.tr38811 import utils   # The code to test
+from openntn import utils   # The code to test
 import unittest   # The test framework
-from sionna.phy.channel.tr38811 import Antenna, AntennaArray, DenseUrban, SubUrban, Urban, CDL
+from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 import numpy as np
-import tensorflow as tf
+import torch
 import math
 
 def create_ut_ant(carrier_frequency):
@@ -53,17 +53,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
 
         # DS, ASD, ASA, SF, K, ZSA, ZSD
@@ -71,14 +71,14 @@ class Test_URB(unittest.TestCase):
         #print("corr_matrix is ", corr_matrix)
 
 
-        #corr_matrix_los = tf.boolean_mask(corr_matrix, channel_model._scenario.los)
-        #corr_matrix_nlos = tf.boolean_mask(corr_matrix, channel_model._scenario.los == False)
+        #corr_matrix_los = (corr_matrix)[channel_model._scenario.los]
+        #corr_matrix_nlos = (corr_matrix)[channel_model._scenario.los == False]
 
         #print("corr_matrix_los are ", corr_matrix_los)
         #ASDvsDS = 0.4
-        #corr_matrix_los = tf.math.square(corr_matrix_los)
+        #corr_matrix_los = torch.square(corr_matrix_los)
         #print("new format is ", corr_matrix_nlos[:,2,0])
-        #mean_ASDvsDS = tf.math.reduce_mean(corr_matrix_los[:,0,2])
+        #mean_ASDvsDS = torch.mean(corr_matrix_los[:,0,2])
         #print("mean_ASDvsDS ", mean_ASDvsDS)
 
         DS_mean_los = lsp_means_los[0]
@@ -189,17 +189,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -308,17 +308,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -428,17 +428,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -547,17 +547,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -667,17 +667,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -788,17 +788,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -908,17 +908,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -1029,17 +1029,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -1149,17 +1149,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -1270,17 +1270,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -1390,17 +1390,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -1511,17 +1511,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -1631,17 +1631,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -1752,17 +1752,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -1872,17 +1872,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -1993,17 +1993,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -2113,17 +2113,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -2237,28 +2237,28 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         corr_matrix = channel_model._lsp_sampler._cross_lsp_correlation_matrix_sqrt
 
-        #corr_matrix_los = tf.boolean_mask(corr_matrix, channel_model._scenario.los)
-        #corr_matrix_nlos = tf.boolean_mask(corr_matrix, channel_model._scenario.los == False)
+        #corr_matrix_los = (corr_matrix)[channel_model._scenario.los]
+        #corr_matrix_nlos = (corr_matrix)[channel_model._scenario.los == False]
 
         #print("corr_matrix_los are ", corr_matrix_los)
         #ASDvsDS = 0.4
-        #corr_matrix_los = tf.math.square(corr_matrix_los)
+        #corr_matrix_los = torch.square(corr_matrix_los)
         #print("new format is ", corr_matrix_nlos[:,2,0])
-        #mean_ASDvsDS = tf.math.reduce_mean(corr_matrix_los[:,0,2])
+        #mean_ASDvsDS = torch.mean(corr_matrix_los[:,0,2])
         #print("mean_ASDvsDS ", mean_ASDvsDS)
 
         DS_mean_los = lsp_means_los[0]
@@ -2369,17 +2369,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -2488,17 +2488,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -2608,17 +2608,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -2727,17 +2727,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -2847,17 +2847,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -2968,17 +2968,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -3088,17 +3088,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -3209,17 +3209,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -3329,17 +3329,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -3450,17 +3450,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -3570,17 +3570,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -3691,17 +3691,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -3811,17 +3811,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -3932,17 +3932,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -4052,17 +4052,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -4173,17 +4173,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -4293,17 +4293,17 @@ class Test_URB(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -4417,17 +4417,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -4537,17 +4537,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -4656,17 +4656,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -4776,17 +4776,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -4895,17 +4895,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -5015,17 +5015,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -5136,17 +5136,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -5256,17 +5256,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -5377,17 +5377,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -5497,17 +5497,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -5618,17 +5618,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -5738,17 +5738,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -5859,17 +5859,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -5979,17 +5979,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -6100,17 +6100,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -6220,17 +6220,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -6341,17 +6341,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -6461,17 +6461,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -6585,17 +6585,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -6705,17 +6705,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -6824,17 +6824,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -6944,17 +6944,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -7063,17 +7063,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -7183,17 +7183,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -7304,17 +7304,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -7424,17 +7424,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -7545,17 +7545,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -7665,17 +7665,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -7786,17 +7786,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -7906,17 +7906,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -8026,17 +8026,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -8146,17 +8146,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -8267,17 +8267,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -8387,17 +8387,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -8508,17 +8508,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -8628,17 +8628,17 @@ class Test_DUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -8752,17 +8752,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -8872,17 +8872,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -8991,17 +8991,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -9111,17 +9111,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -9230,17 +9230,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -9350,17 +9350,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -9471,17 +9471,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -9591,17 +9591,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -9712,17 +9712,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -9832,17 +9832,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -9953,17 +9953,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -10073,17 +10073,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -10194,17 +10194,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -10314,17 +10314,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -10435,17 +10435,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -10555,17 +10555,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -10676,17 +10676,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -10796,17 +10796,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -10917,17 +10917,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -11037,17 +11037,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -11156,17 +11156,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -11276,17 +11276,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -11395,17 +11395,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -11515,17 +11515,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -11636,17 +11636,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -11756,17 +11756,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -11877,17 +11877,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -11997,17 +11997,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -12118,17 +12118,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -12238,17 +12238,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -12358,17 +12358,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -12478,17 +12478,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -12599,17 +12599,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -12719,17 +12719,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=1000, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -12840,17 +12840,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
@@ -12960,17 +12960,17 @@ class Test_SUR(unittest.TestCase):
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
         
-        lsp_means_los = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los)
-        lsp_means_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_mean, channel_model._scenario.los == False)
+        lsp_means_los = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los]
+        lsp_means_nlos = (channel_model._scenario.lsp_log_mean)[channel_model._scenario.los == False]
 
-        lsp_means_los = tf.reduce_mean(lsp_means_los,axis=0)
-        lsp_means_nlos = tf.reduce_mean(lsp_means_nlos,axis=0)
+        lsp_means_los = torch.mean(lsp_means_los,axis=0)
+        lsp_means_nlos = torch.mean(lsp_means_nlos,axis=0)
 
-        lsp_std_los = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los)
-        lsp_std_nlos = tf.boolean_mask(channel_model._scenario.lsp_log_std, channel_model._scenario.los == False)
+        lsp_std_los = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los]
+        lsp_std_nlos = (channel_model._scenario.lsp_log_std)[channel_model._scenario.los == False]
 
-        lsp_std_los = tf.math.reduce_mean(lsp_std_los,axis=0)
-        lsp_std_nlos = tf.math.reduce_mean(lsp_std_nlos,axis=0)
+        lsp_std_los = torch.mean(lsp_std_los,axis=0)
+        lsp_std_nlos = torch.mean(lsp_std_nlos,axis=0)
 
         DS_mean_los = lsp_means_los[0]
         ASD_mean_los = lsp_means_los[1]
