@@ -101,7 +101,7 @@ class Topology:
         # In a future version we will test the sat height and set sat_speed to none if the bs is too low to be a satellite
         # self.sat_speed = None
         # if torch.any(torch.greater_equal(bs_height, 600000.0)):
-        sat_speed = compute_satellite_speed(bs_height)
+        sat_speed = compute_satellite_speed(bs_height).to(los_aoa.device)
         elevation_angle_rad = torch.as_tensor(elevation_angle, dtype=los_aoa.dtype,
             device=los_aoa.device) * (PI/180.0)
         max_sat_speed_for_elevation_angle = torch.cos(elevation_angle_rad) * sat_speed
