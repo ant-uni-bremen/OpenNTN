@@ -94,6 +94,16 @@ class LSPGenerator(Object):
         super().__init__(precision=scenario.precision, device=scenario.device)
         self._scenario = scenario
 
+    def _update_buffer(self, name, value):
+        # store as a buffer so .to()/.cuda() moves it; copy_ when shape is stable, re-register otherwise
+        existing = getattr(self, name, None)
+        if existing is not None and name in self._buffers and existing.shape == value.shape:
+            existing.copy_(value)
+        else:
+            if hasattr(self, name) and name not in self._buffers:
+                delattr(self, name)
+            self.register_buffer(name, value)
+
     def sample_pathloss(self):
         """
         Generate pathlosses [dB] for each BS-UT link.
@@ -310,7 +320,7 @@ class LSPGenerator(Object):
         # Compute and store the square root of the cross-LSP correlation
         # matrix (use cholesky_ex for CUDA graph compatibility)
         chol, _ = torch.linalg.cholesky_ex(cross_lsp_corr_mat, check_errors=False)
-        self._cross_lsp_correlation_matrix_sqrt = chol
+        self._update_buffer("_cross_lsp_correlation_matrix_sqrt", chol)
 
     def _compute_lsp_spatial_correlation_sqrt(self):
         """
@@ -410,7 +420,7 @@ class LSPGenerator(Object):
         #If we are in DL, the ASD and ZSD are -inf and there is no correlation
         # (use cholesky_ex for CUDA graph compatibility)
         chol, _ = torch.linalg.cholesky_ex(spatial_lsp_correlation, check_errors=False)
-        self._spatial_lsp_correlation_matrix_sqrt = chol
+        self._update_buffer("_spatial_lsp_correlation_matrix_sqrt", chol)
 
 
     """

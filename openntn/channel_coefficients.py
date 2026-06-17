@@ -99,8 +99,6 @@ class Topology:
         # TODO In the best case we would verify the height, however, this ran into issues with eager execution at the moment
         # for now, we assume the satellite to always be used, despite the other checks for it already in place
         # In a future version we will test the sat height and set sat_speed to none if the bs is too low to be a satellite
-        # self.sat_speed = None
-        # if torch.any(torch.greater_equal(bs_height, 600000.0)):
         sat_speed = compute_satellite_speed(bs_height).to(los_aoa.device)
         elevation_angle_rad = torch.as_tensor(elevation_angle, dtype=los_aoa.dtype,
             device=los_aoa.device) * (PI/180.0)
@@ -719,8 +717,6 @@ class ChannelCoefficientsGenerator(Object):
                                     exp_rx))
 
         # The hack is for some reason not needed for this term
-        # exp_tx = 2*PI/lambda_0*(r_hat_tx*d_bar_tx).sum(
-        #     dim=-1, keepdim=True)
         exp_tx = 2*PI/lambda_0*(r_hat_tx*d_bar_tx).sum(dim=-1)
         exp_tx = torch.exp(torch.complex(torch.zeros_like(exp_tx),
                                     exp_tx))

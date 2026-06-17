@@ -501,6 +501,20 @@ class SystemLevelScenario(Object):
 
 
 
+    def _register_buffer_safe(self, name, tensor):
+        # register a buffer, replacing any same-named non-buffer attr (topology attrs are None-init'd)
+        if hasattr(self, name) and name not in self._buffers:
+            delattr(self, name)
+        self.register_buffer(name, tensor)
+
+    def _update_attr(self, name, value):
+        # store topology tensors as buffers so .to()/.cuda() moves them; copy_ when shape is stable, re-register otherwise
+        existing = getattr(self, name, None)
+        if existing is not None and name in self._buffers and existing.shape == value.shape:
+            existing.copy_(value)
+        else:
+            self._register_buffer_safe(name, value)
+
     def set_topology(self, ut_loc=None, bs_loc=None, ut_orientations=None,
         bs_orientations=None, ut_velocities=None, in_state=None, los=None, latitude=None,
         lwc=None, rain_rate=None, atmospheric_pressure=None, temperature=None,
@@ -619,27 +633,27 @@ class SystemLevelScenario(Object):
             self._antenna_efficiency = 0.5
 
         if ut_loc is not None:
-            self._ut_loc = self._convert(ut_loc)
+            self._update_attr("_ut_loc", self._convert(ut_loc))
             need_for_update = True
 
         if bs_loc is not None:
-            self._bs_loc = self._convert(bs_loc)
+            self._update_attr("_bs_loc", self._convert(bs_loc))
             need_for_update = True
 
         if bs_orientations is not None:
-            self._bs_orientations = self._convert(bs_orientations)
+            self._update_attr("_bs_orientations", self._convert(bs_orientations))
 
         if ut_orientations is not None:
-            self._ut_orientations = self._convert(ut_orientations)
+            self._update_attr("_ut_orientations", self._convert(ut_orientations))
 
         if ut_velocities is not None:
-            self._ut_velocities = self._convert(ut_velocities)
+            self._update_attr("_ut_velocities", self._convert(ut_velocities))
 
         if in_state is not None:
             if isinstance(in_state, torch.Tensor):
-                self._in_state = in_state.to(device=self.device)
+                self._update_attr("_in_state", in_state.to(device=self.device))
             else:
-                self._in_state = torch.as_tensor(in_state, device=self.device)
+                self._update_attr("_in_state", torch.as_tensor(in_state, device=self.device))
             need_for_update = True
 
         if los is not None:
@@ -707,12 +721,6 @@ class SystemLevelScenario(Object):
     def nlos_parameter_filepath(self):
         r""" Path of the configuration file for NLoS scenario"""
         pass
-
-    # TODO remove getter from old dtype structure
-    #@property
-    #def dtype(self):
-    #    r"""Complex datatype used for internal calculation and tensors"""
-    #    return self._dtype
 
     @abstractmethod
     def clip_carrier_frequency_lsp(self, fc):
@@ -812,7 +820,7 @@ class SystemLevelScenario(Object):
 
         # 2D distances for all BS-UT pairs in the (x-y) plane
         distance_2d = torch.sqrt(torch.sum(torch.square(delta_loc_xy), dim=3))
-        self._distance_2d = distance_2d
+        self._update_attr("_distance_2d", distance_2d)
 
         # 3D distances for all BS-UT pairs
         # The 3D distance needs to take the curvature of Earth into account
@@ -834,7 +842,7 @@ class SystemLevelScenario(Object):
         #infinite GPU-memory allocation with the LMMSEEqualizer).
         distance_3d = distance_3d.reshape(1, self.num_bs, 1).expand(
             self.batch_size, self.num_bs, self.num_ut).contiguous()
-        self._distance_3d = distance_3d
+        self._update_attr("_distance_3d", distance_3d)
 
         # LoS AoA, AoD, ZoA, ZoD
         los_aod = torch.atan2(delta_loc[:,:,:,1], delta_loc[:,:,:,0])
@@ -842,10 +850,10 @@ class SystemLevelScenario(Object):
         los_zod = torch.atan2(distance_2d, delta_loc[:,:,:,2])
         los_zoa = los_zod - PI
         # Angles are converted to degrees and wrapped to (0,360)
-        self._los_aod = wrap_angle_0_360(rad_2_deg(los_aod))
-        self._los_aoa = wrap_angle_0_360(rad_2_deg(los_aoa))
-        self._los_zod = wrap_angle_0_360(rad_2_deg(los_zod))
-        self._los_zoa = wrap_angle_0_360(rad_2_deg(los_zoa))
+        self._update_attr("_los_aod", wrap_angle_0_360(rad_2_deg(los_aod)))
+        self._update_attr("_los_aoa", wrap_angle_0_360(rad_2_deg(los_aoa)))
+        self._update_attr("_los_zod", wrap_angle_0_360(rad_2_deg(los_zod)))
+        self._update_attr("_los_zoa", wrap_angle_0_360(rad_2_deg(los_zoa)))
 
         # 2D distances for all pairs of UTs in the (x-y) plane
         ut_loc_xy = self._ut_loc[:,:,:2]
@@ -857,7 +865,7 @@ class SystemLevelScenario(Object):
 
         matrix_ut_distance_2d = torch.sqrt(torch.sum(torch.square(delta_loc_xy),
                                                        dim=3))
-        self._matrix_ut_distance_2d = matrix_ut_distance_2d
+        self._update_attr("_matrix_ut_distance_2d", matrix_ut_distance_2d)
 
     def _sample_los(self):
         r"""Set the LoS state of each UT randomly, following the procedure
@@ -875,8 +883,8 @@ class SystemLevelScenario(Object):
                             self._requested_los, dtype=torch.bool,
                             device=self.device)
 
-        self._los = torch.logical_and(los,
-            torch.logical_not(self._in_state.unsqueeze(1)))
+        self._update_attr("_los", torch.logical_and(los,
+            torch.logical_not(self._in_state.unsqueeze(1))))
 
     def _sample_indoor_distance(self):
         r"""Sample 2D indoor distances for indoor devices, according to section
@@ -890,17 +898,17 @@ class SystemLevelScenario(Object):
             torch.tensor(0.0, dtype=self.dtype, device=self.device))
 
         # Sample the indoor 2D distances for each BS-UT link
-        self._distance_2d_in = (torch.rand([self.batch_size, self.num_bs,
+        self._update_attr("_distance_2d_in", (torch.rand([self.batch_size, self.num_bs,
             self.num_ut], dtype=self.dtype, device=self.device,
             generator=self.torch_rng) * (self.max_2d_in - self.min_2d_in)
-            + self.min_2d_in) * indoor_mask
+            + self.min_2d_in) * indoor_mask)
         # Compute the outdoor 2D distances
-        self._distance_2d_out = self.distance_2d - self._distance_2d_in
+        self._update_attr("_distance_2d_out", self.distance_2d - self._distance_2d_in)
         # Compute the indoor 3D distances
-        self._distance_3d_in = ((self._distance_2d_in/self.distance_2d)
+        self._update_attr("_distance_3d_in", (self._distance_2d_in/self.distance_2d)
             *self.distance_3d)
         # Compute the outdoor 3D distances
-        self._distance_3d_out = self.distance_3d - self._distance_3d_in
+        self._update_attr("_distance_3d_out", self.distance_3d - self._distance_3d_in)
 
     def _load_params(self):
         r"""Load the configuration files corresponding to the 2 possible states
