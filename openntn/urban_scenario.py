@@ -131,7 +131,6 @@ class UrbanScenario(SystemLevelScenario):
         angle_str = str(round(self._elevation_angle/10.0)*10)
         los_p = self._params_los["LoS_p" + '_' + angle_str]
         #self._distance_2d_out already has desired shape, this it is used here to keep the code shorter
-        #los_probability = tf.zeros(shape=self._distance_2d_out.shape) + los_p
         los_probability = torch.zeros_like(self._distance_2d_out) + los_p
 
         return los_probability

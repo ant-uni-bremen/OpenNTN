@@ -14,7 +14,6 @@ The process is based on 3GPP TR38.901, with TR38.811 serving mainly as an extens
 
 import torch
 
-from sionna.phy import config
 from sionna.phy.object import Object
 from sionna.phy.utils import normal
 

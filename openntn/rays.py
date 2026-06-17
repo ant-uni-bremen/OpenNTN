@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from sionna.phy import config
 from sionna.phy.object import Object
 from sionna.phy.channel.utils import deg_2_rad, wrap_angle_0_360
 from sionna.phy.utils import normal, rand, randint

@@ -532,26 +532,26 @@ class SystemLevelScenario(Object):
 
         Input
         ------
-            ut_loc : [batch size, number of UTs, 3], tf.float
+            ut_loc : [batch size, number of UTs, 3], torch.float
                 Locations of the UTs [m]
 
-            bs_loc : [batch size, number of BSs, 3], tf.float
+            bs_loc : [batch size, number of BSs, 3], torch.float
                 Locations of BSs [m]
 
-            ut_orientations : [batch size, number of UTs, 3], tf.float
+            ut_orientations : [batch size, number of UTs, 3], torch.float
                 Orientations of the UTs arrays [radian]
 
-            bs_orientations : [batch size, number of BSs, 3], tf.float
+            bs_orientations : [batch size, number of BSs, 3], torch.float
                 Orientations of the BSs arrays [radian]
 
-            ut_velocities : [batch size, number of UTs, 3], tf.float
+            ut_velocities : [batch size, number of UTs, 3], torch.float
                 Velocity vectors of UTs [m/s]
 
-            in_state : [batch size, number of UTs], tf.bool
+            in_state : [batch size, number of UTs], torch.bool
                 Indoor/outdoor state of UTs. `True` means indoor and `False`
                 means outdoor.
 
-            los : tf.bool or `None`
+            los : torch.bool or `None`
                 If not `None` (default value), all UTs located outdoor are
                 forced to be in LoS if ``los`` is set to `True`, or in NLoS
                 if it is set to `False`. If set to `None`, the LoS/NLoS states
@@ -751,7 +751,7 @@ class SystemLevelScenario(Object):
 
         Output
         -------
-        : [batch size, number of BSs, number of UTs], tf.float
+        : [batch size, number of BSs, number of UTs], torch.float
             Parameter value for each BS-UT link
         """
 

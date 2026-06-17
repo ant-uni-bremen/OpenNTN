@@ -37,7 +37,6 @@ _CARRIER = {("s_band", "downlink"): 2.2e9, ("s_band", "uplink"): 2.0e9,
 _BANDS = ("s_band", "ka_band")
 _ELEVS = (10, 20, 30, 40, 50, 60, 70, 80, 90)
 _DIRS = (("dl", "downlink"), ("ul", "uplink"))
-_DIRTOK = {"downlink": "dl", "uplink": "ul"}
 
 
 def _build_model(scenario, band, elevation, direction):
