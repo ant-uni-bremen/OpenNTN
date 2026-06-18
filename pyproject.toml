@@ -11,7 +11,7 @@ version = "0.1.0"
 description = "An extension of the Sionna framework with 3GPP TR38.811 non-terrestrial-network channel models"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "Apache-2.0" }
+license = { text = "MIT" }
 authors = [
     { name = "Tim Due", email = "duee@ant.uni-bremen.de" },
     { name = "Louis Lagona", email = "lagona@ant.uni-bremen.de" }

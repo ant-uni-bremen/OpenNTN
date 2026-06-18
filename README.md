@@ -1,6 +1,6 @@
 # PLEASE NOTE, UPDATE REGARDING THE NEW SIONNA VERSION!
 
-On the 19th of March, Sionna released the new Version 2.0.0. OpenNTN has not yet been adapted for this new Sionna version. As of now, the main version of OpenNTN is compatible with all Sionna versions 1.x, and the legacy OpenNTN version is compatible with Sionna 0.x. We will do our best to add compatibility between OpenNTN and Sionna 2.x as soon as possible. Until then, we wish everyone ongoing success in their work using OpenNTN!
+On the 19th of March, Sionna released the new Version 2.0.0. This branch of OpenNTN has now been adapted to the new Sionna version and uses the PyTorch based Sionna 2.0.0. The main version of OpenNTN remains compatible with all Sionna versions 1.x, and the legacy OpenNTN version is compatible with Sionna 0.x. We wish everyone ongoing success in their work using OpenNTN!
 
 # Getting Started
 
@@ -19,22 +19,22 @@ After understanding what you can do with OpenNTN and how to do it, use OpenNTN f
 
 # Different Sionna™ Versions
 
-Sionna has released versions 1.0+ in 2025, fundamentally reshaping aspects of its internal structure and making it even more modular and powerful in many ways. To support the integration of OpenNTN with both the Sionna™ 1.0+ versions and the legacy version Sionna™ 0.19.2, which is still used in many projects from before 2025, we have seperated the branches of this repository. The branch main is compatible with the versions Sionna™ 1.0+, while branch legacy is compatible with Sionna™ 0.19.2. You can find the two respective installations for OpenNTN in the section below.  <br>
+Sionna has released versions 1.0+ in 2025, fundamentally reshaping aspects of its internal structure and making it even more modular and powerful in many ways. To support the integration of OpenNTN with both the Sionna™ 1.0+ versions and the legacy version Sionna™ 0.19.2, which is still used in many projects from before 2025, we have seperated the branches of this repository. This branch is compatible with Sionna™ 2.0+, the branch main is compatible with the versions Sionna™ 1.0+, and the branch legacy is compatible with Sionna™ 0.19.2. You can find the two respective installations for OpenNTN in the section below.  <br>
 Unfortunately, maintaining both the legacy and the main version of OpenNTN rigorously and introducing new future features to both would be very resource intense. Thus, to maintain our level of quality, we plan to focus only on the main version of OpenNTN in the future and freeze the legacy version in its current state. We still plan to support your requests and update the legacy version if necessary, but new features from future standards will not be introduced to legacy OpenNTN. <br>
 You can still find the [documentation of the legacy version of Sionna here](https://jhoydis.github.io/sionna-0.19.2-doc/), including an [installation guide here](https://jhoydis.github.io/sionna-0.19.2-doc/installation.html). <br>
 
 # Installation
 
-Sionna™ is currently in its version 1.0+, but multiple older projects still require the lagacy version 0.19.2. Based on the Sionna™ version you use, select either the main installation for Sionna™ 1.0+ or the legacy installtion for Sionna™ 0.19.2. The provided installation files install.sh and install_legacy.sh are written for Linux based systems. OpenNTN can be used on Windows, however, the convinient installation scripts are not yet provided. Adding these is planned for a future update. <br>
+Sionna™ is currently in its version 2.0+, but multiple older projects still require the lagacy version 0.19.2. Based on the Sionna™ version you use, select either the main installation for Sionna™ 2.0+ or the legacy installtion for Sionna™ 0.19.2. OpenNTN is now installed as a pip package, which works on Linux and Windows alike. <br>
 
-## Main installation for Sionna™ 1.0+
+## Main installation for Sionna™ 2.0+
 
 1. Install Sionna <br>
-  <code>pip install sionna==1.2.2</code> <br>
+  <code>pip install sionna</code> <br>
 For more information on the different installation options we refer the reader to the [sionna documentation](https://nvlabs.github.io/sionna/installation.html). 
-2. Download the install.sh file found in this git 
-3. Execute the install.sh file <br>
-   <code>. install.sh</code>
+2. Download or clone this repository 
+3. Install OpenNTN from the repository root <br>
+   <code>pip install .</code>
 
 ## Legacy installation for Sionna™ 0.19.2
 
@@ -50,13 +50,13 @@ For more information on the different installation options we refer the reader t
 This section addresses potential issues that might occur when installing OpenNTN. If you encounter a problem that is not listed here, please feel free to contact us, both to receive support for your installation and to help us work on solutions for releases. Our goal is to provide an easy-to-set-up and easy-to-use tool, and your feedback is highly appreciated as it helps us further enhance OpenNTN. The contact information is listed at the end of the section.
 
 1. Installation on Windows <br>
-As mentioned above, installer files are currently only provided for Linux. Until a Windows installer is available, please follow the installation steps manually: download a copy of OpenNTN, move it into the channels directory of your Sionna™ installation, open the __init__.py file inside the channel directory, and add the import statement for OpenNTN: from . import tr38811
+OpenNTN is installed as a pip package and works on Windows the same way as on Linux. Install it from the repository root with <code>pip install .</code> as described in the main installation above.
 2. Installing Sionna™ for the First Time <br>
 When using OpenNTN with Sionna™, OpenNTN can only function correctly if Sionna™ is properly installed and working. Therefore, we strongly recommend verifying a working Sionna™ installation before installing OpenNTN. Further instructions can be found in the [sionna documentation](https://nvlabs.github.io/sionna/installation.html).
 3. Conflicts With Other Packages <br>
 Currently, we are not aware of any package conflicts when using OpenNTN. However, we generally recommend creating separate environments for dedicated applications. If you encounter issues that appear to be caused by other packages, please first try using a clean environment with only the required dependencies. Additionally, please report any observed conflicts so that we can investigate and provide potential solutions.
 4. Installation for GPU Usage <br>
-Installing Sionna™ with GPU support tends to be more challenging than installing the CPU version, as this also requires CUDA and DrJit installation which must match your device. However, if Sionna™ works correctly on the GPU, OpenNTN should work properly as well. If GPU-related issues only occur when using OpenNTN (but not with Sionna™ itself), please contact us for further support.
+Installing Sionna™ with GPU support tends to be more challenging than installing the CPU version, as this also requires a CUDA setup that matches your device. However, if Sionna™ works correctly on the GPU, OpenNTN should work properly as well. If GPU-related issues only occur when using OpenNTN (but not with Sionna™ itself), please contact us for further support.
 5. Example Notebooks Not Running / Kernel Issues <br>
 The provided examples are implemented as Jupyter Notebooks. When running these, please ensure that your environment includes all required dependencies to be selectable Jupyter kernel in order to execute the examples successfully.
 
