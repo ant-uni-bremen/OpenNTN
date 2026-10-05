@@ -1,7 +1,7 @@
 # This file verifies that OpenNTN runs end-to-end on a CUDA GPU using the idiomatic
 # Sionna 2.0 "construct-on-target" pattern (config.device set before construction), for
 # every implemented TR38.811 scenario, and that constant/topology tensors follow .to()/.cuda().
-# It is skipped automatically when no CUDA GPU is visible (e.g. the CPU gate).
+# It is skipped automatically when no CUDA GPU is visible.
 import unittest
 import torch
 from sionna.phy import config
@@ -64,7 +64,7 @@ class GPUDevice(unittest.TestCase):
         self._check_scenario(SubUrban, "sur")
 
     def test_buffers_move_with_to(self):
-        # R6: scenario topology tensors and the LSP correlation-sqrt matrices are
+        # Scenario topology tensors and the LSP correlation-sqrt matrices are
         # registered buffers, so .cuda() must move them off the CPU.
         cm = self._build(DenseUrban, "cpu")
         cm.set_topology(*utils.gen_single_sector_topology(
