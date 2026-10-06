@@ -1,7 +1,7 @@
 # This file tests the generation of the LOS states according to Step 2 of 3GPP TR38.901 7.5
 # using the parameters of 3GPP TR38.811 Table 6.6.1-1 LOS probability
 # The LoS states of the 10000 links of each case are independent Bernoulli draws, so the
-# observed fraction is checked with a statistical tolerance, see _statistics.py.
+# observed fraction is checked with a statistical tolerance, see statistical_checks.py.
 
 from openntn import utils   # The code to test
 import unittest   # The test framework
@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import math
 
-from _statistics import assert_proportion
+from statistical_checks import assert_proportion
   
 # Every test of this file takes about a second or more.
 pytestmark = pytest.mark.slow

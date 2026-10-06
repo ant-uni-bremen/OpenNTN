@@ -13,7 +13,7 @@ import torch
 from openntn import Antenna, AntennaArray, Urban
 from openntn import utils
 
-from _statistics import assert_std
+from statistical_checks import assert_std
 
 CARRIER_FREQUENCY = 2.2e9
 ELEVATION_ANGLE = 50.0

@@ -8,7 +8,7 @@
 #   - basic path loss PL_b = FSPL + SF + CL, eq. (6.6-4), with the shadow fading and
 #     clutter loss of Table 6.6.2-2 and the LOS probability of Table 6.6.1-1, both at
 #     the reference elevation angle nearest to 12.5 degrees, 10 degrees.
-# The statistical checks use the tolerances of _statistics.py.
+# The statistical checks use the tolerances of statistical_checks.py.
 import math
 import unittest
 
@@ -17,7 +17,7 @@ import torch
 from openntn import utils   # The code to test
 from openntn import Antenna, AntennaArray, Urban
 
-from _statistics import assert_mean, assert_proportion, assert_std
+from statistical_checks import assert_mean, assert_proportion, assert_std
 
 CARRIER_FREQUENCY = 20e9
 ELEVATION_ANGLE = 12.5

@@ -3,26 +3,40 @@
 # The references were produced by the implementation itself, so they do not prove
 # conformance with TR 38.811; they make every change of numerical results visible.
 # A change that alters these outputs must come with a documented explanation, and the
-# references are rebuilt with:
+# references are rebuilt with the following command, with openntn importable (in a
+# source checkout, set PYTHONPATH to the repository root):
 #
 #     python <path to this file> --regenerate
 #
 # Environment: reference_outputs/environment.json records the Python, PyTorch, Sionna
-# and NumPy versions, the CPU and the thread count with which the references were
-# produced. PyTorch does not guarantee identical results across releases or platforms,
-# and a different random number stream changes every output, so the comparison is only
-# meaningful in that environment; elsewhere a failure does not by itself indicate a
+# and NumPy versions, the CPU, the CPU capability of PyTorch (the instruction set of its
+# vectorized kernels) and the thread count with which the references were produced.
+# PyTorch does not guarantee identical results across releases or platforms, and a
+# different random number stream changes every output, so the comparison is only
+# meaningful with those versions; elsewhere a failure does not by itself indicate a
 # model change.
 #
+# Precision: the outputs are computed in double precision. In single precision the
+# phase 2 pi d3d / lambda_0 of the LOS component (TR 38.901, eq. (7.5-29)) is not
+# resolved at satellite distances: at d3d = 600 km, one unit in the last place of d3d
+# is 6.25 cm, 0.42 wavelengths at 2 GHz, and one unit in the last place of the phase is
+# 2 rad at 2 GHz and 16 to 32 rad in the Ka band. A change of d3d by one unit in the
+# last place then changes the LOS-dependent powers far beyond any useful tolerance.
+# Single precision is close to the tolerance even without such a change: the rounding
+# differences between the AVX2 and the default kernels of PyTorch use half of it, and
+# on a CPU with AVX-512 kernels LOS-dependent powers failed the comparison. In double
+# precision, one unit in the last place of d3d moves the phase by less than 1e-6 rad.
+#
 # Tolerance: |actual - reference| <= RTOL * |reference| + ATOL_SCALE * max|reference|,
-# evaluated per stored array, with RTOL = 1e-5 and ATOL_SCALE = 1e-6. The computation
-# runs in single precision (machine epsilon 1.2e-7), so RTOL allows about 80 units in
-# the last place. This absorbs small rounding differences, for example from another
-# thread count, but not a model change: a shift of 0.002 dB in a 180 dB path loss, or
-# of 0.001 % in a delay, already fails. The absolute term only matters for entries that
-# are close to zero, such as the powers of unused clusters; for the normalized time
-# correlations, which are bounded by 1, it is ATOL_SCALE itself. LoS states must be
-# equal.
+# evaluated per stored array, with RTOL = 1e-5 and ATOL_SCALE = 1e-6. In double
+# precision (machine epsilon 2.2e-16), the differences between the AVX2 and the default
+# kernels of PyTorch stay ten orders of magnitude below the tolerance, the thread count
+# does not change the results, and a change of every d3d by one unit in the last place
+# uses less than 1 % of the tolerance. A model change still fails: a shift of 0.002 dB
+# in a 180 dB path loss, or of 0.001 % in a delay, exceeds RTOL. The absolute term only
+# matters for entries that are close to zero, such as the powers of unused clusters;
+# for the normalized time correlations, which are bounded by 1, it is ATOL_SCALE
+# itself. LoS states must be equal.
 import json
 import os
 import platform
@@ -30,6 +44,7 @@ import sys
 import unittest
 
 import numpy as np
+import pytest
 import sionna
 import torch
 from sionna.phy import config
@@ -42,6 +57,11 @@ ENVIRONMENT_FILE = os.path.join(REFERENCE_DIR, "environment.json")
 
 RTOL = 1e-5
 ATOL_SCALE = 1e-6
+# See "Precision" above.
+PRECISION = "double"
+
+# Lets CI run this test only in the environment of the references.
+pytestmark = pytest.mark.reference
 
 # Small topologies keep the reference files small; the coverage comes from the grid of
 # scenarios, bands, directions and elevation angles.
@@ -160,7 +180,9 @@ def compute_case(scenario, band, direction, elevation_angle):
 def compute_all(scenario):
     """Characterization outputs of all configurations of one scenario."""
     previous_device = config.device
+    previous_precision = config.precision
     config.device = "cpu"
+    config.precision = PRECISION
     try:
         results = {}
         for band in BANDS:
@@ -173,6 +195,7 @@ def compute_all(scenario):
         return results
     finally:
         config.device = previous_device
+        config.precision = previous_precision
 
 
 def _cpu_model():
@@ -197,8 +220,9 @@ def environment():
         "machine": platform.machine(),
         "system": f"{platform.system()} {platform.release()}",
         "torch_num_threads": torch.get_num_threads(),
+        "cpu_capability": torch.backends.cpu.get_cpu_capability(),
         "device": "cpu",
-        "precision": "single",
+        "precision": PRECISION,
     }
 
 

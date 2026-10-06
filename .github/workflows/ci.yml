@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  push:
+    branches: [sionna2-migration, main]
+  pull_request:
+    branches: [sionna2-migration, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  # CPU-only PyTorch wheels, so that the jobs do not download the CUDA libraries
+  TORCH_INDEX_URL: https://download.pytorch.org/whl/cpu
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  linux:
+    name: Linux, Python ${{ matrix.python }}, Sionna ${{ matrix.sionna }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # Python versions for which Sionna 2.x and all its dependencies publish wheels
+        python: ["3.11", "3.12", "3.13", "3.14"]
+        # The lowest supported and the latest Sionna 2.x release
+        sionna: ["2.0.1", "latest"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        env:
+          SIONNA: ${{ matrix.sionna }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url "$TORCH_INDEX_URL"
+          if [ "$SIONNA" = latest ]; then
+            python -m pip install ".[test]"
+          else
+            python -m pip install ".[test]" "sionna==$SIONNA"
+          fi
+          python -m pip list
+      - name: Check the installed package
+        run: |
+          python -I -c '
+          import importlib.metadata as m
+          import openntn
+          print("openntn", openntn.__version__, "from", openntn.__file__)
+          print("sionna", m.version("sionna"), "torch", m.version("torch"), "numpy", m.version("numpy"))
+          assert openntn.__version__ == m.version("openntn")
+          '
+      - name: Test
+        # pytest, not python -m pytest: the tests import the installed package, not the
+        # checkout. The reference outputs are compared only in the job "reference".
+        run: pytest -m "not reference" tests/
+
+  other-os:
+    name: ${{ matrix.os }}, Python 3.14, latest Sionna, quick suite
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url "$TORCH_INDEX_URL"
+          python -m pip install ".[test]"
+          python -m pip list
+      - name: Check the installed package
+        run: |
+          python -I -c '
+          import importlib.metadata as m
+          import openntn
+          print("openntn", openntn.__version__, "from", openntn.__file__)
+          print("sionna", m.version("sionna"), "torch", m.version("torch"), "numpy", m.version("numpy"))
+          assert openntn.__version__ == m.version("openntn")
+          '
+      - name: Test
+        run: pytest -m "not slow and not reference" tests/
+
+  reference:
+    # PyTorch does not guarantee identical results across releases or platforms, so the
+    # reference outputs are compared only with the versions recorded in
+    # tests/reference_outputs/environment.json.
+    name: Reference outputs, Linux, Python 3.12, Sionna 2.0.1, torch 2.11.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "torch==2.11.0" --index-url "$TORCH_INDEX_URL"
+          python -m pip install ".[test]" "sionna==2.0.1" "numpy==2.4.4"
+          python -m pip list
+      - name: Compare the environment with the one of the references
+        run: |
+          lscpu | grep -E '^(Model name|CPU\(s\)):' || true
+          python -I -c '
+          import importlib.metadata as m
+          import json
+          import platform
+          import torch
+          with open("tests/reference_outputs/environment.json") as f:
+              ref = json.load(f)
+          now = {
+              "python": platform.python_version(),
+              "torch": m.version("torch"),
+              "sionna": m.version("sionna"),
+              "numpy": m.version("numpy"),
+          }
+          print("references:", {k: ref[k] for k in now}, "threads", ref["torch_num_threads"],
+                "CPU capability", ref.get("cpu_capability"), "precision", ref["precision"])
+          print("this job:  ", now, "threads", torch.get_num_threads(),
+                "CPU capability", torch.backends.cpu.get_cpu_capability())
+          minor = lambda v: v.split(".")[:2]
+          assert minor(now["python"]) == minor(ref["python"]), "Python version differs"
+          for k in ("torch", "sionna", "numpy"):
+              assert now[k] == ref[k], f"{k} version differs"
+          '
+      - name: Test
+        run: pytest -m reference tests/

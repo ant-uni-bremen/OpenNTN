@@ -1,2 +1,5 @@
-recursive-include openntn *.json *.npy
-prune tests
+# The sdist carries the test suite with its reference data; the wheel contains only
+# the openntn package (see [tool.setuptools] in pyproject.toml).
+recursive-include openntn/models *.json
+graft tests
+global-exclude __pycache__ *.py[cod]

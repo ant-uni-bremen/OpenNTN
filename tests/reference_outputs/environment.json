@@ -7,6 +7,7 @@
  "machine": "x86_64",
  "system": "Linux 6.8.0-138-generic",
  "torch_num_threads": 10,
+ "cpu_capability": "AVX2",
  "device": "cpu",
- "precision": "single"
+ "precision": "double"
 }

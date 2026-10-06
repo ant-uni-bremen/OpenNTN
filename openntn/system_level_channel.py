@@ -13,7 +13,6 @@ with TR38.811 serving mainly as an extension.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
 
 from . import LSPGenerator
@@ -270,6 +269,8 @@ class SystemLevelChannel(ChannelModel):
         batch_index : int
             Batch example for which the topology is shown. Defaults to 0.
         """
+        # matplotlib is needed only for plotting, so it is imported here
+        import matplotlib.pyplot as plt
 
         def draw_coordinate_system(ax, loc, ort, delta):
             # This function draw the coordinate system x-y-z, represented by

@@ -9,6 +9,14 @@
 Channel sub-package of the Sionna library implementing 3GPP TR38.811 models.
 """
 # pylint: disable=line-too-long
+from importlib import metadata as _metadata
+
+try:
+    __version__ = _metadata.version("openntn")
+except _metadata.PackageNotFoundError:
+    # A source tree that is not installed, for example a checkout running the tests
+    __version__ = "0+unknown"
+
 from .antenna import AntennaElement, AntennaPanel, PanelArray, Antenna, AntennaArray
 from .lsp import LSP, LSPGenerator
 from .rays import Rays, RaysGenerator

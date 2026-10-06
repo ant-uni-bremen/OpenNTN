@@ -10,9 +10,9 @@
 import json
 import math
 from abc import abstractmethod
+from importlib.resources import files
 
 import torch
-from importlib_resources import files
 
 from sionna.phy import Object
 from sionna.phy.constants import SPEED_OF_LIGHT, PI

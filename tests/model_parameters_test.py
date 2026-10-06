@@ -60,8 +60,6 @@ NOT_COMPARED = {
     "TDL-A30.json": "TDL profile not defined in TR 38.811",
     "TDL-B100.json": "TDL profile not defined in TR 38.811",
     "TDL-C300.json": "TDL profile not defined in TR 38.811",
-    "bessel.json": "Bessel function values", "bessel_int.json": "Bessel function values",
-    "pseudo_model.json": "example cluster profile",
 }
 
 # Model parameter -> row of Tables 6.7.2-xx

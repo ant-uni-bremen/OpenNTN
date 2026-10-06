@@ -14,8 +14,6 @@ from typing import Optional, Tuple
 
 import math
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.markers import MarkerStyle
 import torch
 
 from sionna.phy import SPEED_OF_LIGHT, PI
@@ -91,6 +89,9 @@ class AntennaElement(Object):
         """
         Shows the field pattern of an antenna element
         """
+        # matplotlib is needed only for plotting, so it is imported here
+        import matplotlib.pyplot as plt
+
         theta = torch.linspace(0.0, PI, 361, dtype=self.dtype, device=self.device)
         phi = torch.linspace(-PI, PI, 361, dtype=self.dtype, device=self.device)
         a_v = 10 * torch.log10(self._radiation_pattern(theta, torch.zeros_like(theta)))
@@ -386,6 +387,9 @@ class AntennaPanel(Object):
 
     def show(self):
         """Shows the panel geometry"""
+        # matplotlib is needed only for plotting, so it is imported here
+        import matplotlib.pyplot as plt
+
         fig = plt.figure()
         pos = self._ant_pos[:self._num_rows*self._num_cols].cpu().numpy()
         plt.plot(pos[:,1], pos[:,2], marker = "|", markeredgecolor='red',
@@ -737,6 +741,10 @@ class PanelArray(Object):
 
     def show(self):
         """Show the panel array geometry"""
+        # matplotlib is needed only for plotting, so it is imported here
+        import matplotlib.pyplot as plt
+        from matplotlib.markers import MarkerStyle
+
         if self._polarization == 'single':
             if self._polarization_type == 'H':
                 marker_p1 = MarkerStyle("_").get_marker()

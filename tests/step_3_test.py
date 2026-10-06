@@ -5,14 +5,14 @@
 # The expected values are transcribed from TR 38.811 V15.4.0, Tables 6.6.2-1 (dense
 # urban), 6.6.2-2 (urban) and 6.6.2-3 (suburban and rural), at the reference elevation
 # angles 10, 20, ..., 90 degrees.
-# The tolerances are statistical, see _statistics.py; the SF samples of different
+# The tolerances are statistical, see statistical_checks.py; the SF samples of different
 # links are independent.
 
 from openntn import utils   # The code to test
 import unittest   # The test framework
 from openntn import Antenna, AntennaArray, Urban, DenseUrban, SubUrban
 
-from _statistics import assert_mean, assert_std
+from statistical_checks import assert_mean, assert_std
 
 
 def create_ut_ant(carrier_frequency):
