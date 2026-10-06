@@ -8,6 +8,8 @@ from sionna.phy.constants import PI
 from openntn import utils
 from openntn import Antenna, AntennaArray,PanelArray,ChannelCoefficientsGenerator
 
+from _statistics import assert_uniform_mean
+
 
 class Test_Step10(unittest.TestCase):
     def setUp(self):
@@ -38,13 +40,16 @@ class Test_Step10(unittest.TestCase):
         expected_shape = (2, 3, 4) 
         self.assertEqual(phi.shape, expected_shape)
 
-        phi = phi.numpy()
-        self.assertTrue(np.all(phi > -PI))
+        phi = phi.cpu().numpy()
+        self.assertTrue(np.all(phi >= -PI))
         self.assertTrue(np.all(phi < PI))
 
-        # Check that the distribution mean is close to zero
-        mean_val = np.mean(phi)
-        self.assertTrue(math.isclose(mean_val, 0.0, abs_tol=1))
+    def test_step_10_distribution(self):
+        # TR 38.901 V16.1.0, step 10: the initial phases are uniform within (-pi, pi).
+        # A large sample makes the statistical check on the mean meaningful; see
+        # _statistics.py.
+        phi = self.channel_generator._step_10(torch.tensor([100, 100], dtype=torch.int32))
+        assert_uniform_mean(phi, -PI, PI, "mean of the initial phases")
 
 if __name__ == "__main__":
     unittest.main()

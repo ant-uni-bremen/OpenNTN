@@ -1,2 +1,2 @@
 recursive-include openntn *.json *.npy
-prune test
+prune tests

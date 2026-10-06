@@ -3,10 +3,14 @@
 # every implemented TR38.811 scenario, and that constant/topology tensors follow .to()/.cuda().
 # It is skipped automatically when no CUDA GPU is visible.
 import unittest
+
+import pytest
 import torch
 from sionna.phy import config
 from openntn import Antenna, DenseUrban, Urban, SubUrban
 from openntn import utils
+
+pytestmark = pytest.mark.gpu
 
 
 @unittest.skipUnless(torch.cuda.is_available(), "No CUDA GPU available")

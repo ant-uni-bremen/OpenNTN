@@ -12,6 +12,8 @@ from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 import torch
 import math
 
+import pytest
+
 def create_ut_ant(carrier_frequency):
     ut_ant = Antenna(polarization="single",
                     polarization_type="V",
@@ -98,7 +100,7 @@ _EXPECTED = {
     ('dur', 'ka_band', 40, 'downlink'): [-8.02, NINF, 0.43, 1.03, NINF, 1.23, 0.72, 0.0, 0.78, 0.32999999999999996, 0.0, 0.04, -7.21, NINF, 1.46, NINF, 1.3, 0.56, 0.0, 0.6, 0.0, 0.37],
     ('dur', 'ka_band', 40, 'uplink'): [-8.02, -2.81, 0.43, 1.03, -2.51, 1.23, 0.72, 0.34, 0.78, 0.32999999999999996, 0.57, 0.04, -7.21, -1.54, 1.46, -1.51, 1.3, 0.56, 0.63, 0.6, 0.43, 0.37],
     ('dur', 'ka_band', 50, 'downlink'): [-8.13, NINF, 0.36, 0.9199999999999999, NINF, 1.42, 0.61, 0.0, 0.77, 0.22000000000000003, 0.0, 0.1, -7.42, NINF, 1.4, NINF, 1.4, 0.57, 0.0, 0.59, 0.0, 0.32],
-    ('dur', 'ka_band', 50, 'uplink'): [-8.13, -2.74, 0.36, 0.9199999999999999, -2.54, 1.42, 0.61, 0.34, 0.77, 0.22000000000000003, 0.5, 0.1, -7.42, -1.45, 1.4, -1.51, 1.4, 0.57, 0.56, 0.59, 0.43, 0.32],
+    ('dur', 'ka_band', 50, 'uplink'): [-8.13, -2.74, 0.36, 0.9199999999999999, -2.54, 1.42, 0.61, 0.34, 0.77, 0.22000000000000003, 0.5, 0.1, -7.42, -1.45, 1.4, -1.54, 1.4, 0.57, 0.56, 0.59, 0.45, 0.32],
     ('dur', 'ka_band', 60, 'downlink'): [-8.3, NINF, 0.16, 0.8400000000000001, NINF, 1.56, 0.47, 0.0, 0.84, 0.19, 0.0, 0.06, -7.86, NINF, 0.97, NINF, 1.41, 0.55, 0.0, 1.27, 0.0, 0.45],
     ('dur', 'ka_band', 60, 'uplink'): [-8.3, -2.72, 0.16, 0.8400000000000001, -2.71, 1.56, 0.47, 0.7, 0.84, 0.19, 0.37, 0.06, -7.86, -1.64, 0.97, -1.84, 1.41, 0.55, 0.78, 1.27, 0.63, 0.45],
     ('dur', 'ka_band', 70, 'downlink'): [-8.34, NINF, 0.18, 0.8, NINF, 1.65, 0.39, 0.0, 0.64, 0.15, 0.0, 0.07, -7.76, NINF, 1.33, NINF, 1.63, 0.47, 0.0, 0.56, 0.0, 0.17],
@@ -112,7 +114,7 @@ _EXPECTED = {
     ('dur', 's_band', 20, 'downlink'): [-7.28, NINF, 0.87, 0.9, NINF, 0.5, 0.67, 0.0, 0.66, 0.6599999999999999, 0.0, 0.09, -6.81, NINF, 1.44, NINF, 0.94, 0.61, 0.0, 0.87, 0.0, 0.65],
     ('dur', 's_band', 20, 'uplink'): [-7.28, -2.68, 0.87, 0.9, -2.29, 0.5, 0.67, 0.36, 0.66, 0.6599999999999999, 0.53, 0.09, -6.81, -1.68, 1.44, -1.66, 0.94, 0.61, 0.73, 0.87, 0.5, 0.65],
     ('dur', 's_band', 30, 'downlink'): [-7.45, NINF, 0.92, 0.93, NINF, 0.82, 0.68, 0.0, 0.68, 0.61, 0.0, 0.05, -6.94, NINF, 1.54, NINF, 1.15, 0.49, 0.0, 0.64, 0.0, 0.42],
-    ('dur', 's_band', 30, 'uplink'): [-7.45, -2.51, 0.92, 0.93, -2.19, 0.82, 0.68, 0.38, 0.68, 0.61, 0.58, 0.05, -6.94, -1.43, 1.54, -1.48, 1.15, 0.49, 0.5, 0.64, 0.4, 0.42],
+    ('dur', 's_band', 30, 'uplink'): [-7.45, -2.51, 0.92, 0.93, -2.19, 0.82, 0.68, 0.38, 0.68, 0.61, 0.58, 0.05, -6.94, -1.46, 1.54, -1.48, 1.15, 0.49, 0.53, 0.64, 0.4, 0.42],
     ('dur', 's_band', 40, 'downlink'): [-7.73, NINF, 0.79, 0.79, NINF, 1.23, 0.66, 0.0, 0.64, 0.4, 0.0, 0.03, -7.14, NINF, 1.53, NINF, 1.35, 0.49, 0.0, 0.56, 0.0, 0.28],
     ('dur', 's_band', 40, 'uplink'): [-7.73, -2.4, 0.79, 0.79, -2.24, 1.23, 0.66, 0.32, 0.64, 0.4, 0.51, 0.03, -7.14, -1.43, 1.53, -1.46, 1.35, 0.49, 0.5, 0.56, 0.37, 0.28],
     ('dur', 's_band', 50, 'downlink'): [-7.91, NINF, 0.72, 0.74, NINF, 1.43, 0.62, 0.0, 0.63, 0.3, 0.0, 0.06, -7.34, NINF, 1.48, NINF, 1.44, 0.51, 0.0, 0.54, 0.0, 0.25],
@@ -149,8 +151,8 @@ _EXPECTED = {
     ('sur', 's_band', 20, 'uplink'): [-8.56, -3.8, -0.38, 1.9449999999999998, -1.21, -1.84, 0.96, 1.74, 1.94, 1.032, 0.95, 0.81, -8.39, -3.63, 0.7, -1.67, -1.7, 1.46, 1.43, 1.33, 1.31, 1.24],
     ('sur', 's_band', 30, 'downlink'): [-8.72, NINF, -0.56, 2.08, NINF, -1.67, 0.79, 0.0, 1.75, 1.634, 0.0, 0.57, -8.69, NINF, 0.38, NINF, -1.75, 1.46, 0.0, 1.52, 0.0, 1.54],
     ('sur', 's_band', 30, 'uplink'): [-8.72, -3.77, -0.56, 2.08, -1.28, -1.67, 0.79, 1.72, 1.75, 1.634, 0.49, 0.57, -8.69, -3.66, 0.38, -1.75, -1.75, 1.46, 1.68, 1.52, 1.42, 1.54],
-    ('sur', 's_band', 40, 'downlink'): [-8.71, NINF, -0.59, 2.12, NINF, -1.59, 0.81, 0.0, 1.82, 1.5630000000000002, 0.0, 0.86, -8.59, NINF, 0.3, NINF, -1.8, 1.21, 0.0, 1.43, 0.0, 1.25],
-    ('sur', 's_band', 40, 'uplink'): [-8.71, -3.57, -0.59, 2.12, -1.32, -1.59, 0.81, 1.6, 1.82, 1.5630000000000002, 0.79, 0.86, -8.59, -3.66, 0.3, -1.49, -1.8, 1.21, 1.48, 1.43, 1.28, 1.25],
+    ('sur', 's_band', 40, 'downlink'): [-8.71, NINF, -0.59, 2.12, NINF, -1.59, 0.81, 0.0, 1.82, 1.5630000000000002, 0.0, 0.86, -8.59, NINF, 0.3, NINF, -1.8, 1.21, 0.0, 1.46, 0.0, 1.25],
+    ('sur', 's_band', 40, 'uplink'): [-8.71, -3.57, -0.59, 2.12, -1.32, -1.59, 0.81, 1.6, 1.82, 1.5630000000000002, 0.79, 0.86, -8.59, -3.66, 0.3, -1.49, -1.8, 1.21, 1.48, 1.46, 1.28, 1.25],
     ('sur', 's_band', 50, 'downlink'): [-8.72, NINF, -0.58, 2.16, NINF, -1.55, 1.12, 0.0, 1.87, 1.4220000000000002, 0.0, 1.05, -8.64, NINF, 0.28, NINF, -1.8, 1.18, 0.0, 1.44, 0.0, 1.21],
     ('sur', 's_band', 50, 'uplink'): [-8.72, -3.42, -0.58, 2.16, -1.39, -1.55, 1.12, 1.49, 1.87, 1.4220000000000002, 0.97, 1.05, -8.64, -3.66, 0.28, -1.53, -1.8, 1.18, 1.55, 1.44, 1.4, 1.21],
     ('sur', 's_band', 60, 'downlink'): [-8.66, NINF, -0.55, 1.975, NINF, -1.51, 1.23, 0.0, 1.92, 1.419, 0.0, 1.23, -8.74, NINF, 0.23, NINF, -1.85, 1.13, 0.0, 1.44, 0.0, 1.2],
@@ -190,7 +192,7 @@ _EXPECTED = {
     ('urb', 's_band', 50, 'downlink'): [-8.37, NINF, -0.07, 0.6519999999999999, NINF, 0.27, 0.38, 0.0, 2.04, 0.827, 0.0, 1.62, -7.99, NINF, 0.68, NINF, 1.3, 0.73, 0.0, 2.08, 0.0, 1.07],
     ('urb', 's_band', 50, 'uplink'): [-8.37, -2.71, -0.07, 0.6519999999999999, -2.48, 0.27, 0.38, 1.17, 2.04, 0.827, 1.4, 1.62, -7.99, -1.94, 0.68, -2.24, 1.3, 0.73, 1.21, 2.08, 1.95, 1.07],
     ('urb', 's_band', 60, 'downlink'): [-8.39, NINF, -0.43, 0.5469999999999999, NINF, 0.26, 0.24, 0.0, 2.54, 0.726, 0.0, 0.97, -8.01, NINF, 0.64, NINF, 1.32, 0.72, 0.0, 1.93, 0.0, 1.2],
-    ('urb', 's_band', 60, 'uplink'): [-8.39, -2.78, -0.43, 0.5469999999999999, -2.56, 0.26, 0.24, 1.2, 2.54, 0.726, 0.85, 0.97, -8.01, -1.88, 0.64, -2.21, 1.32, 0.72, 0.99, 1.93, 1.87, 1.2],
+    ('urb', 's_band', 60, 'uplink'): [-8.39, -2.76, -0.43, 0.5469999999999999, -2.56, 0.26, 0.24, 1.17, 2.54, 0.726, 0.85, 0.97, -8.01, -1.88, 0.64, -2.21, 1.32, 0.72, 0.99, 1.93, 1.87, 1.2],
     ('urb', 's_band', 70, 'downlink'): [-8.38, NINF, -0.64, 0.454, NINF, -0.12, 0.18, 0.0, 2.47, 0.553, 0.0, 1.99, -8.09, NINF, 0.58, NINF, 1.35, 0.71, 0.0, 1.71, 0.0, 1.1],
     ('urb', 's_band', 70, 'uplink'): [-8.38, -2.78, -0.64, 0.454, -2.96, -0.12, 0.18, 1.2, 2.47, 0.553, 1.61, 1.99, -8.09, -2.1, 0.58, -2.69, 1.35, 0.71, 1.77, 1.71, 2.72, 1.1],
     ('urb', 's_band', 80, 'downlink'): [-8.35, NINF, -0.91, 0.403, NINF, -0.21, 0.13, 0.0, 2.69, 0.449, 0.0, 1.82, -7.97, NINF, 0.71, NINF, 1.31, 0.78, 0.0, 0.96, 0.0, 1.35],
@@ -199,7 +201,21 @@ _EXPECTED = {
     ('urb', 's_band', 90, 'uplink'): [-8.34, -2.27, -0.54, 0.368, -3.0, -0.07, 0.09, 1.85, 1.66, 0.314, 1.09, 1.43, -8.17, -1.77, 0.49, -4.29, 1.5, 0.67, 1.4, 1.16, 4.37, 0.56],
 }
 
-def _run_case(test, scenario, band, elevation, direction):
+# Model parameters that deviate from TR 38.811. They are left out of the regular checks
+# and tested as expected failures below, until the model data is corrected.
+_KNOWN_DEVIATIONS = {
+    ('sur', 'ka_band', 80, 'uplink', 'mu_ZSD_nlos'):
+        "TR 38.811 Table 6.7.2-6b gives -3.20; the model data has -3.30",
+}
+
+# The log-means and log-stds are deterministic table values, not estimates, so the
+# tolerance only covers their float32 representation and the averaging over links
+# (relative 1e-5; absolute 1e-6 for entries that are zero).
+_REL_TOL = 1e-5
+_ABS_TOL = 1e-6
+
+
+def _actual_values(scenario, band, elevation, direction):
     channel_model = _build_model(scenario, band, elevation, direction)
     los = channel_model._scenario.los
     lsp_mean = channel_model._scenario.lsp_log_mean
@@ -210,12 +226,22 @@ def _run_case(test, scenario, band, elevation, direction):
         "std_los": torch.mean(lsp_std[los], axis=0),
         "std_nlos": torch.mean(lsp_std[los == False], axis=0),
     }
+    return {label: float(src[source][index]) for source, index, label in _ACTUAL_ORDER}
+
+
+def _check(actual, exp, label, scenario, band, elevation, direction):
+    assert math.isclose(actual, exp, rel_tol=_REL_TOL, abs_tol=_ABS_TOL), (
+        f"{label} @ {scenario}/{band}/{elevation}deg/{direction}: "
+        f"got {actual}, expected {exp}")
+
+
+def _run_case(test, scenario, band, elevation, direction):
+    actual = _actual_values(scenario, band, elevation, direction)
     expected = _EXPECTED[(scenario, band, elevation, direction)]
-    for (source, index, label), exp in zip(_ACTUAL_ORDER, expected):
-        actual = src[source][index]
-        assert math.isclose(actual, exp, abs_tol=0.1), (
-            f"{label} @ {scenario}/{band}/{elevation}deg/{direction}: "
-            f"got {float(actual)}, expected {exp}")
+    for (_, _, label), exp in zip(_ACTUAL_ORDER, expected):
+        if (scenario, band, elevation, direction, label) in _KNOWN_DEVIATIONS:
+            continue
+        _check(actual[label], exp, label, scenario, band, elevation, direction)
 
 
 def _make_case(scenario, band, elevation, direction):
@@ -229,7 +255,10 @@ def _populate(cls, scenario):
         for elevation in _ELEVS:
             for dtok, direction in _DIRS:
                 name = f"test_{band}_{elevation}_degrees_{dtok}"
-                setattr(cls, name, _make_case(scenario, band, elevation, direction))
+                case = _make_case(scenario, band, elevation, direction)
+                if (scenario, band, elevation, direction) in _TOPO:
+                    case = pytest.mark.slow(case)  # larger topology
+                setattr(cls, name, case)
 
 
 class Test_URB(unittest.TestCase):
@@ -247,6 +276,20 @@ class Test_SUR(unittest.TestCase):
 _populate(Test_URB, "urb")
 _populate(Test_DUR, "dur")
 _populate(Test_SUR, "sur")
+
+
+class Test_KnownDeviations(unittest.TestCase):
+
+    @pytest.mark.slow
+    @pytest.mark.xfail(strict=True, raises=AssertionError,
+                       reason="mu_lgZSD of the sub-urban NLOS Ka-band uplink parameters at 80 "
+                              "degrees is -3.30; TR 38.811 Table 6.7.2-6b gives -3.20")
+    def test_sur_ka_band_80_degrees_ul_mu_zsd_nlos(self):
+        case = ('sur', 'ka_band', 80, 'uplink')
+        label = 'mu_ZSD_nlos'
+        actual = _actual_values(*case)
+        expected = _EXPECTED[case][[l for _, _, l in _ACTUAL_ORDER].index(label)]
+        _check(actual[label], expected, label, *case)
 
 
 if __name__ == "__main__":

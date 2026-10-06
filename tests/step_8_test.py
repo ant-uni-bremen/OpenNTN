@@ -2,6 +2,7 @@
 # Step 8 is a mockup 
 import unittest
 import torch
+from sionna.phy import config
 import numpy as np
 
 # Importing necessary modules from Sionna
@@ -37,10 +38,10 @@ class TestShuffle_Coupling(unittest.TestCase):
 
     def test_random_coupling(self):
         # Creating test data for angles
-        aoa = torch.tensor(np.random.rand(2, 1, 1, 4, 20), dtype=torch.float32)
-        aod = torch.tensor(np.random.rand(2, 1, 1, 4, 20), dtype=torch.float32)
-        zoa = torch.tensor(np.random.rand(2, 1, 1, 4, 20), dtype=torch.float32)
-        zod = torch.tensor(np.random.rand(2, 1, 1, 4, 20), dtype=torch.float32)
+        aoa = torch.tensor(np.random.rand(2, 1, 1, 4, 20), dtype=torch.float32, device=config.device)
+        aod = torch.tensor(np.random.rand(2, 1, 1, 4, 20), dtype=torch.float32, device=config.device)
+        zoa = torch.tensor(np.random.rand(2, 1, 1, 4, 20), dtype=torch.float32, device=config.device)
+        zod = torch.tensor(np.random.rand(2, 1, 1, 4, 20), dtype=torch.float32, device=config.device)
 
         # Testing random coupling function
         shuffled_aoa, shuffled_aod, shuffled_zoa, shuffled_zod = self.raysGenerator._random_coupling(
@@ -54,10 +55,10 @@ class TestShuffle_Coupling(unittest.TestCase):
         self.assertEqual(zod.shape, shuffled_zod.shape)
 
         # Ensuring that the angles are shuffled
-        self.assertFalse(torch.all(torch.eq(aoa, shuffled_aoa)).numpy())
-        self.assertFalse(torch.all(torch.eq(aod, shuffled_aod)).numpy())
-        self.assertFalse(torch.all(torch.eq(zoa, shuffled_zoa)).numpy())
-        self.assertFalse(torch.all(torch.eq(zod, shuffled_zod)).numpy())
+        self.assertFalse(torch.all(torch.eq(aoa, shuffled_aoa)).cpu().numpy())
+        self.assertFalse(torch.all(torch.eq(aod, shuffled_aod)).cpu().numpy())
+        self.assertFalse(torch.all(torch.eq(zoa, shuffled_zoa)).cpu().numpy())
+        self.assertFalse(torch.all(torch.eq(zod, shuffled_zod)).cpu().numpy())
 
 if __name__ == "__main__":
     unittest.main()

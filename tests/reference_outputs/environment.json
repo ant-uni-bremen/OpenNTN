@@ -1,0 +1,12 @@
+{
+ "python": "3.12.13",
+ "torch": "2.11.0+cpu",
+ "sionna": "2.0.1",
+ "numpy": "2.4.4",
+ "cpu": "12th Gen Intel(R) Core(TM) i5-1235U",
+ "machine": "x86_64",
+ "system": "Linux 6.8.0-138-generic",
+ "torch_num_threads": 10,
+ "device": "cpu",
+ "precision": "single"
+}

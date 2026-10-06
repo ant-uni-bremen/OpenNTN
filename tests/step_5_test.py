@@ -6,6 +6,8 @@
 
 from openntn import utils   # The code to test
 import unittest   # The test framework
+
+import pytest
 from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 import numpy as np
 import torch
@@ -13,6 +15,10 @@ import math
 from sionna.phy.utils import uniform
 from sionna.phy import config
 
+
+
+# Every test of this file takes about a second or more.
+pytestmark = pytest.mark.slow
 
 
 def create_ut_ant(carrier_frequency):
@@ -68,7 +74,12 @@ class Test_URB(unittest.TestCase):
             rays_generator = channel_model._ray_sampler
             lsp = channel_model._lsp
          
+            # Replay the random draws: the uniform numbers below are the ones that
+            # _cluster_delays drew, so both computations must agree to rounding.
+            generator = rays_generator.torch_rng
+            state = generator.get_state()
             reference_delays, _ = rays_generator._cluster_delays(lsp.ds, lsp.k_factor)
+            generator.set_state(state)
             cluster_mask = rays_generator._cluster_mask  # Binary mask to apply to clusters
 
             # Define delay scaling based on LOS/NLOS scenario
@@ -79,7 +90,8 @@ class Test_URB(unittest.TestCase):
                  channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
                 low=1e-6, high=1.0,
                 dtype=channel_model._scenario.dtype,
-                generator=config.torch_rng(str(config.device))
+                device=channel_model._scenario.device,
+                generator=generator
             )
             delay_scaling_parameter = torch.unsqueeze(delay_scaling_parameter, 3)
             
@@ -105,15 +117,9 @@ class Test_URB(unittest.TestCase):
                 unscaled_delays
             )
 
-            # Validate the delays by checking mean and standard deviation against reference values
-            for reference, actual, delay_type in [
-                (reference_delays, delays, "reference_delays")
-            ]:
-                mean_diff = torch.abs(torch.mean(reference) - torch.mean(actual))
-                std_diff = torch.abs(torch.std(reference) - torch.std(actual))
-                # Assert that both mean and std deviation differences are within tolerance
-                assert mean_diff < 1e-5, f"Mean mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()}"
-                assert std_diff < 1e-5, f"Std deviation mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()}"
+            # Element-wise comparison; the tolerance covers float32 rounding only.
+            torch.testing.assert_close(delays, reference_delays, rtol=1e-5, atol=1e-12,
+                                       msg=lambda m: f"{m} at {elevation_angle} degrees")
 
     def test_s_band_dl(self):
         self.run_test(direction="downlink", carrier_frequency=2.2e9)
@@ -176,7 +182,12 @@ class Test_SUR(unittest.TestCase):
             rays_generator = channel_model._ray_sampler
             lsp = channel_model._lsp
          
+            # Replay the random draws: the uniform numbers below are the ones that
+            # _cluster_delays drew, so both computations must agree to rounding.
+            generator = rays_generator.torch_rng
+            state = generator.get_state()
             reference_delays, _ = rays_generator._cluster_delays(lsp.ds, lsp.k_factor)
+            generator.set_state(state)
             cluster_mask = rays_generator._cluster_mask  # Binary mask to apply to clusters
 
             delay_scaling_parameter = torch.where(channel_model._scenario._los, rTau_los, rTau_nlos)
@@ -186,7 +197,8 @@ class Test_SUR(unittest.TestCase):
                  channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
                 low=1e-6, high=1.0,
                 dtype=channel_model._scenario.dtype,
-                generator=config.torch_rng(str(config.device))
+                device=channel_model._scenario.device,
+                generator=generator
             )
 
             # Calculate unscaled delays by applying scaling based on channel conditions
@@ -209,15 +221,9 @@ class Test_SUR(unittest.TestCase):
                 unscaled_delays
             )
 
-            # Validate the delays by checking mean and standard deviation against reference values
-            for reference, actual  in [
-                (reference_delays, delays)
-            ]:
-                mean_diff = torch.abs(torch.mean(reference) - torch.mean(actual))
-                std_diff = torch.abs(torch.std(reference) - torch.std(actual))
-                # Assert that both mean and std deviation differences are within tolerance
-                assert mean_diff < 1e-5, f"Mean mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()}"
-                assert std_diff < 1e-5, f"Std deviation mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()}"
+            # Element-wise comparison; the tolerance covers float32 rounding only.
+            torch.testing.assert_close(delays, reference_delays, rtol=1e-5, atol=1e-12,
+                                       msg=lambda m: f"{m} at {elevation_angle} degrees")
 
     def test_s_band_dl(self):
         self.run_test(direction="downlink", carrier_frequency=2.2e9)
@@ -266,7 +272,12 @@ class Test_DUR(unittest.TestCase):
             rays_generator = channel_model._ray_sampler
             lsp = channel_model._lsp
          
+            # Replay the random draws: the uniform numbers below are the ones that
+            # _cluster_delays drew, so both computations must agree to rounding.
+            generator = rays_generator.torch_rng
+            state = generator.get_state()
             reference_delays, _ = rays_generator._cluster_delays(lsp.ds, lsp.k_factor)
+            generator.set_state(state)
             cluster_mask = rays_generator._cluster_mask  # Binary mask to apply to clusters
 
             delay_scaling_parameter = torch.where(channel_model._scenario._los, rTau_los, rTau_nlos)
@@ -276,7 +287,8 @@ class Test_DUR(unittest.TestCase):
                  channel_model._scenario.num_ut, channel_model._scenario.num_clusters_max],
                 low=1e-6, high=1.0,
                 dtype=channel_model._scenario.dtype,
-                generator=config.torch_rng(str(config.device))
+                device=channel_model._scenario.device,
+                generator=generator
             )
 
             # Calculate unscaled delays by applying scaling based on channel conditions
@@ -299,15 +311,9 @@ class Test_DUR(unittest.TestCase):
                 unscaled_delays
             )
 
-            # Validate the delays by checking mean and standard deviation against reference values
-            for reference, actual  in [
-                (reference_delays, delays)
-            ]:
-                mean_diff = torch.abs(torch.mean(reference) - torch.mean(actual))
-                std_diff = torch.abs(torch.std(reference) - torch.std(actual))
-                # Assert that both mean and std deviation differences are within tolerance
-                assert mean_diff < 1e-5, f"Mean mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()}"
-                assert std_diff < 1e-5, f"Std deviation mismatch" f"Expected mean = {torch.std(actual).numpy()}, Calculated mean = {torch.mean(reference).numpy()} in {elevation_angle} degrees"
+            # Element-wise comparison; the tolerance covers float32 rounding only.
+            torch.testing.assert_close(delays, reference_delays, rtol=1e-5, atol=1e-12,
+                                       msg=lambda m: f"{m} at {elevation_angle} degrees")
 
     def test_s_band_dl(self):
         self.run_test(direction="downlink", carrier_frequency=2.2e9)

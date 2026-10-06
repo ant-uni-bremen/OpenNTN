@@ -30,3 +30,12 @@ exclude = ["test*", "example*"]
 
 [tool.setuptools.package-data]
 openntn = ["models/*.json", "models/*.npy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+xfail_strict = true
+addopts = ["--strict-markers"]
+markers = [
+    "gpu: needs a CUDA GPU; skipped when none is visible",
+    "slow: takes about a second or more on a laptop CPU; deselect with -m 'not slow'",
+]

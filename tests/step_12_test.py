@@ -2,6 +2,7 @@
 # to the path coefficients. 
 import openntn
 import torch
+from sionna.phy import config
 import unittest
 import numpy as np
 import sionna
@@ -107,8 +108,8 @@ class Step_12(unittest.TestCase):
         h, delays, phi, sample_times = self.ccg(num_time_samples,
             sampling_frequency, self.lsp.k_factor, self.rays, topology, c_ds,
             debug=True)
-        self.phi = phi.numpy()
-        self.sample_times = sample_times.numpy()
+        self.phi = phi.cpu().numpy()
+        self.sample_times = sample_times.cpu().numpy()
         self.c_ds = c_ds
         self.h = h 
 
@@ -131,7 +132,7 @@ class Step_12(unittest.TestCase):
             if self.scenario._scenario._direction == 'uplink':
                 pl_db = pl_db.permute(0, 2, 1)
         else:
-            pl_db = torch.tensor(0.0, dtype=torch.float32)
+            pl_db = torch.tensor(0.0, dtype=torch.float32, device=config.device)
         
         sf = self.sf if self.scenario._scenario.shadow_fading_enabled else torch.ones_like(self.sf)
         gain = torch.pow(10.0, -pl_db/20.0) * torch.sqrt(sf)
@@ -139,7 +140,7 @@ class Step_12(unittest.TestCase):
         expected_h = self.h * torch.complex(gain, torch.zeros_like(gain))
         
         h_processed = self.scenario._step_12(self.h, self.sf)
-        rel_err = self.max_rel_err(expected_h.numpy(), h_processed.numpy())
+        rel_err = self.max_rel_err(expected_h.cpu().numpy(), h_processed.cpu().numpy())
         self.assertTrue(rel_err < Step_12.MAX_ERR) 
         
 

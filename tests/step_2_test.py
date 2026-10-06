@@ -1,13 +1,23 @@
 # This file tests the generation of the LOS states according to Step 2 of 3GPP TR38.901 7.5
 # using the parameters of 3GPP TR38.811 Table 6.6.1-1 LOS probability
+# The LoS states of the 10000 links of each case are independent Bernoulli draws, so the
+# observed fraction is checked with a statistical tolerance, see _statistics.py.
 
 from openntn import utils   # The code to test
 import unittest   # The test framework
+
+import pytest
 from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 import numpy as np
 import torch
 import math
+
+from _statistics import assert_proportion
   
+# Every test of this file takes about a second or more.
+pytestmark = pytest.mark.slow
+
+
 def create_ut_ant(carrier_frequency):
     ut_ant = Antenna(polarization="single",
                     polarization_type="V",
@@ -46,7 +56,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 24.6, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.246, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 20.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -59,7 +69,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 38.6, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.386, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 30.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -72,7 +82,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 49.3, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.493, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 40.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -85,7 +95,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 61.3, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.613, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 50.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -98,7 +108,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 72.6, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.726, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 60.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -111,7 +121,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 80.5, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.805, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 70.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -124,7 +134,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 91.9, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.919, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 80.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -137,7 +147,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 96.8, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.968, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 90.0
         channel_model = Urban(carrier_frequency=carrier_frequency,
@@ -150,7 +160,7 @@ class Test_URB(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 99.2, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.992, f"LoS probability at {elevation_angle} degrees")
 
 class Test_SUR(unittest.TestCase):
 
@@ -173,7 +183,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 78.2, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.782, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 20.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -186,7 +196,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 86.9, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.869, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 30.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -199,7 +209,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 91.9, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.919, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 40.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -212,7 +222,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 92.9, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.929, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 50.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -225,7 +235,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 93.5, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.935, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 60.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -238,7 +248,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 94.0, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.940, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 70.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -251,7 +261,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 94.9, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.949, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 80.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -264,7 +274,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 95.2, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.952, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 90.0
         channel_model = SubUrban(carrier_frequency=carrier_frequency,
@@ -277,7 +287,7 @@ class Test_SUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 99.8, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.998, f"LoS probability at {elevation_angle} degrees")
 
 class Test_DUR(unittest.TestCase):
 
@@ -300,7 +310,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 28.2, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.282, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 20.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -313,7 +323,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 33.1, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.331, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 30.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -326,7 +336,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 39.8, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.398, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 40.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -339,7 +349,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 46.8, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.468, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 50.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -352,7 +362,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 53.7, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.537, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 60.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -365,7 +375,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 61.2, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.612, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 70.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -378,7 +388,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 73.8, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.738, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 80.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -391,7 +401,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 82.0, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.820, f"LoS probability at {elevation_angle} degrees")
 
         elevation_angle = 90.0
         channel_model = DenseUrban(carrier_frequency=carrier_frequency,
@@ -404,7 +414,7 @@ class Test_DUR(unittest.TestCase):
         
         topology = utils.gen_single_sector_topology(batch_size=100, num_ut=100, scenario=scenario, elevation_angle=elevation_angle, bs_height=600000.0)
         channel_model.set_topology(*topology)
-        assert math.isclose(torch.sum(channel_model._scenario.los.to(torch.int32)).to(torch.float32)/100.0, 98.1, abs_tol=2)
+        assert_proportion(int(channel_model._scenario.los.sum()), channel_model._scenario.los.numel(), 0.981, f"LoS probability at {elevation_angle} degrees")
         
        
 if __name__ == '__main__':

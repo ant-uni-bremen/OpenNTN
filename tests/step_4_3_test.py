@@ -8,11 +8,17 @@
 
 from openntn import utils   # The code to test
 import unittest   # The test framework
+
+import pytest
 from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 import numpy as np
 import torch
 import math
 #from sionna.utils import matrix_sqrt
+
+
+# Every test of this file takes about a second or more.
+pytestmark = pytest.mark.slow
 
 
 def create_ut_ant(carrier_frequency):
@@ -121,7 +127,8 @@ class Test_URB(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -135,15 +142,15 @@ class Test_URB(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -248,7 +255,8 @@ class Test_URB(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -262,15 +270,15 @@ class Test_URB(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -375,7 +383,8 @@ class Test_URB(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -389,15 +398,15 @@ class Test_URB(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -502,7 +511,8 @@ class Test_URB(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -516,15 +526,15 @@ class Test_URB(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -628,7 +638,8 @@ class Test_DUR(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -642,15 +653,15 @@ class Test_DUR(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -757,7 +768,8 @@ class Test_DUR(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -771,15 +783,15 @@ class Test_DUR(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -884,7 +896,8 @@ class Test_DUR(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -898,15 +911,15 @@ class Test_DUR(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -1010,7 +1023,8 @@ class Test_DUR(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -1024,15 +1038,15 @@ class Test_DUR(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -1138,7 +1152,8 @@ class Test_SUR(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -1152,15 +1167,15 @@ class Test_SUR(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -1267,7 +1282,8 @@ class Test_SUR(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -1281,15 +1297,15 @@ class Test_SUR(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -1394,7 +1410,8 @@ class Test_SUR(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -1408,15 +1425,15 @@ class Test_SUR(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)
@@ -1521,7 +1538,8 @@ class Test_SUR(unittest.TestCase):
                     parameter_value_nlos = ZSD_nlos
 
                 filtering_matrix = torch.eye(channel_model._scenario.num_ut,
-                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype).expand(
+                    channel_model._scenario.num_ut, dtype=channel_model._scenario.dtype,
+                    device=channel_model._scenario.device).expand(
                     channel_model._scenario.batch_size, channel_model._scenario.num_bs,
                     channel_model._scenario.num_ut, channel_model._scenario.num_ut).clone()
                 
@@ -1535,15 +1553,15 @@ class Test_SUR(unittest.TestCase):
                 distance_scaling_matrix = -1. / (distance_scaling_matrix + epsilon)
                 # LoS
                 filtering_matrix = torch.where(los_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # NLoS
                 filtering_matrix = torch.where(nlos_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # indoor
                 filtering_matrix = torch.where(o2i_pair_bool,
-                    torch.tensor(1.0, dtype=channel_model._scenario.dtype),
+                    torch.tensor(1.0, dtype=channel_model._scenario.dtype, device=channel_model._scenario.device),
                         filtering_matrix)
                 # Stacking
                 filtering_matrices.append(filtering_matrix)

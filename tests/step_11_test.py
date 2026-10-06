@@ -53,8 +53,8 @@ class Step_11(unittest.TestCase):
         h_bs = Step_11.H_BS
         fc = Step_11.CARRIER_FREQUENCY
         
-        los = torch.ones([batch_size, nb_bs, nb_ut], dtype=torch.bool)
-        distance_3d = uniform([batch_size, nb_ut, nb_ut], low=0.0, high=2000.0, dtype=torch.float32, generator=config.torch_rng(str(config.device)))
+        los = torch.ones([batch_size, nb_bs, nb_ut], dtype=torch.bool, device=config.device)
+        distance_3d = uniform([batch_size, nb_ut, nb_ut], low=0.0, high=2000.0, dtype=torch.float32, device=config.device, generator=config.torch_rng(config.device))
 
         
         self.tx_array = Antenna(polarization="single",
@@ -114,8 +114,8 @@ class Step_11(unittest.TestCase):
         _, _, phi, sample_times = self.ccg(num_time_samples,
             sampling_frequency, self.lsp.k_factor, self.rays, topology, c_ds,
             debug=True)
-        self.phi = phi.numpy()
-        self.sample_times = sample_times.numpy()
+        self.phi = phi.cpu().numpy()
+        self.sample_times = sample_times.cpu().numpy()
         self.c_ds = c_ds
 
 
@@ -139,12 +139,12 @@ class Step_11(unittest.TestCase):
         """Test 3GPP channel coefficient calculation: Unit sphere vector"""
         #
         batch_size = Step_11.BATCH_SIZE
-        theta = normal([batch_size], generator=config.torch_rng(str(config.device))).numpy()
-        phi = normal([batch_size], generator=config.torch_rng(str(config.device))).numpy()
+        theta = normal([batch_size], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
+        phi = normal([batch_size], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
         uvec_ref = self.unit_sphere_vector_ref(theta, phi)
         uvec = self.ccg._unit_sphere_vector(
-            torch.as_tensor(theta, dtype=torch.float32),
-            torch.as_tensor(phi, dtype=torch.float32)).numpy()
+            torch.as_tensor(theta, dtype=torch.float32, device=config.device),
+            torch.as_tensor(phi, dtype=torch.float32, device=config.device)).cpu().numpy()
         max_err = self.max_rel_err(uvec_ref, uvec)
         err_tol = Step_11.MAX_ERR
         self.assertLessEqual(max_err, err_tol)
@@ -170,10 +170,10 @@ class Step_11(unittest.TestCase):
     def test_forward_rotation_matrix(self):
         """Test 3GPP channel coefficient calculation: Forward rotation matrix"""
         batch_size = Step_11.BATCH_SIZE
-        orientation = normal([batch_size,3], generator=config.torch_rng(str(config.device))).numpy()
+        orientation = normal([batch_size,3], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
         R_ref = self.forward_rotation_matrix_ref(orientation)
         R = self.ccg._forward_rotation_matrix(
-            torch.as_tensor(orientation, dtype=torch.float32)).numpy()
+            torch.as_tensor(orientation, dtype=torch.float32, device=config.device)).cpu().numpy()
         max_err = self.max_rel_err(R_ref, R)
         err_tol = Step_11.MAX_ERR
         self.assertLessEqual(max_err, err_tol)
@@ -187,10 +187,10 @@ class Step_11(unittest.TestCase):
     def test_reverse_rotation_matrix(self):
         """Test 3GPP channel coefficient calculation: Reverse rotation matrix"""
         batch_size = Step_11.BATCH_SIZE
-        orientation = normal([batch_size,3], generator=config.torch_rng(str(config.device))).numpy()
+        orientation = normal([batch_size,3], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
         R_ref = self.reverse_rotation_matrix_ref(orientation)
         R = self.ccg._reverse_rotation_matrix(
-            torch.as_tensor(orientation, dtype=torch.float32)).numpy()
+            torch.as_tensor(orientation, dtype=torch.float32, device=config.device)).cpu().numpy()
         max_err = self.max_rel_err(R_ref, R)
         err_tol = Step_11.MAX_ERR
         self.assertLessEqual(max_err, err_tol)
@@ -227,18 +227,18 @@ class Step_11(unittest.TestCase):
     def test_gcs_to_lcs(self):
         """Test 3GPP channel coefficient calculation: GCS to LCS"""
         batch_size = Step_11.BATCH_SIZE
-        orientation = normal([batch_size,3], generator=config.torch_rng(str(config.device))).numpy()
-        theta = normal([batch_size], generator=config.torch_rng(str(config.device))).numpy()
-        phi = normal([batch_size], generator=config.torch_rng(str(config.device))).numpy()
+        orientation = normal([batch_size,3], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
+        theta = normal([batch_size], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
+        phi = normal([batch_size], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
 
         theta_prime_ref, phi_prime_ref = self.gcs_to_lcs_ref(orientation, theta,
                                                             phi)
         theta_prime, phi_prime = self.ccg._gcs_to_lcs(
-            torch.tensor(orientation, dtype=torch.float32),
-            torch.tensor(theta, dtype=torch.float32),
-            torch.tensor(phi, dtype=torch.float32))
-        theta_prime = theta_prime.numpy()
-        phi_prime = phi_prime.numpy()
+            torch.tensor(orientation, dtype=torch.float32, device=config.device),
+            torch.tensor(theta, dtype=torch.float32, device=config.device),
+            torch.tensor(phi, dtype=torch.float32, device=config.device))
+        theta_prime = theta_prime.cpu().numpy()
+        phi_prime = phi_prime.cpu().numpy()
 
         err_tol = Step_11.MAX_ERR
         max_err = self.max_rel_err(theta_prime_ref, theta_prime)
@@ -275,16 +275,16 @@ class Step_11(unittest.TestCase):
     def test_l2g_response(self):
         """Test 3GPP channel coefficient calculation: L2G antenna response"""
         batch_size = Step_11.BATCH_SIZE
-        orientation = normal([batch_size,3], generator=config.torch_rng(str(config.device))).numpy()
-        theta = normal([batch_size], generator=config.torch_rng(str(config.device))).numpy()
-        phi = normal([batch_size], generator=config.torch_rng(str(config.device))).numpy()
-        F_prime = normal([batch_size,2], generator=config.torch_rng(str(config.device))).numpy()
+        orientation = normal([batch_size,3], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
+        theta = normal([batch_size], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
+        phi = normal([batch_size], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
+        F_prime = normal([batch_size,2], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
 
         F_ref = self.l2g_response_ref(F_prime, orientation, theta, phi)
-        F = self.ccg._l2g_response( torch.tensor(F_prime, dtype=torch.float32),
-                                    torch.tensor(orientation, dtype=torch.float32),
-                                    torch.tensor(theta, dtype=torch.float32),
-                                    torch.tensor(phi, dtype=torch.float32)).numpy()
+        F = self.ccg._l2g_response( torch.tensor(F_prime, dtype=torch.float32, device=config.device),
+                                    torch.tensor(orientation, dtype=torch.float32, device=config.device),
+                                    torch.tensor(theta, dtype=torch.float32, device=config.device),
+                                    torch.tensor(phi, dtype=torch.float32, device=config.device)).cpu().numpy()
 
         max_err = self.max_rel_err(F_ref, F)
         err_tol = Step_11.MAX_ERR
@@ -305,12 +305,12 @@ class Step_11(unittest.TestCase):
         """Test 3GPP channel coefficient calculation: Rotate position according
         to orientation"""
         batch_size = Step_11.BATCH_SIZE
-        orientations = normal([batch_size,3], generator=config.torch_rng(str(config.device))).numpy()
-        positions = normal([batch_size,3, 1], generator=config.torch_rng(str(config.device))).numpy()
+        orientations = normal([batch_size,3], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
+        positions = normal([batch_size,3, 1], device=config.device, generator=config.torch_rng(config.device)).cpu().numpy()
 
         pos_r_ref = self.rot_pos_ref(orientations, positions)
-        pos_r = self.ccg._rot_pos(  torch.tensor(orientations, dtype=torch.float32),
-                                    torch.tensor(positions, dtype=torch.float32)).numpy()
+        pos_r = self.ccg._rot_pos(  torch.tensor(orientations, dtype=torch.float32, device=config.device),
+                                    torch.tensor(positions, dtype=torch.float32, device=config.device)).cpu().numpy()
         max_err = self.max_rel_err(pos_r_ref, pos_r)
         err_tol = Step_11.MAX_ERR
         self.assertLessEqual(max_err, err_tol)
@@ -318,10 +318,10 @@ class Step_11(unittest.TestCase):
     def step_11_get_tx_antenna_positions_ref(self, topology):
         """Reference implementation: Positions of the TX array elements"""
 
-        tx_orientations = topology.tx_orientations.numpy()
+        tx_orientations = topology.tx_orientations.cpu().numpy()
 
         # Antenna locations in LCS and reshape for broadcasting
-        ant_loc_lcs = self.tx_array.ant_pos.numpy()
+        ant_loc_lcs = self.tx_array.ant_pos.cpu().numpy()
         ant_loc_lcs = np.expand_dims(np.expand_dims(
             np.expand_dims(ant_loc_lcs, axis=0), axis=1), axis=-1)
 
@@ -337,7 +337,7 @@ class Step_11(unittest.TestCase):
         elements"""
         tx_ant_pos_ref= self.step_11_get_tx_antenna_positions_ref(self.topology)
         tx_ant_pos = self.ccg._step_11_get_tx_antenna_positions(self.topology)
-        tx_ant_pos = tx_ant_pos.numpy()
+        tx_ant_pos = tx_ant_pos.cpu().numpy()
         max_err = self.max_rel_err(tx_ant_pos_ref, tx_ant_pos)
         err_tol = Step_11.MAX_ERR
         self.assertLessEqual(max_err, err_tol)
@@ -345,10 +345,10 @@ class Step_11(unittest.TestCase):
     def step_11_get_rx_antenna_positions_ref(self, topology):
         """Reference implementation: Positions of the RX array elements"""
 
-        rx_orientations = topology.rx_orientations.numpy()
+        rx_orientations = topology.rx_orientations.cpu().numpy()
 
         # Antenna locations in LCS and reshape for broadcasting
-        ant_loc_lcs = self.rx_array.ant_pos.numpy()
+        ant_loc_lcs = self.rx_array.ant_pos.cpu().numpy()
         ant_loc_lcs = np.expand_dims(np.expand_dims(
             np.expand_dims(ant_loc_lcs, axis=0), axis=1), axis=-1)
 
@@ -364,7 +364,7 @@ class Step_11(unittest.TestCase):
         elements"""
         rx_ant_pos_ref= self.step_11_get_rx_antenna_positions_ref(self.topology)
         rx_ant_pos = self.ccg._step_11_get_rx_antenna_positions(self.topology)
-        rx_ant_pos = rx_ant_pos.numpy()
+        rx_ant_pos = rx_ant_pos.cpu().numpy()
         max_err = self.max_rel_err(rx_ant_pos_ref, rx_ant_pos)
         err_tol = Step_11.MAX_ERR
         self.assertLessEqual(max_err, err_tol)
@@ -383,9 +383,9 @@ class Step_11(unittest.TestCase):
     def test_step_11_phase_matrix(self):
         """Test 3GPP channel coefficient calculation:
         Phase matrix calculation"""
-        H_phase_ref = self.step_11_phase_matrix_ref(self.phi, self.rays.xpr)
+        H_phase_ref = self.step_11_phase_matrix_ref(self.phi, self.rays.xpr.cpu().numpy())
         H_phase = self.ccg._step_11_phase_matrix(
-            torch.as_tensor(self.phi, dtype=torch.float32), self.rays).numpy()
+            torch.as_tensor(self.phi, dtype=torch.float32, device=config.device), self.rays).cpu().numpy()
         max_err = self.max_rel_err(H_phase_ref, H_phase)
         err_tol = Step_11.MAX_ERR
         self.assertLessEqual(max_err, err_tol)
@@ -397,8 +397,8 @@ class Step_11(unittest.TestCase):
         zoa = np.asarray(zoa)
         zod = np.asarray(zod)
 
-        tx_orientations = topology.tx_orientations.numpy()
-        rx_orientations = topology.rx_orientations.numpy()
+        tx_orientations = topology.tx_orientations.cpu().numpy()
+        rx_orientations = topology.rx_orientations.cpu().numpy()
 
         # Convert departure angles to LCS
         tx_orientations = np.expand_dims(np.expand_dims(
@@ -412,9 +412,9 @@ class Step_11(unittest.TestCase):
 
         # Compute the TX antenna reponse in LCS and map it to GCS
         F_tx_prime_pol1_1, F_tx_prime_pol1_2 = self.tx_array.ant_pol1.field(
-           torch.tensor(zod_prime, dtype=torch.float32), torch.tensor(aod_prime, dtype=torch.float32))
-        F_tx_prime_pol1_1 = F_tx_prime_pol1_1.numpy()
-        F_tx_prime_pol1_2 = F_tx_prime_pol1_2.numpy()
+           torch.tensor(zod_prime, dtype=torch.float32, device=config.device), torch.tensor(aod_prime, dtype=torch.float32, device=config.device))
+        F_tx_prime_pol1_1 = F_tx_prime_pol1_1.cpu().numpy()
+        F_tx_prime_pol1_2 = F_tx_prime_pol1_2.cpu().numpy()
         F_tx_prime_pol1 = np.stack([F_tx_prime_pol1_1, F_tx_prime_pol1_2],
             axis=-1)
         F_tx_pol1 = self.l2g_response_ref(F_tx_prime_pol1, tx_orientations,
@@ -423,10 +423,10 @@ class Step_11(unittest.TestCase):
         # Dual polarization case for TX
         if (self.tx_array.polarization == 'dual'):
             F_tx_prime_pol2_1, F_tx_prime_pol2_2 = self.tx_array.ant_pol2.field(
-                torch.tensor(zod_prime, dtype=torch.float32),
-                torch.tensor(aod_prime, dtype=torch.float32))
-            F_tx_prime_pol2_1 = F_tx_prime_pol2_1.numpy()
-            F_tx_prime_pol2_2 = F_tx_prime_pol2_2.numpy()
+                torch.tensor(zod_prime, dtype=torch.float32, device=config.device),
+                torch.tensor(aod_prime, dtype=torch.float32, device=config.device))
+            F_tx_prime_pol2_1 = F_tx_prime_pol2_1.cpu().numpy()
+            F_tx_prime_pol2_2 = F_tx_prime_pol2_2.cpu().numpy()
             F_tx_prime_pol2 = np.stack([F_tx_prime_pol2_1, F_tx_prime_pol2_2],
                 axis=-1)
             F_tx_pol2 = self.l2g_response_ref(F_tx_prime_pol2, tx_orientations,
@@ -434,10 +434,10 @@ class Step_11(unittest.TestCase):
 
         # Compute the RX antenna reponse in LCS and map it to GCS
         F_rx_prime_pol1_1, F_rx_prime_pol1_2 = self.rx_array.ant_pol1.field(
-            torch.tensor(zoa_prime, dtype=torch.float32),
-            torch.tensor(aoa_prime, dtype=torch.float32))
-        F_rx_prime_pol1_1 = F_rx_prime_pol1_1.numpy()
-        F_rx_prime_pol1_2 = F_rx_prime_pol1_2.numpy()
+            torch.tensor(zoa_prime, dtype=torch.float32, device=config.device),
+            torch.tensor(aoa_prime, dtype=torch.float32, device=config.device))
+        F_rx_prime_pol1_1 = F_rx_prime_pol1_1.cpu().numpy()
+        F_rx_prime_pol1_2 = F_rx_prime_pol1_2.cpu().numpy()
         F_rx_prime_pol1 = np.stack([F_rx_prime_pol1_1, F_rx_prime_pol1_2],
             axis=-1)
         F_rx_pol1 = self.l2g_response_ref(F_rx_prime_pol1, rx_orientations,
@@ -446,10 +446,10 @@ class Step_11(unittest.TestCase):
         # Dual polarization case for RX
         if (self.rx_array.polarization == 'dual'):
             F_rx_prime_pol2_1, F_rx_prime_pol2_2 = self.rx_array.ant_pol2.field(
-                torch.tensor(zoa_prime, dtype=torch.float32),
-                torch.tensor(aoa_prime, dtype=torch.float32))
-            F_rx_prime_pol2_1 = F_rx_prime_pol2_1.numpy()
-            F_rx_prime_pol2_2 = F_rx_prime_pol2_2.numpy()
+                torch.tensor(zoa_prime, dtype=torch.float32, device=config.device),
+                torch.tensor(aoa_prime, dtype=torch.float32, device=config.device))
+            F_rx_prime_pol2_1 = F_rx_prime_pol2_1.cpu().numpy()
+            F_rx_prime_pol2_2 = F_rx_prime_pol2_2.cpu().numpy()
             F_rx_prime_pol2 = np.stack([F_rx_prime_pol2_1, F_rx_prime_pol2_2],
                 axis=-1)
             F_rx_pol2 = self.l2g_response_ref(F_rx_prime_pol2, rx_orientations,
@@ -499,20 +499,20 @@ class Step_11(unittest.TestCase):
     def test_step_11_field_matrix(self):
         """Test 3GPP channel coefficient calculation:
         Field matrix calculation"""
-        H_phase = self.step_11_phase_matrix_ref(self.phi, self.rays.xpr)
+        H_phase = self.step_11_phase_matrix_ref(self.phi, self.rays.xpr.cpu().numpy())
         H_field_ref = self.step_11_field_matrix_ref(self.topology,
-                                                    self.rays.aoa,
-                                                    self.rays.aod,
-                                                    self.rays.zoa,
-                                                    self.rays.zod,
+                                                    self.rays.aoa.cpu().numpy(),
+                                                    self.rays.aod.cpu().numpy(),
+                                                    self.rays.zoa.cpu().numpy(),
+                                                    self.rays.zod.cpu().numpy(),
                                                     H_phase)
 
         H_field = self.ccg._step_11_field_matrix(self.topology,
-                                    torch.tensor(self.rays.aoa, dtype=torch.float32),
-                                    torch.tensor(self.rays.aod, dtype=torch.float32),
-                                    torch.tensor(self.rays.zoa, dtype=torch.float32),
-                                    torch.tensor(self.rays.zod, dtype=torch.float32),
-                                    torch.tensor(H_phase, dtype=torch.complex64)).numpy()
+                                    torch.tensor(self.rays.aoa, dtype=torch.float32, device=config.device),
+                                    torch.tensor(self.rays.aod, dtype=torch.float32, device=config.device),
+                                    torch.tensor(self.rays.zoa, dtype=torch.float32, device=config.device),
+                                    torch.tensor(self.rays.zod, dtype=torch.float32, device=config.device),
+                                    torch.tensor(H_phase, dtype=torch.complex64, device=config.device)).cpu().numpy()
         max_err = self.max_rel_err(H_field_ref, H_field)
         err_tol = Step_11.MAX_ERR
         self.assertLessEqual(max_err, err_tol)
@@ -538,7 +538,7 @@ class Step_11(unittest.TestCase):
         d_bar_rx = np.expand_dims(np.expand_dims(
                 np.expand_dims(d_bar_rx, axis=1), axis=3), axis=4)
 
-        lambda_0 = self.scenario._scenario.lambda_0.numpy()
+        lambda_0 = self.scenario._scenario.lambda_0.cpu().numpy()
 
         # TX offset matrix
 
@@ -553,17 +553,17 @@ class Step_11(unittest.TestCase):
 
     def test_step_11_array_offsets(self):
         """Test 3GPP channel coefficient calculation: Array offset matrix"""
-        H_array_ref = self.step_11_array_offsets_ref(self.rays.aoa,
-                                                     self.rays.aod,
-                                                     self.rays.zoa,
-                                                     self.rays.zod,
+        H_array_ref = self.step_11_array_offsets_ref(self.rays.aoa.cpu().numpy(),
+                                                     self.rays.aod.cpu().numpy(),
+                                                     self.rays.zoa.cpu().numpy(),
+                                                     self.rays.zod.cpu().numpy(),
                                                      self.topology)
 
         H_array = self.ccg._step_11_array_offsets(self.topology,
-                                torch.tensor(self.rays.aoa, dtype=torch.float32),
-                                torch.tensor(self.rays.aod, dtype=torch.float32),
-                                torch.tensor(self.rays.zoa, dtype=torch.float32),
-                                torch.tensor(self.rays.zod, dtype=torch.float32)).numpy()
+                                torch.tensor(self.rays.aoa, dtype=torch.float32, device=config.device),
+                                torch.tensor(self.rays.aod, dtype=torch.float32, device=config.device),
+                                torch.tensor(self.rays.zoa, dtype=torch.float32, device=config.device),
+                                torch.tensor(self.rays.zod, dtype=torch.float32, device=config.device)).cpu().numpy()
 
         max_err = self.max_rel_err(H_array_ref, H_array)
         err_tol = Step_11.MAX_ERR
@@ -572,8 +572,8 @@ class Step_11(unittest.TestCase):
     def step_11_doppler_matrix_ref(self, topology, aoa, zoa, aod, zod, t):
         """Reference implementation: Doppler matrix calculation"""
 
-        lambda_0 = self.scenario._scenario.lambda_0.numpy()
-        velocities = topology.velocities.numpy()
+        lambda_0 = self.scenario._scenario.lambda_0.cpu().numpy()
+        velocities = topology.velocities.cpu().numpy()
 
         # Determine which end of the channel is moving (TX or RX)
         if topology.moving_end == "rx":
@@ -591,7 +591,7 @@ class Step_11(unittest.TestCase):
 
         # Handle satellite-specific Doppler effects (if applicable)
         if topology.bs_height >= 600000.0 and topology.doppler_enabled:
-            max_sat_speed_for_elevation_angle = topology.sat_speed.numpy()
+            max_sat_speed_for_elevation_angle = topology.sat_speed.cpu().numpy()
             max_rotation_per_time = (2.0 * np.pi / lambda_0) * max_sat_speed_for_elevation_angle
             rotation_for_time = np.outer(max_rotation_per_time, t)  # Shape: [batch size, num time steps]
 
@@ -610,18 +610,18 @@ class Step_11(unittest.TestCase):
     def test_step_11_doppler_matrix(self):
         """Test 3GPP channel coefficient calculation: Doppler matrix"""
         H_doppler_ref = self.step_11_doppler_matrix_ref(self.topology,
-                                                        self.rays.aoa,
-                                                        self.rays.zoa,
-                                                        self.rays.aod,
-                                                        self.rays.zod,
+                                                        self.rays.aoa.cpu().numpy(),
+                                                        self.rays.zoa.cpu().numpy(),
+                                                        self.rays.aod.cpu().numpy(),
+                                                        self.rays.zod.cpu().numpy(),
                                                         self.sample_times)
 
         H_doppler = self.ccg._step_11_doppler_matrix(self.topology,
-                            torch.tensor(self.rays.aoa, dtype=torch.float32),
-                            torch.tensor(self.rays.zoa, dtype=torch.float32),
-                            torch.tensor(self.rays.aod, dtype=torch.float32),
-                            torch.tensor(self.rays.zod, dtype=torch.float32),
-                            torch.tensor(self.sample_times, dtype=torch.float32)).numpy()
+                            torch.tensor(self.rays.aoa, dtype=torch.float32, device=config.device),
+                            torch.tensor(self.rays.zoa, dtype=torch.float32, device=config.device),
+                            torch.tensor(self.rays.aod, dtype=torch.float32, device=config.device),
+                            torch.tensor(self.rays.zod, dtype=torch.float32, device=config.device),
+                            torch.tensor(self.sample_times, dtype=torch.float32, device=config.device)).cpu().numpy()
 
         max_err = self.max_rel_err(H_doppler_ref, H_doppler)
         err_tol = Step_11.MAX_ERR
@@ -640,7 +640,7 @@ class Step_11(unittest.TestCase):
             rays_shape = aoa.shape
             faraday_phase_rotation = self.ccg._step_11_faraday_rotation(
                 carrier_frequency=self.CARRIER_FREQUENCY, aod_shape=rays_shape
-            ).numpy()
+            ).cpu().numpy()
             H_phase = np.matmul(H_phase, faraday_phase_rotation)
 
         # Compute other components
@@ -667,20 +667,20 @@ class Step_11(unittest.TestCase):
     def test_step_11_nlos_ref(self):
         """Test 3GPP channel coefficient calculation: Doppler matrix"""
         H_full_ref = self.step_11_nlos_ref( self.phi,
-                                            self.rays.aoa,
-                                            self.rays.aod,
-                                            self.rays.zoa,
-                                            self.rays.zod,
-                                            self.rays.xpr,
-                                            self.rays.powers,
+                                            self.rays.aoa.cpu().numpy(),
+                                            self.rays.aod.cpu().numpy(),
+                                            self.rays.zoa.cpu().numpy(),
+                                            self.rays.zod.cpu().numpy(),
+                                            self.rays.xpr.cpu().numpy(),
+                                            self.rays.powers.cpu().numpy(),
                                             self.sample_times,
                                             self.topology)
 
-        H_full = self.ccg._step_11_nlos(torch.tensor(self.phi, dtype=torch.float32),
+        H_full = self.ccg._step_11_nlos(torch.tensor(self.phi, dtype=torch.float32, device=config.device),
                             self.topology,
                             self.rays,
-                            torch.tensor(self.sample_times, dtype=torch.float32),
-                            Step_11.CARRIER_FREQUENCY).numpy()
+                            torch.tensor(self.sample_times, dtype=torch.float32, device=config.device),
+                            Step_11.CARRIER_FREQUENCY).cpu().numpy()
         max_err = self.max_rel_err(H_full_ref, H_full)
         err_tol = Step_11.MAX_ERR
         self.assertLessEqual(max_err, err_tol)   
@@ -747,25 +747,25 @@ class Step_11(unittest.TestCase):
         computation"""
 
         H_full_ref = self.step_11_nlos_ref( self.phi,
-                                            self.rays.aoa,
-                                            self.rays.aod,
-                                            self.rays.zoa,
-                                            self.rays.zod,
-                                            self.rays.xpr,
-                                            self.rays.powers,
+                                            self.rays.aoa.cpu().numpy(),
+                                            self.rays.aod.cpu().numpy(),
+                                            self.rays.zoa.cpu().numpy(),
+                                            self.rays.zod.cpu().numpy(),
+                                            self.rays.xpr.cpu().numpy(),
+                                            self.rays.powers.cpu().numpy(),
                                             self.sample_times,
                                             self.topology)
 
         H_nlos_ref, delays_nlos_ref = self.step_11_reduce_nlos_ref(
                                                     H_full_ref,
-                                                    self.rays.powers.numpy(),
-                                                    self.rays.delays.numpy(),
+                                                    self.rays.powers.cpu().numpy(),
+                                                    self.rays.delays.cpu().numpy(),
                                                     self.c_ds)
 
         H_nlos, delays_nlos = self.ccg._step_11_reduce_nlos(
-            torch.tensor(H_full_ref, dtype=torch.complex128), self.rays, self.c_ds)
-        H_nlos = H_nlos.numpy()
-        delays_nlos = delays_nlos.numpy()
+            torch.tensor(H_full_ref, dtype=torch.complex128, device=config.device), self.rays, self.c_ds)
+        H_nlos = H_nlos.cpu().numpy()
+        delays_nlos = delays_nlos.cpu().numpy()
 
         err_tol = Step_11.MAX_ERR
         max_err = self.max_rel_err(H_nlos_ref, H_nlos)
@@ -779,13 +779,13 @@ class Step_11(unittest.TestCase):
         component 2"""
 
         # LoS departure and arrival angles
-        los_aoa = np.expand_dims(np.expand_dims(topology.los_aoa.numpy(),
+        los_aoa = np.expand_dims(np.expand_dims(topology.los_aoa.cpu().numpy(),
             axis=3), axis=4)
-        los_zoa = np.expand_dims(np.expand_dims(topology.los_zoa.numpy(),
+        los_zoa = np.expand_dims(np.expand_dims(topology.los_zoa.cpu().numpy(),
             axis=3), axis=4)
-        los_aod = np.expand_dims(np.expand_dims(topology.los_aod.numpy(),
+        los_aod = np.expand_dims(np.expand_dims(topology.los_aod.cpu().numpy(),
             axis=3), axis=4)
-        los_zod = np.expand_dims(np.expand_dims(topology.los_zod.numpy(),
+        los_zod = np.expand_dims(np.expand_dims(topology.los_zod.cpu().numpy(),
             axis=3), axis=4)
 
         # Field matrix
@@ -795,7 +795,7 @@ class Step_11(unittest.TestCase):
                                       [1,1,1,1,1,2,2])
         if (topology.bs_height >= 600000.0):
             rays_shape = los_aoa.shape
-            faraday_phase_rotation = self.ccg._step_11_faraday_rotation(carrier_frequency=carrier_frequency, aod_shape=rays_shape).numpy()
+            faraday_phase_rotation = self.ccg._step_11_faraday_rotation(carrier_frequency=carrier_frequency, aod_shape=rays_shape).cpu().numpy()
             H_phase = np.matmul(H_phase,faraday_phase_rotation)
         H_field = self.step_11_field_matrix_ref(topology, los_aoa, los_aod,
                                                     los_zoa, los_zod, H_phase)
@@ -809,8 +809,8 @@ class Step_11(unittest.TestCase):
                                                     los_zoa, los_aod, los_zod, t)
 
         # Phase shift due to propagation delay
-        d3D = topology.distance_3d.numpy()
-        lambda_0 = self.scenario._scenario.lambda_0.numpy()
+        d3D = topology.distance_3d.cpu().numpy()
+        lambda_0 = self.scenario._scenario.lambda_0.cpu().numpy()
         H_delay = np.exp(1j * (2*np.pi*d3D/lambda_0))
 
         # Combining all to compute channel coefficient
@@ -828,9 +828,9 @@ class Step_11(unittest.TestCase):
         H_los_ref = self.step_11_los_ref(self.sample_times, self.topology, Step_11.CARRIER_FREQUENCY)
         H_los = self.ccg._step_11_los(
             self.topology,
-            torch.as_tensor(self.sample_times, dtype=torch.float32),
+            torch.as_tensor(self.sample_times, dtype=torch.float32, device=config.device),
             Step_11.CARRIER_FREQUENCY)
-        H_los = H_los.numpy()
+        H_los = H_los.cpu().numpy()
         max_err = self.max_rel_err(H_los_ref, H_los)
         err_tol = Step_11.MAX_ERR
         self.assertLessEqual(max_err, err_tol)
@@ -858,7 +858,7 @@ class Step_11(unittest.TestCase):
         H_los = np.concatenate([H_los_los, H_los_nlos[:,:,:,1:,...]], axis=3)
 
         ## Setting up the CIR according to the link configuration
-        los_status = topology.los.numpy()
+        los_status = topology.los.cpu().numpy()
         los_status = np.reshape(los_status, list(los_status.shape) + [1,1,1,1])
         H = np.where(los_status, H_los, H_nlos)
 
@@ -866,25 +866,25 @@ class Step_11(unittest.TestCase):
 
     def test_step_11(self):
         """Test 3GPP channel coefficient calculation: Step 11"""
-        H, delays_nlos = self.ccg._step_11(torch.tensor(self.phi, dtype=torch.float32),
+        H, delays_nlos = self.ccg._step_11(torch.tensor(self.phi, dtype=torch.float32, device=config.device),
                                             self.topology,
                                             self.lsp.k_factor,
                                             self.rays,
                                             torch.tensor(self.sample_times,
-                                                        dtype=torch.float32),
+                                                        dtype=torch.float32, device=config.device),
                                             self.c_ds, Step_11.CARRIER_FREQUENCY)
-        H = H.numpy()
-        delays_nlos = delays_nlos.numpy()
+        H = H.cpu().numpy()
+        delays_nlos = delays_nlos.cpu().numpy()
 
         H_ref, delays_nlos_ref = self.step_11_ref(self.phi,
-                                                self.lsp.k_factor.numpy(),
-                                                self.rays.aoa.numpy(),
-                                                self.rays.aod.numpy(),
-                                                self.rays.zoa.numpy(),
-                                                self.rays.zod.numpy(),
-                                                self.rays.xpr.numpy(),
-                                                self.rays.powers.numpy(),
-                                                self.rays.delays.numpy(),
+                                                self.lsp.k_factor.cpu().numpy(),
+                                                self.rays.aoa.cpu().numpy(),
+                                                self.rays.aod.cpu().numpy(),
+                                                self.rays.zoa.cpu().numpy(),
+                                                self.rays.zod.cpu().numpy(),
+                                                self.rays.xpr.cpu().numpy(),
+                                                self.rays.powers.cpu().numpy(),
+                                                self.rays.delays.cpu().numpy(),
                                                 self.sample_times,
                                                 self.topology,
                                                 self.c_ds,

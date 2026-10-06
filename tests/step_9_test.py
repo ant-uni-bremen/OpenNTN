@@ -73,11 +73,11 @@ class Step_9(unittest.TestCase):
         self.assertEqual(result.shape, expected_shape)
 
         # Check if the values are positive
-        self.assertTrue(torch.all(result > 0).numpy())
+        self.assertTrue(torch.all(result > 0).cpu().numpy())
 
         # Check the mean and std of the distribution against hardcoded values
         # Linear to dB
-        log_result = 10 * np.log10(result.numpy())
+        log_result = 10 * np.log10(result.cpu().numpy())
 
         expected_mean = self.mu_xpr
         expected_std = self.sigma_xpr

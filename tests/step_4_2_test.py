@@ -9,6 +9,8 @@
 
 from openntn import utils   # The code to test
 import unittest   # The test framework
+
+import pytest
 from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 import torch
 import math
@@ -304,7 +306,10 @@ def _populate(cls, scenario):
         for elevation in _ELEVS:
             for dtok, direction in _DIRS:
                 name = f"test_{band}_{elevation}_degrees_{dtok}"
-                setattr(cls, name, _make_case(scenario, band, elevation, direction))
+                case = _make_case(scenario, band, elevation, direction)
+                if (scenario, band, elevation, direction) in _TOPO:
+                    case = pytest.mark.slow(case)  # larger topology
+                setattr(cls, name, case)
 
 
 class Test_URB(unittest.TestCase):
