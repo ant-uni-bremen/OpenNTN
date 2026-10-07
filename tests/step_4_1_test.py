@@ -204,13 +204,6 @@ _EXPECTED = {
     ('urb', 's_band', 90, 'uplink'): [-8.34, -2.27, -0.54, 0.368, -3.0, -0.07, 0.09, 1.85, 1.66, 0.314, 1.09, 1.43, -8.17, -1.77, 0.49, -4.29, 1.5, 0.67, 1.4, 1.16, 4.37, 0.56],
 }
 
-# Model parameters that deviate from TR 38.811. They are left out of the regular checks
-# and tested as expected failures below, until the model data is corrected.
-_KNOWN_DEVIATIONS = {
-    ('sur', 'ka_band', 80, 'uplink', 'mu_ZSD_nlos'):
-        "TR 38.811 Table 6.7.2-6b gives -3.20; the model data has -3.30",
-}
-
 # The log-means and log-stds are deterministic table values, not estimates, so the
 # tolerance only covers their float32 representation and the averaging over links
 # (relative 1e-5; absolute 1e-6 for entries that are zero).
@@ -242,8 +235,6 @@ def _run_case(test, scenario, band, elevation, direction):
     actual = _actual_values(scenario, band, elevation, direction)
     expected = _EXPECTED[(scenario, band, elevation, direction)]
     for (_, _, label), exp in zip(_ACTUAL_ORDER, expected):
-        if (scenario, band, elevation, direction, label) in _KNOWN_DEVIATIONS:
-            continue
         _check(actual[label], exp, label, scenario, band, elevation, direction)
 
 
@@ -279,20 +270,6 @@ class Test_SUR(unittest.TestCase):
 _populate(Test_URB, "urb")
 _populate(Test_DUR, "dur")
 _populate(Test_SUR, "sur")
-
-
-class Test_KnownDeviations(unittest.TestCase):
-
-    @pytest.mark.slow
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="mu_lgZSD of the sub-urban NLOS Ka-band uplink parameters at 80 "
-                              "degrees is -3.30; TR 38.811 Table 6.7.2-6b gives -3.20")
-    def test_sur_ka_band_80_degrees_ul_mu_zsd_nlos(self):
-        case = ('sur', 'ka_band', 80, 'uplink')
-        label = 'mu_ZSD_nlos'
-        actual = _actual_values(*case)
-        expected = _EXPECTED[case][[l for _, _, l in _ACTUAL_ORDER].index(label)]
-        _check(actual[label], expected, label, *case)
 
 
 if __name__ == "__main__":

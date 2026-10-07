@@ -87,7 +87,7 @@
     "muZSD_50": -2.70,
     "muZSD_60": -3.03,
     "muZSD_70": -2.90,
-    "muZSD_80": -3.30,
+    "muZSD_80": -3.20,
     "muZSD_90": -3.20,
 
     "sigmaZSD_10": 0.32,
@@ -241,9 +241,6 @@
     "LoS_p_70" : 0.949,
     "LoS_p_80" : 0.952,
     "LoS_p_90" : 0.998,
-
-    "CPhiNLoS" :0.779,
-    "CThetaNLoS" : 0.697,
 
     "corrDistDS_10" : 40.0,
     "corrDistDS_20" : 40.0,

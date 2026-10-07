@@ -7,9 +7,12 @@
 #     scaling, XPR, number of clusters and rays, cluster spreads, per cluster
 #     shadowing and correlation distances;
 #   - Tables 6.6.2-1 to 6.6.2-3: shadow fading standard deviation and clutter loss;
-#   - Table 6.6.1-1: LOS probability;
-#   - Tables 6.7.2-1aa and 6.7.2-1ab: angular scaling factors C_phi^NLOS and
-#     C_theta^NLOS for the number of clusters of each elevation angle.
+#   - Table 6.6.1-1: LOS probability.
+# The angular scaling factors C_phi^NLOS and C_theta^NLOS of Tables 6.7.2-1aa and
+# 6.7.2-1ab depend on the number of clusters, which changes with the elevation angle and
+# the link state. They are not part of the parameter files; the scenario selects them in
+# get_param, which is checked against the tables for every scenario, band, direction,
+# link state and elevation angle.
 # The table values are stored as printed in the document in
 # spec_tables/tr38811_v15.4.0.json. Values the tables give as N/A, or rows they do not
 # have, are not specified; for those only the presence of the parameter is checked.
@@ -23,17 +26,17 @@
 # which has no effect once their spreads are zero. The uplink files use the tables'
 # lgASD and lgZSD rows as printed. This test checks both as they are; whether the
 # uplink files should apply NOTE 8 as well is an open question, not a test failure.
-#
-# Known deviations from the tables are tested separately as strict expected failures.
 import json
 import math
 import os
 import re
 
 import pytest
+import torch
 
 import openntn
 from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
+from openntn import utils
 
 MODELS_DIR = os.path.join(os.path.dirname(openntn.__file__), "models")
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "spec_tables",
@@ -82,7 +85,8 @@ for _a, _b in (("ASD", "DS"), ("ASA", "DS"), ("ASA", "SF"), ("ASD", "SF"), ("DS"
                ("ZSD", "ZSA")):
     TABLE_ROWS[f"corr{_a}vs{_b}"] = f"corr_{_a}_vs_{_b}"
 PER_ELEVATION = set(TABLE_ROWS) | {"sigmaSF", "CL", "LoS_p"}
-SINGLE_VALUE = {"CPhiNLoS", "CThetaNLoS"}
+# Selected in the code, not stored in the parameter files
+SCALING_FACTORS = {"CPhiNLoS": "6.7.2-1aa", "CThetaNLoS": "6.7.2-1ab"}
 
 NOT_SPECIFIED = "not specified"
 
@@ -96,37 +100,6 @@ def _parts(name):
 def _files(scenario, state):
     return [f"{scenario}_{state}_{band}_band_{direction}.json"
             for band in ("S", "Ka") for direction in ("UL", "DL")]
-
-
-# (file, parameter, elevation) -> reason. A known deviation is left out of
-# test_parameter and tested in test_known_deviation instead.
-KNOWN_DEVIATIONS = {}
-
-
-def _known(files, parameters, elevations, reason):
-    for name in files:
-        for parameter in parameters:
-            for elevation in elevations:
-                KNOWN_DEVIATIONS[(name, parameter, elevation)] = reason
-
-
-_known(["Sub_Urban_NLOS_Ka_band_UL.json"], ["muZSD"], [80],
-       "mu_lgZSD at 80 degrees is -3.30; TR 38.811 Table 6.7.2-6b gives -3.20")
-# At these elevation angles the factors in the files belong to a different number of
-# clusters than the one of the table.
-_SCALING = ["CPhiNLoS", "CThetaNLoS"]
-_SCALING_REASON = ("One C_phi^NLOS and one C_theta^NLOS per file, while the number of "
-                   "clusters of TR 38.811 Tables 6.7.2-3a to 6.7.2-6b changes with the "
-                   "elevation angle; Tables 6.7.2-1aa and 6.7.2-1ab give the factors per "
-                   "number of clusters")
-_known(_files("Urban", "LOS"), _SCALING, [10], _SCALING_REASON)
-_known(_files("Urban", "NLOS"), _SCALING, [70, 80, 90], _SCALING_REASON)
-_known(_files("Sub_Urban", "LOS"), _SCALING, [70, 80, 90], _SCALING_REASON)
-_known(_files("Sub_Urban", "NLOS"), _SCALING, [60, 70, 80, 90], _SCALING_REASON)
-_known(["Urban_NLOS_Ka_band_UL.json", "Urban_NLOS_Ka_band_DL.json"], ["cASA"],
-       [30, 40, 50],
-       "c_ASA at 30, 40 and 50 degrees is 18.14, 16.04 and 17.86; TR 38.811 "
-       "Table 6.7.2-4b gives 16.4, 17.86 and 19.74")
 
 
 def _parse(text):
@@ -156,12 +129,12 @@ def _load(name):
 def _expected_keys(name):
     state = _parts(name)[1]
     per_elevation = PER_ELEVATION - ({"CL"} if state == "LOS" else set())
-    return {f"{k}_{e}" for k in per_elevation for e in ELEVATIONS} | SINGLE_VALUE
+    return {f"{k}_{e}" for k in per_elevation for e in ELEVATIONS}
 
 
 def _parameters(name):
     state = _parts(name)[1]
-    return sorted((PER_ELEVATION - ({"CL"} if state == "LOS" else set())) | SINGLE_VALUE)
+    return sorted(PER_ELEVATION - ({"CL"} if state == "LOS" else set()))
 
 
 def _table_values(name, parameter):
@@ -177,11 +150,17 @@ def _table_values(name, parameter):
         return [_parse(v) for v in TABLES[table["sigma_SF_table"]]["rows"][column]]
     if parameter == "LoS_p":
         return [_parse(v) for v in TABLES["6.6.1-1"]["rows"][los_column]]
-    if parameter in SINGLE_VALUE:
-        scaling = TABLES["6.7.2-1aa" if parameter == "CPhiNLoS" else "6.7.2-1ab"]
-        factors = dict(zip(scaling["number_of_clusters"], next(iter(scaling["rows"].values()))))
-        return [_parse(factors[n]) if n in factors else NOT_SPECIFIED for n in table["rows"]["N"]]
     raise KeyError(parameter)
+
+
+def scaling_factor(scenario, state, band, parameter, elevation):
+    """C_phi^NLOS or C_theta^NLOS of Tables 6.7.2-1aa and 6.7.2-1ab for the number of
+    clusters N of the parameter table of the scenario, link state and band."""
+    table = TABLES[SCENARIOS[scenario][1][(state, band)]]
+    num_clusters = table["rows"]["N"][ELEVATIONS.index(elevation)]
+    scaling = TABLES[SCALING_FACTORS[parameter]]
+    factors = dict(zip(scaling["number_of_clusters"], next(iter(scaling["rows"].values()))))
+    return _parse(factors[num_clusters])
 
 
 def _note_8(parameter):
@@ -206,8 +185,6 @@ def expected_values(name, parameter):
 
 def actual_values(name, parameter):
     data = _load(name)
-    if parameter in SINGLE_VALUE:
-        return [_parse(data[parameter])] * 9
     return [_parse(data[f"{parameter}_{e}"]) for e in ELEVATIONS]
 
 
@@ -240,6 +217,7 @@ def test_model_files_accounted_for():
 @pytest.mark.parametrize("name", _scenario_files())
 def test_parameter_names(name):
     keys = set(_load(name))
+    assert not keys & set(SCALING_FACTORS), "the scaling factors are selected in the code"
     expected = _expected_keys(name)
     assert keys == expected, (f"missing: {sorted(expected - keys)}, "
                               f"unexpected: {sorted(keys - expected)}")
@@ -248,16 +226,40 @@ def test_parameter_names(name):
 @pytest.mark.parametrize("name,parameter",
                          [(n, p) for n in _scenario_files() for p in _parameters(n)])
 def test_parameter(name, parameter):
-    elevations = [e for e in ELEVATIONS if (name, parameter, e) not in KNOWN_DEVIATIONS]
-    _check(name, parameter, elevations)
+    _check(name, parameter, ELEVATIONS)
 
 
-@pytest.mark.parametrize("name,parameter,elevation", [
-    pytest.param(n, p, e, marks=pytest.mark.xfail(strict=True, raises=AssertionError,
-                                                   reason=reason))
-    for (n, p, e), reason in sorted(KNOWN_DEVIATIONS.items())])
-def test_known_deviation(name, parameter, elevation):
-    _check(name, parameter, [elevation])
+MODEL_CLASSES = {"Dense_Urban": (DenseUrban, "dur"), "Urban": (Urban, "urb"),
+                 "Sub_Urban": (SubUrban, "sur")}
+CARRIER_FREQUENCIES = {("S", "DL"): 2.2e9, ("S", "UL"): 2.0e9, ("Ka", "DL"): 20.0e9,
+                       ("Ka", "UL"): 30.0e9}
+
+
+@pytest.mark.parametrize("scenario,band,direction,elevation", [
+    (s, b, d, e) for s in SCENARIOS for b in ("S", "Ka") for d in ("UL", "DL")
+    for e in ELEVATIONS])
+def test_scaling_factors(scenario, band, direction, elevation):
+    model_class, scenario_key = MODEL_CLASSES[scenario]
+    carrier_frequency = CARRIER_FREQUENCIES[(band, direction)]
+    antenna = Antenna(polarization="single", polarization_type="V",
+                      antenna_pattern="38.901", carrier_frequency=carrier_frequency)
+    model = model_class(carrier_frequency=carrier_frequency, ut_array=antenna,
+                        bs_array=antenna,
+                        direction="uplink" if direction == "UL" else "downlink",
+                        elevation_angle=float(elevation))
+    topology = list(utils.gen_single_sector_topology(
+        batch_size=1, num_ut=2, scenario=scenario_key, elevation_angle=float(elevation),
+        bs_height=600000.0))
+    topology[5] = torch.zeros_like(topology[5])  # outdoor, so that los applies
+    errors = []
+    for state in ("LOS", "NLOS"):
+        model.set_topology(*topology, los=state == "LOS")
+        for parameter in SCALING_FACTORS:
+            actual = model._scenario.get_param(parameter).flatten().tolist()
+            expected = scaling_factor(scenario, state, band, parameter, elevation)
+            if not all(math.isclose(a, expected, rel_tol=1e-6) for a in actual):
+                errors.append(f"{state} {parameter}: {actual}, table {expected}")
+    assert not errors, "; ".join(errors)
 
 
 @pytest.mark.parametrize("model_class,scenario", [(DenseUrban, "Dense_Urban"),

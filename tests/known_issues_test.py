@@ -1,12 +1,13 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 Arbeitsbereich Nachrichtentechnik
 # SPDX-License-Identifier: MIT
 #
-# Tests of behaviour that the current implementation does not meet yet.
+# Tests of behaviour that the implementation did not meet, or does not meet yet.
 #
 # Each test states the behaviour required by the specification or by the documented
-# interface. It is marked as a strict expected failure whose reason states the observed
-# and the expected behaviour. Strict means that the test fails as soon as the behaviour
-# changes, so the marker has to be removed in the same change.
+# interface. Where the implementation does not meet it yet, the test is marked as a
+# strict expected failure whose reason states the observed and the expected behaviour.
+# Strict means that the test fails as soon as the behaviour changes, so the marker has
+# to be removed in the same change; the test then stays as a regression test.
 import math
 import unittest
 
@@ -23,18 +24,19 @@ ELEVATION_ANGLE = 50.0
 BS_HEIGHT = 600000.0
 
 
-def _model(enable_shadow_fading=True, direction="downlink"):
+def _model(enable_shadow_fading=True, direction="downlink",
+           carrier_frequency=CARRIER_FREQUENCY):
     ut_array = Antenna(polarization="single",
                        polarization_type="V",
                        antenna_pattern="38.901",
-                       carrier_frequency=CARRIER_FREQUENCY)
+                       carrier_frequency=carrier_frequency)
     bs_array = AntennaArray(num_rows=1,
                             num_cols=4,
                             polarization="dual",
                             polarization_type="VH",
                             antenna_pattern="38.901",
-                            carrier_frequency=CARRIER_FREQUENCY)
-    return Urban(carrier_frequency=CARRIER_FREQUENCY,
+                            carrier_frequency=carrier_frequency)
+    return Urban(carrier_frequency=carrier_frequency,
                  ut_array=ut_array,
                  bs_array=bs_array,
                  direction=direction,
@@ -117,9 +119,6 @@ class ShadowFading(unittest.TestCase):
 
 class RayOffsets(unittest.TestCase):
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="The offset of ray 16 is -0.1481; TR 38.901 Table 7.5-3 gives "
-                              "+1.1481 and -1.1481 for rays 15 and 16")
     def test_ray_offsets(self):
         # TR 38.901 V16.1.0, Table 7.5-3: offsets +-a_m for the ray pairs (1,2) to (19,20).
         basis = [0.0447, 0.1413, 0.2492, 0.3715, 0.5129, 0.6797, 0.8844, 1.1481, 1.5195,
@@ -134,9 +133,6 @@ class RayOffsets(unittest.TestCase):
 
 class TopologyAliasing(unittest.TestCase):
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="set_topology overwrites in place the tensors passed in an earlier "
-                              "call; expected: its arguments are not modified")
     def test_set_topology_keeps_caller_tensors(self):
         model = _model()
         first = _topology()
@@ -148,14 +144,24 @@ class TopologyAliasing(unittest.TestCase):
         for name, tensor, saved in zip(names, first, snapshot):
             self.assertTrue(torch.equal(tensor, saved), f"{name} was changed by set_topology")
 
+    def test_set_topology_keeps_gradients(self):
+        # The stored topology is a copy, not a detached tensor: quantities derived from
+        # it stay differentiable with respect to the tensors passed in.
+        model = _model()
+        topology = _topology()
+        ut_loc = topology[0].clone().requires_grad_(True)
+        topology[0] = ut_loc
+        model.set_topology(*topology)
+        model._scenario.distance_2d.sum().backward()
+        self.assertIsNotNone(ut_loc.grad)
+        self.assertTrue(bool(torch.isfinite(ut_loc.grad).all()))
+        self.assertGreater(float(ut_loc.grad.abs().sum()), 0.0)
+
 
 class AtmosphericParameters(unittest.TestCase):
     """The set_topology docstring: "not specifying a parameter leads to the reuse of the
     previously given value"."""
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="An atmospheric parameter passed to set_topology without topology "
-                              "tensors does not change the gas loss; expected: it takes effect")
     def test_parameter_alone_updates_gas_loss(self):
         topology = _topology()
         reference = _model()._scenario
@@ -166,22 +172,52 @@ class AtmosphericParameters(unittest.TestCase):
         sc.set_topology(temperature=300.0)
         torch.testing.assert_close(sc.gas_pathloss, reference.gas_pathloss)
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="set_topology resets the atmospheric parameters that are not passed "
-                              "to their defaults; expected: the previous values are reused")
+    def test_parameter_alone_updates_scintillation_loss(self):
+        # Ka band: the tropospheric scintillation loss depends on the temperature, the
+        # relative humidity and the Earth-stationed antenna.
+        parameters = {"temperature": 300.0, "relative_humidity": 70.0,
+                      "diameter_earth_antenna": 1.0, "antenna_efficiency": 0.6}
+        topology = _topology()
+        reference = _model(carrier_frequency=20e9)._scenario
+        reference.set_topology(*topology, **parameters)
+
+        sc = _model(carrier_frequency=20e9)._scenario
+        sc.set_topology(*topology)
+        before = sc.scintillation_pathloss.clone()
+        sc.set_topology(**parameters)
+        self.assertFalse(torch.equal(sc.scintillation_pathloss, before))
+        torch.testing.assert_close(sc.scintillation_pathloss, reference.scintillation_pathloss)
+
+    def test_parameter_alone_draws_nothing(self):
+        # Only the gas and scintillation losses are recomputed: the LoS states, the
+        # basic path loss with its shadow fading draw and the large scale parameters
+        # stay as they are.
+        model = _model()
+        model.set_topology(*_topology())
+        sc = model._scenario
+        lsp_names = ("ds", "asd", "asa", "sf", "k_factor", "zsa", "zsd")
+
+        def state():
+            return ([sc.los.clone(), sc.basic_pathloss.clone(), sc.distance_2d_in.clone()]
+                    + [getattr(model._lsp, n).clone() for n in lsp_names])
+
+        before = state()
+        model.set_topology(temperature=300.0)
+        self.assertEqual(sc.temperature, 300.0)
+        for b, a in zip(before, state()):
+            self.assertTrue(torch.equal(b, a))
+
     def test_parameter_persists(self):
         sc = _model()._scenario
         sc.set_topology(*_topology(), temperature=300.0)
         sc.set_topology(*_topology())
         self.assertEqual(sc.temperature, 300.0)
 
-    @pytest.mark.xfail(strict=True, raises=TypeError,
-                       reason="The set_topology method of the channel models does not accept "
-                              "atmospheric parameters (TypeError); expected: accepted as by the "
-                              "scenario")
     def test_channel_set_topology_accepts_parameters(self):
         model = _model()
         model.set_topology(*_topology(), temperature=300.0)
+        self.assertEqual(model._scenario.temperature, 300.0)
+        model.set_topology(*_topology())
         self.assertEqual(model._scenario.temperature, 300.0)
 
 

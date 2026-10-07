@@ -23,6 +23,16 @@ from .antenna import PanelArray
 
 from . import models # pylint: disable=relative-beyond-top-level
 
+# Scaling factors C_phi^NLOS and C_theta^NLOS per number of clusters, TR 38.811 V15.4.0
+# Tables 6.7.2-1aa and 6.7.2-1ab. They depend on the number of clusters, which changes
+# with the elevation angle and the link state, so they are not part of the parameter
+# files.
+_C_PHI_NLOS = {2: 0.501, 3: 0.680, 4: 0.779, 5: 0.860, 8: 1.018, 10: 1.090, 11: 1.123,
+               12: 1.146, 14: 1.190, 15: 1.211, 16: 1.226, 19: 1.273, 20: 1.289}
+_C_THETA_NLOS = {2: 0.430, 3: 0.594, 4: 0.697, 8: 0.889, 10: 0.957, 11: 1.031,
+                 12: 1.104, 15: 1.1088, 19: 1.184, 20: 1.178}
+_SCALING_FACTORS = {"CPhiNLoS": _C_PHI_NLOS, "CThetaNLoS": _C_THETA_NLOS}
+
 
 class SystemLevelScenario(Object):
     r"""
@@ -125,6 +135,18 @@ class SystemLevelScenario(Object):
         self._ut_velocities = None
         self._in_state = None
         self._requested_los = None
+
+        # Atmospheric parameters. Set once here; set_topology changes only the
+        # parameters it is passed.
+        self._latitude = 47
+        self._lwc = 0.41
+        self._rain_rate = 40
+        self._atmospheric_pressure = 1020
+        self._temperature = 273
+        self._water_vapor_density = 7.5
+        self._relative_humidity = 50
+        self._diameter_earth_antenna = 3.6
+        self._antenna_efficiency = 0.5
 
         # Load parameters for this scenario
         self._load_params()
@@ -433,21 +455,24 @@ class SystemLevelScenario(Object):
     @property
     def latitude(self):
         r"""Latitude of each UT, used for additional pathlosses
-        See section 6.6.6 of 38.811 specification.
+        See section 6.6.6 of 38.811 specification. No effect while the cloud
+        and rain attenuation is disabled.
         """
         return self._latitude
 
     @property
     def lwc(self):
         r"""Liquid water content in kg/m^2, used for cloud attenuation
-        See section 6.6.5 of 38.811 specification.
+        See section 6.6.5 of 38.811 specification. No effect while the cloud
+        attenuation is disabled.
         """
         return self._lwc
 
     @property
     def rain_rate(self):
         r"""Rain rate in mm/h, used for rain attenuation
-        See section 6.6.5 of 38.811 specification.
+        See section 6.6.5 of 38.811 specification. No effect while the rain
+        attenuation is disabled.
         """
         return self._rain_rate
 
@@ -514,7 +539,10 @@ class SystemLevelScenario(Object):
         if existing is not None and name in self._buffers and existing.shape == value.shape:
             existing.copy_(value)
         else:
-            self._register_buffer_safe(name, value)
+            # Register a copy: the caller's tensor must not become the buffer, or the
+            # copy_ of a later call would overwrite it. clone() rather than detach()
+            # keeps gradients with respect to the topology.
+            self._register_buffer_safe(name, value.clone())
 
     def set_topology(self, ut_loc=None, bs_loc=None, ut_orientations=None,
         bs_orientations=None, ut_velocities=None, in_state=None, los=None, latitude=None,
@@ -558,6 +586,54 @@ class SystemLevelScenario(Object):
                 if it is set to `False`. If set to `None`, the LoS/NLoS states
                 of UTs is set following 3GPP specification
                 (Section 7.4.2 of TR 38.901).
+
+            atmospheric_pressure : float
+                Atmospheric pressure [hPa], used for the gas loss. Defaults
+                to 1020.
+
+            temperature : float
+                Temperature [K], used for the gas and the scintillation loss.
+                Defaults to 273.
+
+            water_vapor_density : float
+                Water vapour density [g/m^3], used for the gas loss. Defaults
+                to 7.5.
+
+            relative_humidity : float
+                Relative humidity [%], used for the scintillation loss.
+                Defaults to 50.
+
+            diameter_earth_antenna : float
+                Diameter of the Earth-stationed antenna [m], used for the
+                scintillation loss. Defaults to 3.6.
+
+            antenna_efficiency : float
+                Efficiency of the Earth-stationed antenna, used for the
+                scintillation loss. Defaults to 0.5.
+
+            latitude : float
+                Latitude of the UTs [deg]. Used only by the cloud and rain
+                attenuation, which is disabled, so it has no effect. Defaults
+                to 47.
+
+            lwc : float
+                Liquid water content [kg/m^2]. Used only by the cloud
+                attenuation, which is disabled, so it has no effect. Defaults
+                to 0.41.
+
+            rain_rate : float
+                Rain rate [mm/h]. Used only by the rain attenuation, which is
+                disabled, so it has no effect. Defaults to 40.
+
+            An atmospheric parameter that is passed without new topology
+            tensors updates the gas and scintillation losses of the current
+            topology; nothing is drawn again.
+
+        Output
+        -------
+            need_for_update : bool
+                `True` if the topology changed, so that the large scale
+                parameters must be drawn again
         """
 
         assert (ut_loc is not None) or (self._ut_loc is not None),\
@@ -587,51 +663,25 @@ class SystemLevelScenario(Object):
         # state of UTs, or LoS/NLoS states of outdoor UTs are updated.
         need_for_update = False
 
-        #Setting values to standard values if not further specified
+        # Atmospheric parameters: a parameter that is not passed keeps its previous
+        # value. The gas and scintillation losses depend on these ones.
+        atmosphere_updated = False
+        for name, value in (("atmospheric_pressure", atmospheric_pressure),
+                            ("temperature", temperature),
+                            ("water_vapor_density", water_vapor_density),
+                            ("relative_humidity", relative_humidity),
+                            ("diameter_earth_antenna", diameter_earth_antenna),
+                            ("antenna_efficiency", antenna_efficiency)):
+            if value is not None:
+                setattr(self, "_" + name, value)
+                atmosphere_updated = True
+        # Used only by the cloud and rain attenuation, which is disabled
         if latitude is not None:
             self._latitude = latitude
-        else:
-            self._latitude = 47
-
         if lwc is not None:
             self._lwc = lwc
-        else:
-            self._lwc = 0.41
-
         if rain_rate is not None:
             self._rain_rate = rain_rate
-        else:
-            self._rain_rate = 40
-
-        if atmospheric_pressure is not None:
-            self._atmospheric_pressure = atmospheric_pressure
-        else:
-            self._atmospheric_pressure = 1020
-
-        if temperature is not None:
-            self._temperature = temperature
-        else:
-            self._temperature = 273
-
-        if water_vapor_density is not None:
-            self._water_vapor_density = water_vapor_density
-        else:
-            self._water_vapor_density = 7.5
-
-        if relative_humidity is not None:
-            self._relative_humidity = relative_humidity
-        else:
-            self._relative_humidity = 50
-
-        if diameter_earth_antenna is not None:
-            self._diameter_earth_antenna = diameter_earth_antenna
-        else:
-            self._diameter_earth_antenna = 3.6
-
-        if antenna_efficiency is not None:
-            self._antenna_efficiency = antenna_efficiency
-        else:
-            self._antenna_efficiency = 0.5
 
         if ut_loc is not None:
             self._update_attr("_ut_loc", self._convert(ut_loc))
@@ -682,6 +732,11 @@ class SystemLevelScenario(Object):
             #The 3GPP model only considers the losses given above. However, there also are
             #models for additional losses due to clouds and rain, which are considered in this function
             #self._compute_pathloss_additional()
+        elif atmosphere_updated:
+            # Only the gas and scintillation losses depend on the atmospheric
+            # parameters; they are deterministic, so nothing is drawn again.
+            self._compute_pathloss_gas()
+            self._compute_pathloss_scintillation()
         return need_for_update
 
     def spatial_correlation_matrix(self, correlation_distance):
@@ -748,7 +803,10 @@ class SystemLevelScenario(Object):
         Input
         ------
         parameter_name : str
-            Name of the parameter used in the configuration file
+            Name of the parameter used in the configuration file, or
+            "CPhiNLoS" or "CThetaNLoS" for the scaling factors of TR 38.811
+            Tables 6.7.2-1aa and 6.7.2-1ab, selected by the number of
+            clusters of each link state
 
         Output
         -------
@@ -766,13 +824,16 @@ class SystemLevelScenario(Object):
                                        device=self.device)
 
         # Parameter value, rounds elevation angle to nearest table entry
-        if parameter_name not in ("CPhiNLoS", "CThetaNLoS"):
+        if parameter_name not in _SCALING_FACTORS:
             angle_str = str(round(self._elevation_angle/10.0)*10)
             parameter_value_los = self._params_los[parameter_name + '_' + angle_str]
             parameter_value_nlos = self._params_nlos[parameter_name + '_' + angle_str]
         else:
-            parameter_value_los = self._params_los[parameter_name]
-            parameter_value_nlos = self._params_nlos[parameter_name]
+            # The factor of the number of clusters of each link state at this
+            # elevation angle (TR 38.901 V16.1.0, 7.5 step 7)
+            factors = _SCALING_FACTORS[parameter_name]
+            parameter_value_los = factors[self.num_clusters_los]
+            parameter_value_nlos = factors[self.num_clusters_nlos]
         # Expand to allow broadcasting with the BS dimension
         indoor = self.indoor.unsqueeze(1)
         # LoS

@@ -148,25 +148,27 @@ class TestClusterPowerGeneration(unittest.TestCase):
         expected = (rays.powers / num_rays)[..., None, None, None, None].expand_as(power)
         torch.testing.assert_close(power, expected, rtol=1e-5, atol=1e-12)
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="Clusters with less than -25 dB power compared to the strongest "
-                              "cluster are kept; TR 38.901 clause 7.5 step 6 removes them")
     def test_cluster_elimination(self):
         """TR 38.901 V16.1.0, 7.5 step 6: "Remove clusters with less than -25 dB power
         compared to the maximum cluster power." """
-        # Checked on NLOS links, where the cluster powers are those of eq. (7.5-6); for
-        # LOS links the reference maximum (with or without the specular component of
-        # eq. (7.5-8)) is not stated. A removed cluster has zero power.
+        # The cluster powers are those of eq. (7.5-6), on LOS and NLOS links; the
+        # specular component of eq. (7.5-8) is not part of the comparison. A removed
+        # cluster has zero power.
         self.channel_model.set_topology(*utils.gen_single_sector_topology(
             batch_size=100, num_ut=100, scenario="urb",
             elevation_angle=self.elevation_angle, bs_height=600000.0))
         rays = self.channel_model._ray_sampler(self.channel_model._lsp)
         relative = rays.powers / rays.powers.amax(dim=3, keepdim=True)
-        nlos = torch.unsqueeze(~self.channel_model._scenario.los, 3)
-        kept_weak = nlos & (relative > 0) & (relative < 10 ** (-25 / 10))
-        self.assertTrue(bool(nlos.any()))
-        self.assertEqual(int(kept_weak.sum()), 0,
-                         "clusters below -25 dB of the strongest cluster are still present")
+        los = torch.unsqueeze(self.channel_model._scenario.los, 3).expand_as(relative)
+        kept_weak = (relative > 0) & (relative < 10 ** (-25 / 10))
+        used = self.channel_model._ray_sampler._cluster_mask == 0.0
+        removed = used & (relative == 0)
+        for name, state in (("LOS", los), ("NLOS", ~los)):
+            self.assertTrue(bool(state.any()), f"no {name} links")
+            self.assertEqual(int((kept_weak & state).sum()), 0,
+                             f"{name}: clusters below -25 dB of the strongest cluster are "
+                             "still present")
+            self.assertGreater(int((removed & state).sum()), 0, f"{name}: no cluster removed")
 
 if __name__ == '__main__':
     unittest.main()

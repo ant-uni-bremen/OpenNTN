@@ -80,7 +80,10 @@ class SystemLevelChannel(ChannelModel):
         self._always_generate_lsp = always_generate_lsp
 
     def set_topology(self, ut_loc=None, bs_loc=None, ut_orientations=None,
-        bs_orientations=None, ut_velocities=None, in_state=None, los=None):
+        bs_orientations=None, ut_velocities=None, in_state=None, los=None,
+        latitude=None, lwc=None, rain_rate=None, atmospheric_pressure=None,
+        temperature=None, water_vapor_density=None, relative_humidity=None,
+        diameter_earth_antenna=None, antenna_efficiency=None):
         r"""
         Set the network topology.
 
@@ -118,6 +121,13 @@ class SystemLevelChannel(ChannelModel):
                 forced to be in LoS if ``los`` is set to `True`, or in NLoS
                 if it is set to `False`. If set to `None`, the LoS/NLoS states
                 of UTs is set following 3GPP specification [TR38901]_.
+
+            latitude, lwc, rain_rate, atmospheric_pressure, temperature, water_vapor_density, relative_humidity, diameter_earth_antenna, antenna_efficiency : float or `None`
+                Atmospheric parameters, passed to the ``set_topology`` method
+                of the scenario, which documents them. A parameter that is not
+                passed keeps its previous value. ``latitude``, ``lwc`` and
+                ``rain_rate`` have no effect while the cloud and rain
+                attenuation is disabled.
         """
 
         # Update the scenario topology
@@ -127,7 +137,16 @@ class SystemLevelChannel(ChannelModel):
                                                         bs_orientations,
                                                         ut_velocities,
                                                         in_state,
-                                                        los)
+                                                        los,
+                                                        latitude=latitude,
+                                                        lwc=lwc,
+                                                        rain_rate=rain_rate,
+                                                        atmospheric_pressure=atmospheric_pressure,
+                                                        temperature=temperature,
+                                                        water_vapor_density=water_vapor_density,
+                                                        relative_humidity=relative_humidity,
+                                                        diameter_earth_antenna=diameter_earth_antenna,
+                                                        antenna_efficiency=antenna_efficiency)
 
         if need_for_update:
             # Update the LSP sampler

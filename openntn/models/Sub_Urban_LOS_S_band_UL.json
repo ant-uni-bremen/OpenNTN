@@ -230,9 +230,6 @@
     "LoS_p_80" : 0.952,
     "LoS_p_90" : 0.998,
 
-    "CPhiNLoS" : 0.680,
-    "CThetaNLoS" : 0.594,
-
     "corrDistDS_10" : 30.0,
     "corrDistDS_20" : 30.0,
     "corrDistDS_30" : 30.0,

@@ -117,7 +117,7 @@ class RaysGenerator(Object):
                 0.5129, -0.5129,
                 0.6797, -0.6797,
                 0.8844, -0.8844,
-                1.1481, -0.1481,
+                1.1481, -1.1481,
                 1.5195, -1.5195,
                 2.1551, -2.1551,
             ],
@@ -420,6 +420,20 @@ class RaysGenerator(Object):
 
         # Normalizing cluster powers
         powers = powers_unnormalized / powers_unnormalized.sum(dim=3, keepdim=True)
+
+        # Remove clusters with less than -25 dB power compared to the maximum
+        # cluster power (TR 38.901 step 6), on the powers of eq. (7.5-6) for LoS
+        # and NLoS links, as in Sionna 2.2.0. Removed clusters get zero power and
+        # the tensor shapes stay fixed; the powers are not renormalized.
+        power_threshold = (
+            powers.max(dim=3, keepdim=True).values
+            * torch.pow(torch.tensor(10.0, dtype=self.dtype, device=self.device), -2.5)
+        )
+        cluster_keep_mask = (
+            (powers >= power_threshold)
+            & (self._cluster_mask == 0.0)
+        ).to(self.dtype)
+        powers = powers * cluster_keep_mask
 
         # Additional specular component for LoS
         rician_k_factor = rician_k_factor.unsqueeze(3)
