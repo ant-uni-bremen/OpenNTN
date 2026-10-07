@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file tests the implementation of step 9, the Cross polarization ratio generation. 
 # Step 9 test is  a mockup 
 import unittest

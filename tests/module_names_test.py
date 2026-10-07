@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # pytest puts this directory on sys.path, so its modules are imported by their bare
 # names. A module named like a standard-library module is shadowed wherever the
 # interpreter has that module built in, because built-in modules are found before

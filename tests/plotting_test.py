@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file checks that the plotting methods run and create their figures. It does not
 # check what the figures show. The non-interactive Agg backend is selected so that the
 # tests need no display.

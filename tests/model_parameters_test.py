@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file compares every parameter of the scenario parameter files in openntn/models
 # with the tables of 3GPP TR 38.811 V15.4.0:
 #   - Tables 6.7.2-1a to 6.7.2-6b: large scale parameters, cross-correlations, delay

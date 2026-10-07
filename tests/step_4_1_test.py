@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file is very huge, as it effectively tests a significant portion of the values in the parametrization tables for all scenarios.
 # The order of Large Scale parameters (LSPs) differs from the standard and is: DS ASD ASA SF K ZSA ZSD. This is to keep
 # in line with the rest of the Sionna implementation. At the moment the proper distribution of all sampled parameters is evaluated, a test of 

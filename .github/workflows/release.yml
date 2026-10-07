@@ -4,7 +4,8 @@ name: Release
 # PyPI Trusted Publishing:
 # - development versions (.devN) go to TestPyPI only;
 # - alpha, beta, release candidate and final versions go to TestPyPI, then to PyPI.
-#   The environment pypi requires the maintainer's approval.
+#   The environment pypi requires the maintainer's approval; the PyPI job also runs
+#   when the TestPyPI job failed (see the job pypi).
 # Push release tags one at a time: GitHub creates no push event when more than three
 # tags are pushed at once.
 
@@ -15,6 +16,7 @@ on:
 permissions:
   contents: read
 
+# The runner image is pinned for the 2.0.0 release window, as in ci.yml.
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
@@ -25,7 +27,7 @@ defaults:
 jobs:
   build:
     name: Build and check the distributions
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -94,7 +96,7 @@ jobs:
   testpypi:
     name: Publish to TestPyPI
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment:
       name: testpypi
@@ -112,9 +114,13 @@ jobs:
 
   pypi:
     name: Publish to PyPI
+    # Also runs when the TestPyPI job failed: TestPyPI has no availability guarantee,
+    # and PyPI rejects an invalid upload without using up the version. The deployment
+    # still waits for the maintainer's approval in the environment pypi; after a failed
+    # TestPyPI job it is approved only if TestPyPI's availability was the cause.
     needs: [build, testpypi]
-    if: needs.build.outputs.dev == 'false'
-    runs-on: ubuntu-latest
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.build.outputs.dev == 'false' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment:
       name: pypi

@@ -22,10 +22,15 @@ defaults:
   run:
     shell: bash
 
+# Runner images are pinned to the versions the -latest labels point to in October 2026,
+# so that the image does not change during the 2.0.0 release window (ubuntu-latest
+# moves to Ubuntu 26.04 between 19 October and 19 November 2026,
+# https://github.com/actions/runner-images/issues/14748). They are moved deliberately
+# after 2.0.0.
 jobs:
   linux:
     name: Linux, Python ${{ matrix.python }}, Sionna ${{ matrix.sionna }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -76,7 +81,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-2025, macos-26]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -109,7 +114,7 @@ jobs:
     # reference outputs are compared only with the versions recorded in
     # tests/reference_outputs/environment.json.
     name: Reference outputs, Linux, Python 3.12, Sionna 2.0.1, torch 2.11.0
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

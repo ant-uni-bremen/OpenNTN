@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # Tests of behaviour that the current implementation does not meet yet.
 #
 # Each test states the behaviour required by the specification or by the documented

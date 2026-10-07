@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # Shared test configuration.
 #
 # Every test starts from the same seed, so results do not depend on which tests ran

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file verifies that OpenNTN runs end-to-end on a CUDA GPU using the idiomatic
 # Sionna 2.0 "construct-on-target" pattern (config.device set before construction), for
 # every implemented TR38.811 scenario, and that constant/topology tensors follow .to()/.cuda().

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file is a characterization test. It compares the outputs of the channel models
 # for fixed seeds on the CPU with reference outputs stored in reference_outputs/*.npz.
 # The references were produced by the implementation itself, so they do not prove

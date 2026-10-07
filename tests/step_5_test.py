@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file tests the implementation of step 5, the cluster delay generation. To do this, the ideal
 # values for all calculations are done and the average calculation is compared to it. As step 4 already
 # tests the correct creation of the LSPs Delay Spread (DS) and the Rician K Factor (K), we assume these

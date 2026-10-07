@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file tests the implementation of step 10, the initial random phase generation. 
 # Step 10 test is  a mockup 
 import unittest

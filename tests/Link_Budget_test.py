@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file tests the correct calculation of the Link Budget for the Scnerios described in 3GPP TR38.821 Table 6.1.3.3-1: Link budgets results
 
 from openntn import utils   # The code to test

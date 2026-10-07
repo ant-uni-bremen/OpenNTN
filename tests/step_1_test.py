@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file tests the generation of the Scenarios according to Step 1 of 3GPP TR38.901 7.5
 # combined wiht the additions of 3GPP TR38.811 6.7.2
 # The test mainly test for the correct detection of illegal scenario configurations based on 38.811 5.2 and 4.5

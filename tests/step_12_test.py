@@ -1,3 +1,10 @@
+#
+# SPDX-FileCopyrightText: Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Modified by the Dept. of Communications Engineering of the University of Bremen.
+# Based on the channel coefficient tests of Sionna's TR38.901 implementation.
+#
 # This file tests the implementation of step 12, the application of the path loss and shadow fading
 # to the path coefficients. 
 import openntn

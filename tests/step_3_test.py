@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file tests step 3, the basic path loss of TR 38.811 Section 6.6.2, eq. (6.6-4):
 # PL_b = FSPL + SF + CL, with SF ~ N(0, sigma_SF^2) and CL = 0 dB for LoS UEs.
 # After subtracting FSPL, the LoS samples must have mean 0 and standard deviation

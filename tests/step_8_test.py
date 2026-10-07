@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file tests the implementation of step 8, the angles coupling and shuffling. 
 # Step 8 is a mockup 
 import unittest

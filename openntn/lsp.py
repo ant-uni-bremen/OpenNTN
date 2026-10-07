@@ -1,9 +1,10 @@
 #
-# This file has been created by the Dept. of Communications Engineering of the University of Bremen.
-# The code is based on implementations provided by the NVIDIA CORPORATION & AFFILIATES
-#
-# SPDX-FileCopyrightText: Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2021-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
+#
+# Modified by the Dept. of Communications Engineering of the University of Bremen.
+# The code is based on implementations provided by the NVIDIA CORPORATION & AFFILIATES
+# in Sionna.
 #
 """
 Class for sampling large scale parameters (LSPs) and pathloss following the

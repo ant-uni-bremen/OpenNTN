@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # Statistical assertions shared by the tests that check sampled quantities.
 #
 # Each check compares an estimate with its expected value and accepts a deviation of up

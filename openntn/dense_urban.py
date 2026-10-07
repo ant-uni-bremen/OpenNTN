@@ -1,9 +1,9 @@
 #
-# This file has been created by the Dept. of Communications Engineering of the University of Bremen.
-# The code is based on implementations provided by the NVIDIA CORPORATION & AFFILIATES
+# SPDX-FileCopyrightText: Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
 #
-# Based on open source framework Sionna of 2021-2023 NVIDIA CORPORATION & AFFILIATES
-# Based on implementation of scenario UMa in Sionna TR38.901
+# Modified by the Dept. of Communications Engineering of the University of Bremen.
+# Based on the implementation of scenario UMa in Sionna TR38.901.
 #
 """Dense Urban channel model from 3GPP TR38.811 specification"""
 

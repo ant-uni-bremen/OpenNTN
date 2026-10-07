@@ -1,20 +1,22 @@
 [build-system]
-requires = [
-    "setuptools>=61",
-    "wheel"
-]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "openntn"
-version = "2.0.0.dev1"
+version = "2.0.0a1"
 description = "An extension of the Sionna framework with 3GPP TR38.811 non-terrestrial-network channel models"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+# Files derived from Sionna are Apache-2.0, the others MIT (README.md, section Licence).
+license = "MIT AND Apache-2.0"
+license-files = ["LICENSE", "LICENSE-APACHE"]
 authors = [
-    { name = "Tim Due", email = "duee@ant.uni-bremen.de" },
-    { name = "Louis Lagona", email = "lagona@ant.uni-bremen.de" }
+    { name = "Tim Düe" },
+    { name = "Louis Lagona" },
+]
+maintainers = [
+    { name = "Louis Lagona", email = "lagona@ant.uni-bremen.de" },
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

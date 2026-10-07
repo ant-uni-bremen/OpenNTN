@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Arbeitsbereich Nachrichtentechnik
+# SPDX-License-Identifier: MIT
+#
 # This file tests the path loss of a GEO downlink in Ka band, the link budget case SC1 of
 # 3GPP TR 38.821 Table 6.1.3.3-1 (20 GHz, free space path loss 210.6 dB), in the urban
 # scenario at 12.5 degrees elevation. It checks the components of TR 38.811 V15.4.0,
