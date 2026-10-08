@@ -136,7 +136,8 @@ class TestClusterPowerGeneration(unittest.TestCase):
                             rx_orientations=torch.zeros_like(sc.ut_orientations),
                             bs_height=torch.zeros_like(sc.bs_loc[:, :, 2][0]),
                             elevation_angle=sc.elevation_angle,
-                            doppler_enabled=sc.doppler_enabled)
+                            doppler_enabled=sc.doppler_enabled,
+                            los_phase=sc.los_phase)
         ccg = model._cir_sampler
         phi = ccg._step_10(rays.aoa.shape)
         sample_times = torch.arange(4, dtype=sc.dtype, device=sc.device) * 1e-4

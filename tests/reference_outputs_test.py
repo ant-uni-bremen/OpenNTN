@@ -97,9 +97,35 @@ ELEVATION_ANGLES = (10.0, 30.0, 60.0, 90.0)
 
 LSP_NAMES = ("ds", "asd", "asa", "sf", "k_factor", "zsa", "zsd")
 
+# Link states. With the seeds above, the links of some configurations are all in one
+# state, so the other state, with its own parameters and number of clusters, would not
+# be characterized there. Rule: every configuration of the grid whose stored links are
+# all in one state is stored once more with the other state forced through
+# set_topology(..., los=...), with the same seeds. Its keys carry the suffix "_nlos" or
+# "_los" after the case key. The configurations of the grid without this suffix are
+# computed as before.
+# (scenario, band, direction, elevation angle) -> (forced LoS state, number of clusters
+# of that state)
+FORCED_STATES = {
+    ("dense_urban", band, direction, 90.0): (False, 4)
+    for band in BANDS for direction in DIRECTIONS
+}
+FORCED_STATES.update({
+    ("urban", band, direction, 90.0): (False, 2)
+    for band in BANDS for direction in DIRECTIONS
+})
+FORCED_STATES.update({
+    ("sub_urban", band, direction, elevation_angle): (False, num_clusters)
+    for band in BANDS for direction in DIRECTIONS
+    for elevation_angle, num_clusters in ((30.0, 4), (60.0, 3), (90.0, 3))
+})
 
-def _case_key(band, direction, elevation_angle):
-    return f"{band}_{'dl' if direction == 'downlink' else 'ul'}_{int(elevation_angle)}"
+
+def _case_key(band, direction, elevation_angle, los=None):
+    key = f"{band}_{'dl' if direction == 'downlink' else 'ul'}_{int(elevation_angle)}"
+    if los is not None:
+        key += "_los" if los else "_nlos"
+    return key
 
 
 def _arrays(carrier_frequency):
@@ -120,8 +146,11 @@ def _np(x):
     return x.detach().cpu().numpy()
 
 
-def compute_case(scenario, band, direction, elevation_angle):
-    """Return the characterization outputs of one configuration as NumPy arrays."""
+def compute_case(scenario, band, direction, elevation_angle, los=None, num_clusters=None):
+    """Return the characterization outputs of one configuration as NumPy arrays.
+
+    With ``los`` set, all links are forced into that state, and the number of clusters
+    of the state must be ``num_clusters``."""
     model_class, scenario_key = SCENARIOS[scenario]
     carrier_frequency = CARRIER_FREQUENCY[(band, direction)]
 
@@ -139,9 +168,18 @@ def compute_case(scenario, band, direction, elevation_angle):
                                                 scenario=scenario_key,
                                                 elevation_angle=elevation_angle,
                                                 bs_height=BS_HEIGHT)
-    model.set_topology(*topology)
+    if los is None:
+        model.set_topology(*topology)
+    else:
+        model.set_topology(*topology, los=los)
 
     sc = model._scenario
+    if los is not None:
+        assert bool((sc.los == los).all()), \
+            f"{scenario} {band} {direction} {elevation_angle}: not every link is in the forced state"
+        clusters = sc.num_clusters_los if los else sc.num_clusters_nlos
+        assert clusters == num_clusters, \
+            f"{scenario} {band} {direction} {elevation_angle}: {clusters} clusters, expected {num_clusters}"
     out = {
         "los": _np(sc.los),
         "distance_3d": _np(sc.distance_3d),
@@ -195,6 +233,14 @@ def compute_all(scenario):
                     for name, value in compute_case(scenario, band, direction,
                                                     elevation_angle).items():
                         results[f"{case}__{name}"] = value
+                    forced = FORCED_STATES.get((scenario, band, direction, elevation_angle))
+                    if forced is not None:
+                        los, num_clusters = forced
+                        case = _case_key(band, direction, elevation_angle, los)
+                        for name, value in compute_case(scenario, band, direction,
+                                                        elevation_angle, los,
+                                                        num_clusters).items():
+                            results[f"{case}__{name}"] = value
         return results
     finally:
         config.device = previous_device
@@ -276,6 +322,21 @@ class ReferenceOutputs(unittest.TestCase):
                     act, ref, rtol=RTOL, atol=atol, equal_nan=True,
                     err_msg=(f"{scenario}/{key} differs from the reference "
                              f"(produced with {produced_with}; now {_describe(environment())})"))
+
+    def test_forced_states_follow_the_rule(self):
+        # The forced configurations are exactly the configurations of the grid whose
+        # stored links are all in one state, each forced into the other state.
+        uniform = {}
+        for scenario in SCENARIOS:
+            with np.load(os.path.join(REFERENCE_DIR, scenario + ".npz")) as stored:
+                for band in BANDS:
+                    for direction in DIRECTIONS:
+                        for elevation_angle in ELEVATION_ANGLES:
+                            los = stored[_case_key(band, direction, elevation_angle) + "__los"]
+                            if los.all() or not los.any():
+                                uniform[(scenario, band, direction, elevation_angle)] = \
+                                    not bool(los.all())
+        self.assertEqual(uniform, {k: v[0] for k, v in FORCED_STATES.items()})
 
     def test_dense_urban(self):
         self._check_scenario("dense_urban")

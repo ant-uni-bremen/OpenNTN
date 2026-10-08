@@ -69,6 +69,10 @@ class Topology:
 
     doppler_enabled : bool
         Indicates if Doppler shift induced phase rotation should be simulated.
+
+    los_phase : [batch size, number of TXs, number of RXs], `torch.float`
+        Propagation phase -2 pi d3D f_c / c of the LoS path, reduced to [0, 2 pi) in
+        double precision before the cast to the model precision [radian].
     """
 
     def __init__(self,  velocities,
@@ -83,7 +87,8 @@ class Topology:
                         rx_orientations,
                         bs_height,
                         elevation_angle,
-                        doppler_enabled):
+                        doppler_enabled,
+                        los_phase):
         self.velocities = velocities
         self.moving_end = moving_end
         self.los_aoa = los_aoa
@@ -97,6 +102,7 @@ class Topology:
         self.bs_height = bs_height
         self.elevation_angle = elevation_angle
         self.doppler_enabled = doppler_enabled
+        self.los_phase = los_phase
         # TODO In the best case we would verify the height, however, this ran into issues with eager execution at the moment
         # for now, we assume the satellite to always be used, despite the other checks for it already in place
         # In a future version we will test the sat height and set sat_speed to none if the bs is too low to be a satellite
@@ -1042,11 +1048,13 @@ class ChannelCoefficientsGenerator(Object):
         # Doppler matrix
         h_doppler = self._step_11_doppler_matrix(topology, aoa, zoa, aod, zod, t)
 
-        # Phase shift due to propagation delay
-        d3d = topology.distance_3d
-        lambda_0 = self._lambda_0
-        h_delay = torch.exp(torch.complex(torch.zeros_like(d3d),
-                        2*PI*d3d/lambda_0))
+        # Phase shift due to propagation delay, exp(-j 2 pi d3D / lambda_0) of TR 38.901
+        # V16.1.0, eq. (7.5-29), and TR 38.811 V15.4.0, eq. (6.8-1b): the phase
+        # decreases with the distance, consistent with the Doppler term. The scenario
+        # computes the phase in double precision, because the model precision may not
+        # resolve 2 pi d3D / lambda_0.
+        los_phase = topology.los_phase
+        h_delay = torch.exp(torch.complex(torch.zeros_like(los_phase), los_phase))
 
         # Combining all to compute channel coefficient
         h_field = h_field.squeeze(4).unsqueeze(-1)

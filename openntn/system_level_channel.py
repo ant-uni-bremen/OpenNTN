@@ -215,7 +215,8 @@ class SystemLevelChannel(ChannelModel):
                                 rx_orientations=rx_orientations,
                                 bs_height = self._scenario._bs_loc[:,:,2][0],
                                 elevation_angle = self._scenario.elevation_angle,
-                                doppler_enabled = self._scenario.doppler_enabled
+                                doppler_enabled = self._scenario.doppler_enabled,
+                                los_phase = self._scenario.los_phase
                                 )
 
         # The channel coefficient needs the cluster delay spread parameter in ns
@@ -248,6 +249,7 @@ class SystemLevelChannel(ChannelModel):
             topology.los = topology.los.permute(0, 2, 1)
             c_ds = c_ds.permute(0, 2, 1)
             topology.distance_3d = topology.distance_3d.permute(0, 2, 1)
+            topology.los_phase = topology.los_phase.permute(0, 2, 1)
             # Concerning LSPs, only these two are used.
             # We do not transpose the others to reduce complexity
             k_factor = lsp.k_factor.permute(0, 2, 1)

@@ -104,7 +104,8 @@ class Step_12(unittest.TestCase):
                                 rx_orientations=channel_model._scenario.bs_orientations,
                                 bs_height = channel_model._scenario._bs_loc[:,:,2][0],
                                 elevation_angle = channel_model._scenario.elevation_angle,
-                                doppler_enabled = channel_model._scenario.doppler_enabled
+                                doppler_enabled = channel_model._scenario.doppler_enabled,
+                                los_phase = channel_model._scenario.los_phase
                                 )
         self.topology = topology
         

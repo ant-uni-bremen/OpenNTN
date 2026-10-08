@@ -110,7 +110,8 @@ class Step_11(unittest.TestCase):
                                 rx_orientations=channel_model._scenario.bs_orientations,
                                 bs_height = channel_model._scenario._bs_loc[:,:,2][0],
                                 elevation_angle = channel_model._scenario.elevation_angle,
-                                doppler_enabled = channel_model._scenario.doppler_enabled
+                                doppler_enabled = channel_model._scenario.doppler_enabled,
+                                los_phase = channel_model._scenario.los_phase
                                 )
         self.topology = topology
         
@@ -515,10 +516,10 @@ class Step_11(unittest.TestCase):
                                                     H_phase)
 
         H_field = self.ccg._step_11_field_matrix(self.topology,
-                                    torch.tensor(self.rays.aoa, dtype=torch.float32, device=config.device),
-                                    torch.tensor(self.rays.aod, dtype=torch.float32, device=config.device),
-                                    torch.tensor(self.rays.zoa, dtype=torch.float32, device=config.device),
-                                    torch.tensor(self.rays.zod, dtype=torch.float32, device=config.device),
+                                    self.rays.aoa.detach().clone().to(dtype=torch.float32, device=config.device),
+                                    self.rays.aod.detach().clone().to(dtype=torch.float32, device=config.device),
+                                    self.rays.zoa.detach().clone().to(dtype=torch.float32, device=config.device),
+                                    self.rays.zod.detach().clone().to(dtype=torch.float32, device=config.device),
                                     torch.tensor(H_phase, dtype=torch.complex64, device=config.device)).cpu().numpy()
         max_err = self.max_rel_err(H_field_ref, H_field)
         err_tol = Step_11.MAX_ERR
@@ -567,10 +568,10 @@ class Step_11(unittest.TestCase):
                                                      self.topology)
 
         H_array = self.ccg._step_11_array_offsets(self.topology,
-                                torch.tensor(self.rays.aoa, dtype=torch.float32, device=config.device),
-                                torch.tensor(self.rays.aod, dtype=torch.float32, device=config.device),
-                                torch.tensor(self.rays.zoa, dtype=torch.float32, device=config.device),
-                                torch.tensor(self.rays.zod, dtype=torch.float32, device=config.device)).cpu().numpy()
+                                self.rays.aoa.detach().clone().to(dtype=torch.float32, device=config.device),
+                                self.rays.aod.detach().clone().to(dtype=torch.float32, device=config.device),
+                                self.rays.zoa.detach().clone().to(dtype=torch.float32, device=config.device),
+                                self.rays.zod.detach().clone().to(dtype=torch.float32, device=config.device)).cpu().numpy()
 
         max_err = self.max_rel_err(H_array_ref, H_array)
         err_tol = Step_11.MAX_ERR
@@ -624,10 +625,10 @@ class Step_11(unittest.TestCase):
                                                         self.sample_times)
 
         H_doppler = self.ccg._step_11_doppler_matrix(self.topology,
-                            torch.tensor(self.rays.aoa, dtype=torch.float32, device=config.device),
-                            torch.tensor(self.rays.zoa, dtype=torch.float32, device=config.device),
-                            torch.tensor(self.rays.aod, dtype=torch.float32, device=config.device),
-                            torch.tensor(self.rays.zod, dtype=torch.float32, device=config.device),
+                            self.rays.aoa.detach().clone().to(dtype=torch.float32, device=config.device),
+                            self.rays.zoa.detach().clone().to(dtype=torch.float32, device=config.device),
+                            self.rays.aod.detach().clone().to(dtype=torch.float32, device=config.device),
+                            self.rays.zod.detach().clone().to(dtype=torch.float32, device=config.device),
                             torch.tensor(self.sample_times, dtype=torch.float32, device=config.device)).cpu().numpy()
 
         max_err = self.max_rel_err(H_doppler_ref, H_doppler)
@@ -815,10 +816,15 @@ class Step_11(unittest.TestCase):
         H_doppler = self.step_11_doppler_matrix_ref(topology, los_aoa,
                                                     los_zoa, los_aod, los_zod, t)
 
-        # Phase shift due to propagation delay
-        d3D = topology.distance_3d.cpu().numpy()
-        lambda_0 = self.scenario._scenario.lambda_0.cpu().numpy()
-        H_delay = np.exp(1j * (2*np.pi*d3D/lambda_0))
+        # Phase shift due to propagation delay, TR 38.901 V16.1.0, eq. (7.5-29), and
+        # TR 38.811 V15.4.0, eq. (6.8-1b): exp(-j 2 pi d3D / lambda_0), with d3D of
+        # TR 38.811 V15.4.0, eq. (6.6-3) in double precision (one satellite)
+        sin_a = np.sin(np.radians(topology.elevation_angle))
+        h = topology.bs_height.cpu().numpy().astype(np.float64)[0]
+        r_e = 6371000.0
+        d3D = np.sqrt(r_e**2*sin_a**2 + h**2 + 2*h*r_e) - r_e*sin_a
+        d3D = np.full(tuple(topology.los_phase.shape), d3D)
+        H_delay = np.exp(-1j * (2*np.pi*d3D*carrier_frequency/299792458.0))
 
         # Combining all to compute channel coefficient
         H_field = np.expand_dims(np.squeeze(H_field, axis=4), axis=-1)

@@ -42,7 +42,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=9.0"]
+test = ["pytest>=9.0", "mpmath>=1.3"]
 
 [project.urls]
 Homepage = "https://github.com/ant-uni-bremen/OpenNTN"

@@ -92,6 +92,10 @@ class SystemLevelScenario(Object):
         #    assert carrier_frequency >= 29.5e9 and carrier_frequency <= 30.0e9 or carrier_frequency >= 1.98e9 and carrier_frequency <= 2.01e9, \
         #        "Carrier frequency in downlink must be either in S Band (1.9GHz-4GHz) or Ka Band (19GHz - 40GHz)"
 
+        # Carrier frequency (Hz) as a Python float, for the LOS phase: in single
+        # precision the buffer below does not hold every frequency exactly (30 GHz)
+        self._carrier_frequency_float = float(carrier_frequency)
+
         # Carrier frequency (Hz)
         # Register as buffers for CUDAGraph compatibility
         self.register_buffer("_carrier_frequency",
@@ -339,6 +343,13 @@ class SystemLevelScenario(Object):
     def los_zoa(self):
         r"""considered 90 degrees"""
         return self._los_zoa
+
+    @property
+    def los_phase(self):
+        r"""Propagation phase -2 pi d3D f_c / c of the LoS path of each BS-UT link,
+        reduced to [0, 2 pi) in double precision [rad].
+        [batch size, number of BSs, number of UTs]"""
+        return self._los_phase
 
     @property
     @abstractmethod
@@ -890,13 +901,19 @@ class SystemLevelScenario(Object):
         #convert to radians for torch.sin later
         elevation_angle = math.radians(elevation_angle)
         #Radius of the Earth
-        R_E = 6371000
+        R_E = 6371000.0
 
         #satellite height [num_bs]
-        height_val = self._bs_loc[:,:,2][0]
-        #Calculating the 3d distance based on 3GPP TR38.811 6.6-3 to consider the Earth's curveture
+        height_val = self._bs_loc[:,:,2][0].to(torch.float64)
+        #Calculating the 3d distance based on TR 38.811 V15.4.0, eq. (6.6-3) to consider the Earth's
+        #curveture.
+        #The LoS phase 2 pi d3D f_c / c needs d3D to a small fraction of a wavelength, so d3D is
+        #computed in double precision and in a form without cancellation,
+        #d3D = (h^2 + 2 h R_E) / (sqrt(R_E^2 sin^2(a) + h^2 + 2 h R_E) + R_E sin(a)):
+        #sqrt(...) - R_E sin(a) loses up to 0.77 m at 600 km in single precision.
         sin_el = math.sin(elevation_angle)
-        distance_3d = (torch.sqrt(R_E**2 * sin_el**2 + height_val**2 + 2*height_val*R_E) - R_E*sin_el)
+        h_term = height_val*height_val + 2.0*height_val*R_E
+        distance_3d = h_term / (torch.sqrt(R_E**2 * sin_el**2 + h_term) + R_E*sin_el)
         #Expanding to correct shape. The 3D distance only depends on the elevation angle and the
         #satellite height, so it is identical across the batch and UT dimensions. It is broadcast
         #to [batch size, number of BSs, number of UTs] (replaces the former eager-only
@@ -904,13 +921,24 @@ class SystemLevelScenario(Object):
         #infinite GPU-memory allocation with the LMMSEEqualizer).
         distance_3d = distance_3d.reshape(1, self.num_bs, 1).expand(
             self.batch_size, self.num_bs, self.num_ut).contiguous()
-        self._update_attr("_distance_3d", distance_3d)
+        self._update_attr("_distance_3d", distance_3d.to(self.dtype))
+
+        # LoS propagation phase -2 pi d3D / lambda_0 of TR 38.901 V16.1.0, eq. (7.5-29),
+        # reduced modulo 2 pi in double precision before the cast: at 600 km the
+        # unreduced phase is 2.5e7 to 1.2e9 rad from 2 to 30 GHz, which single precision
+        # resolves only to 2 to 128 rad. The carrier frequency enters as a Python float.
+        los_phase = torch.remainder(
+            distance_3d * (-2.0*math.pi*self._carrier_frequency_float/SPEED_OF_LIGHT),
+            2.0*math.pi)
+        self._update_attr("_los_phase", los_phase.to(self.dtype))
 
         # LoS AoA, AoD, ZoA, ZoD
         los_aod = torch.atan2(delta_loc[:,:,:,1], delta_loc[:,:,:,0])
         los_aoa = los_aod + PI
         los_zod = torch.atan2(distance_2d, delta_loc[:,:,:,2])
-        los_zoa = los_zod - PI
+        # The LOS arrival direction is the reversed departure direction (TR 38.901
+        # V16.1.0, clause 7.5, step 1c): ZOA = 180 deg - ZOD and AOA = AOD + 180 deg
+        los_zoa = PI - los_zod
         # Angles are converted to degrees and wrapped to (0,360)
         self._update_attr("_los_aod", wrap_angle_0_360(rad_2_deg(los_aod)))
         self._update_attr("_los_aoa", wrap_angle_0_360(rad_2_deg(los_aoa)))
