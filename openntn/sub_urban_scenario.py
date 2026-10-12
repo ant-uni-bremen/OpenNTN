@@ -129,7 +129,7 @@ class SubUrbanScenario(SystemLevelScenario):
 
         [batch size, num_ut]"""
 
-        angle_str = str(round(self._elevation_angle/10.0)*10)
+        angle_str = str(utils._reference_elevation(self._elevation_angle))
         los_p = self._params_los["LoS_p" + '_' + angle_str]
         #self._distance_2d_out already has desired shape, this it is used here to keep the code shorter
         #los_probability = torch.zeros_like(self._distance_2d_out) + los_p
@@ -256,13 +256,10 @@ class SubUrbanScenario(SystemLevelScenario):
         self._lsp_log_mean = lsp_log_mean
         self._lsp_log_std = lsp_log_std
 
-        # ZOD offset
-        zod_offset = (torch.atan((35.-3.5)/distance_2d)
-          - torch.atan((35.-1.5)/distance_2d))
-        zod_offset = torch.where(self.los,
-            torch.tensor(0.0, dtype=self.dtype, device=self.device),
-            zod_offset)
-        self._zod_offset = zod_offset
+        # ZOD offset mu_offset,ZOD of TR 38.901 V16.1.0, eq. (7.5-19). TR 38.811
+        # V15.4.0, clause 6.7.2, replaces the parameter tables of TR 38.901 with its
+        # own tables, which have no offset row, so the offset is 0 for every link.
+        self._zod_offset = torch.zeros_like(distance_2d)
 
     def _compute_pathloss_gas(self):
         utils.compute_pathloss_gas(self)
@@ -272,9 +269,6 @@ class SubUrbanScenario(SystemLevelScenario):
 
     def _compute_pathloss_entry(self):
         utils.compute_pathloss_entry(self)
-
-    def _compute_pathloss_additional(self):
-        utils.compute_pathloss_additional(self)
 
     def _compute_pathloss_basic(self):
         utils.compute_pathloss_basic(self)

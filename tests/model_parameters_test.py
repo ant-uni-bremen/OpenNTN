@@ -19,13 +19,26 @@
 # This concerns only the K-factor rows of the NLOS files (mean, standard deviation and
 # cross-correlations, which the files set to 0, and the correlation distance, 1 m).
 #
-# Downlink convention. NOTE 8 of Tables 6.7.2-1a to 6.7.2-8b: "For satellite (e.g.
-# GEO/LEO), the departure angle spreads are zeros, i.e. mu_lgASD and mu_lgZSD are -inf,
-# and corresponding standard deviations are zeros." The downlink files apply this note
-# (the satellite transmits) and set the cross-correlations of ASD and ZSD to zero,
-# which has no effect once their spreads are zero. The uplink files use the tables'
-# lgASD and lgZSD rows as printed. This test checks both as they are; whether the
-# uplink files should apply NOTE 8 as well is an open question, not a test failure.
+# All 24 files hold the tables as printed, in both directions. NOTE 8 of Tables 6.7.2-1a
+# to 6.7.2-8b ("For satellite (e.g. GEO/LEO), the departure angle spreads are zeros, i.e.
+# mu_lgASD and mu_lgZSD are -inf, and corresponding standard deviations are zeros") is
+# applied by the scenario for satellites (get_param), not in the files; aerial platforms
+# use the table values.
+#
+# The files CDL-A to CDL-D and TDL-A to TDL-D hold the link-level models NTN-CDL-A to D
+# and NTN-TDL-A to D of TR 38.811 V15.4.0, Tables 6.9.1-1 to 6.9.1-4 and 6.9.2-1 to
+# 6.9.2-4, given at the elevation angle alpha_model = 50 degrees, in the format of
+# Sionna's TR 38.901 CDL and TDL files. Every value of these files is compared with the
+# table cell it comes from: the normalized delays, powers, AOD, AOA, ZOD and ZOA of the
+# clusters, the per-cluster parameters c_ASD, c_ASA, c_ZSD, c_ZSA and XPR, and for the
+# TDL files the normalized delays and powers of the taps. The files do not hold the
+# columns "Cluster #" and "Tap #" (the order of the entries), "Cluster PAS" and "Fading
+# distribution" (the flag los marks a first entry that is the specular LOS path, and
+# num_clusters counts the other entries, as in Sionna's files), nor the K-factor of the
+# NOTE of Tables 6.9.2-3 and 6.9.2-4, which equals the power difference of the first two
+# taps. Clause 6.9.1 writes "resulting in ZODs equal to 190" while the tables print a
+# ZOD of 140 degrees, 90 degrees + alpha_model as the same clause defines it; the files
+# hold 140. No model of the package reads these files.
 import json
 import math
 import os
@@ -55,14 +68,13 @@ SCENARIOS = {
     "Sub_Urban": ("suburban_rural", {("LOS", "S"): "6.7.2-5a", ("LOS", "Ka"): "6.7.2-5b",
                                      ("NLOS", "S"): "6.7.2-6a", ("NLOS", "Ka"): "6.7.2-6b"}),
 }
+# The NTN-CDL and NTN-TDL files and their tables
+NTN_FILES = {"CDL-A.json": "6.9.1-1", "CDL-B.json": "6.9.1-2", "CDL-C.json": "6.9.1-3",
+             "CDL-D.json": "6.9.1-4", "TDL-A.json": "6.9.2-1", "TDL-B.json": "6.9.2-2",
+             "TDL-C.json": "6.9.2-3", "TDL-D.json": "6.9.2-4"}
 # Other files in openntn/models. They hold no TR 38.811 table values and are not read by
-# the scenario models; the TDL and CDL classes that would use the TDL and CDL files are
-# not implemented.
+# the models.
 NOT_COMPARED = {
-    "CDL-A.json": "CDL profile of TR 38.901", "CDL-B.json": "CDL profile of TR 38.901",
-    "CDL-C.json": "CDL profile of TR 38.901", "CDL-D.json": "CDL profile of TR 38.901",
-    "TDL-A.json": "TDL profile of TR 38.901", "TDL-B.json": "TDL profile of TR 38.901",
-    "TDL-C.json": "TDL profile of TR 38.901", "TDL-D.json": "TDL profile of TR 38.901",
     "TDL-A30.json": "TDL profile not defined in TR 38.811",
     "TDL-B100.json": "TDL profile not defined in TR 38.811",
     "TDL-C300.json": "TDL profile not defined in TR 38.811",
@@ -163,24 +175,9 @@ def scaling_factor(scenario, state, band, parameter, elevation):
     return _parse(factors[num_clusters])
 
 
-def _note_8(parameter):
-    """Value of a downlink parameter under NOTE 8, or None if NOTE 8 does not apply."""
-    if parameter in ("muASD", "muZSD"):
-        return -math.inf
-    if parameter in ("sigmaASD", "sigmaZSD"):
-        return 0.0
-    if parameter.startswith("corr") and not parameter.startswith("corrDist") \
-            and ("ASD" in parameter or "ZSD" in parameter):
-        return 0.0
-    return None
-
-
 def expected_values(name, parameter):
     """Expected values per elevation angle (a float or NOT_SPECIFIED each)."""
-    values = _table_values(name, parameter)
-    if _parts(name)[3] == "DL" and _note_8(parameter) is not None:
-        values = [v if v is NOT_SPECIFIED else _note_8(parameter) for v in values]
-    return values
+    return _table_values(name, parameter)
 
 
 def actual_values(name, parameter):
@@ -210,8 +207,60 @@ def test_model_files_accounted_for():
     files = _model_files()
     scenario_files = _scenario_files()
     assert len(scenario_files) == 3 * 2 * 2 * 2
-    unknown = sorted(set(files) - set(scenario_files) - set(NOT_COMPARED))
+    unknown = sorted(set(files) - set(scenario_files) - set(NTN_FILES) - set(NOT_COMPARED))
     assert not unknown, f"model files that this test does not know: {unknown}"
+
+
+def ntn_mismatches(name, data):
+    """Differences between the values of an NTN-CDL or NTN-TDL file and its table."""
+    table = TABLES[NTN_FILES[name]]
+    rows = table["rows"]
+    # Tables 6.9.1-1 and 6.9.1-2 have no "Cluster PAS" column: NLOS models
+    first = (rows.get("cluster_pas") or rows.get("fading_distribution") or [""])[0]
+    los = first in ("Specular(LOS path)", "LOS path")
+    errors = []
+
+    def compare(key, actual, expected):
+        if not _equal(_parse(actual), _parse(expected)):
+            errors.append(f"{key}: file {actual}, table {expected}")
+
+    if data["los"] != int(los):
+        errors.append(f"los: file {data['los']}, table {int(los)}")
+    entries = len(rows["normalized_delay"])
+    if data["num_clusters"] != entries - int(los):
+        errors.append(f"num_clusters: file {data['num_clusters']}, table {entries - int(los)}")
+    columns = {"delays": "normalized_delay", "powers": "power_dB"}
+    if "cluster" in rows:
+        columns.update({"aod": "AOD_deg", "aoa": "AOA_deg", "zod": "ZOD_deg",
+                        "zoa": "ZOA_deg"})
+        for key, cell in (("cASD", "c_ASD_deg"), ("cASA", "c_ASA_deg"), ("cZSD", "c_ZSD_deg"),
+                          ("cZSA", "c_ZSA_deg"), ("xpr", "XPR_dB")):
+            compare(key, data[key], table["per_cluster"][cell])
+    else:
+        if not data["scale_delays"]:
+            errors.append("scale_delays: the table gives normalized delays")
+        if los:
+            # NOTE: "The first tap follows a Ricean distribution with a K-factor of K1"
+            k_factor = float(re.search(r"K1 = (-?\d+\.\d+) dB", table["note"]).group(1))
+            compare("K-factor of the NOTE", _parse(rows["power_dB"][0])
+                    - _parse(rows["power_dB"][1]), k_factor)
+    for key, column in columns.items():
+        if len(data[key]) != entries:
+            errors.append(f"{key}: {len(data[key])} entries, table {entries}")
+            continue
+        for i, (actual, expected) in enumerate(zip(data[key], rows[column])):
+            compare(f"{key}[{i}]", actual, expected)
+    unexpected = set(data) - {"los", "num_clusters", "scale_delays", "cASD", "cASA", "cZSD",
+                              "cZSA", "xpr"} - set(columns)
+    if unexpected:
+        errors.append(f"keys without a table cell: {sorted(unexpected)}")
+    return errors
+
+
+@pytest.mark.parametrize("name", sorted(NTN_FILES))
+def test_ntn_link_level_file(name):
+    errors = ntn_mismatches(name, _load(name))
+    assert not errors, f"{name} against Table {NTN_FILES[name]}: " + "; ".join(errors)
 
 
 @pytest.mark.parametrize("name", _scenario_files())

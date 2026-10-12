@@ -65,3 +65,20 @@ def assert_uniform_mean(samples, low, high, label=""):
     """Sample mean of i.i.d. samples from the uniform distribution on [low, high]."""
     sigma = (high - low) / math.sqrt(12.0)
     assert_mean(samples, 0.5 * (low + high), sigma, label)
+
+
+def assert_correlation(x, y, expected_rho, label=""):
+    """Sample correlation coefficient of i.i.d. pairs of jointly normal samples.
+
+    Uses the Fisher transformation: atanh of the sample correlation is approximately
+    normal with mean atanh(rho) and standard error 1 / sqrt(n - 3).
+    """
+    x = _as_float64(x)
+    y = _as_float64(y)
+    n = x.size
+    assert n == y.size and n >= 4, f"{label}: {n} and {y.size} samples"
+    r = float(np.corrcoef(x, y)[0, 1])
+    se = 1.0 / math.sqrt(n - 3)
+    assert abs(math.atanh(r) - math.atanh(expected_rho)) <= Z * se, (
+        f"{label}: correlation {r:.4f}, expected {expected_rho:.4f} "
+        f"(Fisher z within {Z:g} standard errors, n = {n})")

@@ -54,6 +54,10 @@ class SystemLevelChannel(ChannelModel):
 
         tau : [batch size, num_rx, num_tx, num_paths], torch.float
             Path delays [s]
+
+    The path coefficients and delays are detached from the autograd graph, as in
+    Sionna, so gradients with respect to the topology exist only for the quantities
+    of the scenario.
     """
 
     def __init__(self, scenario, always_generate_lsp=False, precision=None):
@@ -81,9 +85,8 @@ class SystemLevelChannel(ChannelModel):
 
     def set_topology(self, ut_loc=None, bs_loc=None, ut_orientations=None,
         bs_orientations=None, ut_velocities=None, in_state=None, los=None,
-        latitude=None, lwc=None, rain_rate=None, atmospheric_pressure=None,
-        temperature=None, water_vapor_density=None, relative_humidity=None,
-        diameter_earth_antenna=None, antenna_efficiency=None):
+        latitude=None, atmospheric_pressure=None, temperature=None,
+        water_vapor_density=None):
         r"""
         Set the network topology.
 
@@ -101,7 +104,20 @@ class SystemLevelChannel(ChannelModel):
                 Locations of the UTs
 
             bs_loc : [batch size,num_bs, 3], torch.float
-                Locations of BSs
+                Locations of BSs. One satellite or aerial platform per call
+                (num_bs 1), at the same height in every batch example: a satellite
+                from 160 km to 35 786 km or an aerial platform from 8 km to 50 km;
+                `ValueError` otherwise. TR 38.811, clause 3.1, places aerial
+                platforms at 8 km to 50 km and LEO satellites from 500 km on; the
+                models accept satellites from 160 km, very low orbits included.
+                Table 4.5-1 gives typical altitudes (LEO 600 km to 1500 km, MEO
+                7000 km to 20 000 km, GEO 35 786 km), Table 5.1-1 the reference
+                deployments (GEO, non-GEO down to 600 km, UAS 8 km to 50 km). The
+                Faraday rotation of clause 6.8.2 ("spaceborne BS above the
+                ionosphere") applies from 600 km, the lowest satellite altitude of
+                TR 38.811; a satellite below 600 km flies within the F region of the
+                ionosphere, for which TR 38.811 gives no Faraday rotation (see the
+                ``set_topology`` method of the scenario)
 
             ut_orientations : [batch size,num_ut, 3], torch.float
                 Orientations of the UTs arrays [radian]
@@ -114,7 +130,8 @@ class SystemLevelChannel(ChannelModel):
 
             in_state : [batch size,num_ut], torch.bool
                 Indoor/outdoor state of UTs. `True` means indoor and `False`
-                means outdoor.
+                means outdoor. The models accept outdoor UTs only, `ValueError`
+                otherwise (see the ``set_topology`` method of the scenario)
 
             los : torch.bool or `None`
                 If not `None` (default value), all UTs located outdoor are
@@ -122,12 +139,12 @@ class SystemLevelChannel(ChannelModel):
                 if it is set to `False`. If set to `None`, the LoS/NLoS states
                 of UTs is set following 3GPP specification [TR38901]_.
 
-            latitude, lwc, rain_rate, atmospheric_pressure, temperature, water_vapor_density, relative_humidity, diameter_earth_antenna, antenna_efficiency : float or `None`
+            latitude, atmospheric_pressure, temperature, water_vapor_density : float or `None`
                 Atmospheric parameters, passed to the ``set_topology`` method
                 of the scenario, which documents them. A parameter that is not
-                passed keeps its previous value. ``latitude``, ``lwc`` and
-                ``rain_rate`` have no effect while the cloud and rain
-                attenuation is disabled.
+                passed keeps its previous value. ``latitude``, relative to the
+                magnetic equator, decides the scintillation loss below 6 GHz;
+                the other three decide the gas loss.
         """
 
         # Update the scenario topology
@@ -139,14 +156,9 @@ class SystemLevelChannel(ChannelModel):
                                                         in_state,
                                                         los,
                                                         latitude=latitude,
-                                                        lwc=lwc,
-                                                        rain_rate=rain_rate,
                                                         atmospheric_pressure=atmospheric_pressure,
                                                         temperature=temperature,
-                                                        water_vapor_density=water_vapor_density,
-                                                        relative_humidity=relative_humidity,
-                                                        diameter_earth_antenna=diameter_earth_antenna,
-                                                        antenna_efficiency=antenna_efficiency)
+                                                        water_vapor_density=water_vapor_density)
 
         if need_for_update:
             # Update the LSP sampler
@@ -238,6 +250,9 @@ class SystemLevelChannel(ChannelModel):
             rays.powers = rays.powers.permute(0, 2, 1, 3)
             rays.delays = rays.delays.permute(0, 2, 1, 3)
             rays.xpr = rays.xpr.permute(0, 2, 1, 3, 4)
+            if rays.strongest_cluster_indices is not None:
+                rays.strongest_cluster_indices = (
+                    rays.strongest_cluster_indices.permute(0, 2, 1, 3))
             los_aod = topology.los_aod
             los_aoa = topology.los_aoa
             los_zod = topology.los_zod

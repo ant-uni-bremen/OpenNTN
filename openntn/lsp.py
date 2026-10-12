@@ -21,6 +21,56 @@ from sionna.phy.utils import normal
 __all__ = ["LSP", "LSPGenerator"]
 
 
+def _spatial_correlation_sqrt(correlation: torch.Tensor) -> torch.Tensor:
+    r"""Lower triangular square roots of spatial correlation matrices of the UTs, UTs
+    at the same location included
+
+    The spatial correlation :math:`\exp(-d/D_X)` of a large scale parameter X of two UTs
+    in the same state (TR 38.901 V16.1.0, clause 7.5, step 4) is 1 for two UTs at the
+    same 2D location. A UT whose correlation with an earlier UT is exactly 1 gets the
+    factor row of the first UT it repeats: UTs at one location get the same draws, as
+    in the procedure of clause 3.3.1 of WINNER II D1.1.2, where they read the same grid
+    node, the product of the factor with its transpose is the correlation matrix, and
+    every UT gets the specified variance. Without such UTs the factor is that of
+    :func:`torch.linalg.cholesky_ex`.
+
+    :param correlation: Correlation matrices of the UTs, shape [..., num_ut, num_ut]
+
+    :output: [..., num_ut, num_ut], `torch.float`. Lower triangular factors F with
+        F F^T = ``correlation``
+    """
+    num_ut = correlation.shape[-1]
+    if num_ut == 0:
+        # No UT, nothing to repeat; the reductions below need at least one UT
+        return torch.linalg.cholesky_ex(correlation, check_errors=False)[0]
+    index = torch.arange(num_ut, device=correlation.device)
+    # Two UTs at the same 2D location in the same state have the correlation exp(0) = 1
+    # and equal rows, so the matrix is singular. In the Cholesky decomposition the pivot
+    # of the second of them is 1 - 1 = 0: cholesky_ex, called without error checks,
+    # stops there and leaves the entries of the correlation, not of a factor, in the
+    # rows of the UTs after it, whose draws then get a variance above 1 (in single
+    # precision rounding can leave a small positive pivot instead). A UT whose
+    # correlation with an earlier UT is exactly 1, also one that rounds to 1, therefore
+    # gets the row and the column of the identity before the decomposition and, after
+    # it, the factor row of the first UT it repeats.
+    repeats = (correlation == 1.0) & (index.unsqueeze(-1) > index)
+    # The first UT that each UT repeats, or the UT itself: max returns the index of the
+    # first maximum; one byte per entry keeps the mask small for many UTs
+    repeat, first = repeats.to(torch.uint8).max(dim=-1)
+    first = torch.where(repeat.bool(), first, index)
+    # Where the correlation rounds to 1 between neighbours only, the first UT repeated
+    # can itself repeat another: the chains are followed to a UT that repeats none, in
+    # ceil(log2(num_ut)) steps
+    for _ in range((num_ut - 1).bit_length()):
+        first = torch.gather(first, -1, first)
+    repeated = first != index
+    decoupled = repeated.unsqueeze(-1) | repeated.unsqueeze(-2)
+    eye = torch.eye(num_ut, dtype=correlation.dtype, device=correlation.device)
+    factor, _ = torch.linalg.cholesky_ex(torch.where(decoupled, eye, correlation),
+                                         check_errors=False)
+    return torch.gather(factor, -2, first.unsqueeze(-1).expand_as(factor))
+
+
 class LSP:
     r"""
     Class for conveniently storing LSPs
@@ -66,12 +116,14 @@ class LSPGenerator(Object):
     e.g., DenseUrban, Urban, or SubUrban.
 
     This class implements steps 1 to 4 of the TR 38.901 specifications
-    (section 7.5), as well as path-loss generation (Section 7.4.1) with O2I
-    low- and high- loss models (Section 7.4.3).
+    (section 7.5), as well as the path loss of TR 38.811 section 6.6. The O2I low-
+    and high-loss models of TR 38.901 (Section 7.4.3) are kept in the code but not
+    used: the models accept outdoor UTs only, and the building entry loss of TR
+    38.811 section 6.6.3 is 0.
 
     Note that a global scenario is set for the entire batches when instantiating
     this class (DenseUrban, Urban, or SubUrban). However, each UT-BS link can have its
-    specific state (LoS, NLoS, or indoor).
+    specific state (LoS or NLoS; the models accept outdoor UTs only).
 
     The batch size is set by the ``scenario`` given as argument when
     constructing the class.
@@ -93,11 +145,21 @@ class LSPGenerator(Object):
     def __init__(self, scenario):
         super().__init__(precision=scenario.precision, device=scenario.device)
         self._scenario = scenario
+        # The order s_M = [SF, K, DS, ASD, ASA, ZSD, ZSA] of TR 38.901 V16.1.0,
+        # clause 7.5, step 4, as indices of the internal order
+        # [DS, ASD, ASA, SF, K, ZSA, ZSD], and the inverse permutation
+        self.register_buffer("_standard_lsp_order", torch.tensor(
+            [3, 4, 0, 1, 2, 6, 5], dtype=torch.int64, device=self.device))
+        self.register_buffer("_internal_lsp_order", torch.tensor(
+            [2, 3, 4, 0, 1, 6, 5], dtype=torch.int64, device=self.device))
 
     def _update_buffer(self, name, value):
         # store as a buffer so .to()/.cuda() moves it; copy_ when shape is stable, re-register otherwise
         existing = getattr(self, name, None)
-        if existing is not None and name in self._buffers and existing.shape == value.shape:
+        # A value or a buffer that requires gradients is registered anew, as in
+        # SystemLevelScenario._update_attr: copy_ would chain the graphs of two calls
+        if (existing is not None and name in self._buffers and existing.shape == value.shape
+                and not value.requires_grad and not existing.requires_grad):
             existing.copy_(value)
         else:
             if hasattr(self, name) and name not in self._buffers:
@@ -106,7 +168,12 @@ class LSPGenerator(Object):
 
     def sample_pathloss(self):
         """
-        Generate pathlosses [dB] for each BS-UT link.
+        Generate pathlosses [dB] for each BS-UT link: PL = PL_b + PL_g + PL_s + PL_e,
+        eq. (6.6-1) of TR38.811, with the basic path loss PL_b = FSPL + CL without the
+        shadow fading. The shadow fading is the large scale parameter SF, which step 12
+        applies to the channel coefficients: eq. (6.6-4) of TR38.811 writes it into
+        PL_b, and Tables 6.7.2-1a to 6.7.2-8b give its cross-correlations and
+        correlation distance.
 
         Input
         ------
@@ -117,15 +184,16 @@ class LSPGenerator(Object):
             A tensor with shape [batch size, number of BSs, number of UTs] of
                 pathloss [dB] for each BS-UT link
         """
-        #Basic pathloss based on 6.6-4
+        #Basic pathloss FSPL + CL of 6.6.2; the shadow fading SF of eq. (6.6-4) is the
+        #large scale parameter SF, applied in step 12
         PL_b = self._scenario.basic_pathloss
         #Attenuation due to atmospheric gasses based on 6.6-8
         PL_g = self._scenario.gas_pathloss
-        #Attenuation due to either ionospheric or tropospheric scintillation in dB based. Only consideres Ionospheric scintillation for
-        #carrier frequencies below 7GHz and only tropopheric scintillation for carrierfrequencies above 7GHz.
+        #Attenuation due to either ionospheric or tropospheric scintillation in dB. Only considers ionospheric scintillation for
+        #carrier frequencies below 6GHz and only tropospheric scintillation for carrier frequencies from 6GHz on.
         #Approach is described in 3GPP TR38.811 section 6.6.6
         PL_s = self._scenario.scintillation_pathloss
-        #Building entry loss, which is always 0, as we currently only consider outdoor scenarios. After the inclusion of HAPS, this may be changed
+        #Building entry loss of 6.6.3, 0 for every link: the models accept outdoor UTs only
         PL_e = self._scenario.entry_pathloss
 
         return PL_b + PL_g + PL_s + PL_e
@@ -145,17 +213,21 @@ class LSPGenerator(Object):
                    device=self.device,
                    generator=self.torch_rng)
 
-        ## Applyting cross-LSP correlation
-        s = s.unsqueeze(4)
-        s = self._cross_lsp_correlation_matrix_sqrt @ s
-        s = s.squeeze(4)
-        ## Applying spatial correlation
+        ## Applying spatial correlation first: step 4 uses the procedure of
+        ## clause 3.3.1 of WINNER II D1.1.2 (TR 38.901 V16.1.0, reference [14]),
+        ## which filters one spatially correlated field per LSP (its eq. (3.12))
+        ## and then applies the cross-LSP square root per link (eq. (3.13))
         s = s.permute(0, 1, 3, 2).unsqueeze(3)
 
         s = torch.matmul(
             s, self._spatial_lsp_correlation_matrix_sqrt.transpose(-1, -2))
 
         s = s.squeeze(3).permute(0, 1, 3, 2)
+        ## Applying cross-LSP correlation. The square root is the Cholesky
+        ## factor in the order s_M, mapped to the internal order
+        s = s.unsqueeze(4)
+        s = self._cross_lsp_correlation_matrix_sqrt @ s
+        s = s.squeeze(4)
 
         ## Scaling and transposing LSPs to the right mean and variance
         lsp_log_mean = self._scenario.lsp_log_mean
@@ -318,8 +390,18 @@ class LSPGenerator(Object):
         cross_lsp_corr_mat = _add_param(cross_lsp_corr_mat, 'corrZSDvsZSA', 5,6)
 
         # Compute and store the square root of the cross-LSP correlation
-        # matrix (use cholesky_ex for CUDA graph compatibility)
-        chol, _ = torch.linalg.cholesky_ex(cross_lsp_corr_mat, check_errors=False)
+        # matrix (use cholesky_ex for CUDA graph compatibility). TR 38.901
+        # V16.1.0, clause 7.5, step 4, prescribes the Cholesky decomposition in
+        # the order s_M = [SF, K, DS, ASD, ASA, ZSD, ZSA]; with the spatial
+        # filter applied first, the result depends on that order. The factor is
+        # computed in the order s_M and its rows and columns are mapped back to
+        # the internal order, so that it applies to vectors in the internal order
+        # and its product with its transpose is the correlation matrix.
+        standard_corr_mat = cross_lsp_corr_mat.index_select(
+            -2, self._standard_lsp_order).index_select(-1, self._standard_lsp_order)
+        chol, _ = torch.linalg.cholesky_ex(standard_corr_mat, check_errors=False)
+        chol = chol.index_select(-2, self._internal_lsp_order).index_select(
+            -1, self._internal_lsp_order)
         self._update_buffer("_cross_lsp_correlation_matrix_sqrt", chol)
 
     def _compute_lsp_spatial_correlation_sqrt(self):
@@ -413,13 +495,21 @@ class LSPGenerator(Object):
         # Adding a dimension for broadcasting with BS
         ut_dist_2d = ut_dist_2d.unsqueeze(1).unsqueeze(2)
 
-        # Correlation matrix
-        spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)#here is the problem, distance_scaling_matrices includes -inf
+        # Correlation matrix: exp(-d/D_X) for the pairs of UTs in the same
+        # state, 0 for the others. distance_scaling_matrices holds -1/D_X per
+        # LSP X; it is finite, because every correlation distance D_X of the
+        # parameter files is positive. The zero satellite-side angular spreads
+        # (TR 38.811 V15.4.0, NOTE 8 of Tables 6.7.2-1a to 6.7.2-8b) are
+        # spreads, not correlation distances, and do not enter here.
+        spatial_lsp_correlation = (torch.exp(ut_dist_2d*distance_scaling_matrices)*filtering_matrices)
+        # The two stacked inputs, each of the size of the correlation, are no longer
+        # needed; _spatial_correlation_sqrt holds its input, the decoupled copy and the
+        # factor at once, so freeing them here keeps the peak memory down
+        del filtering_matrices, distance_scaling_matrices
         # Compute and store the square root of the spatial correlation matrix
-
-        #If we are in DL, the ASD and ZSD are -inf and there is no correlation
-        # (use cholesky_ex for CUDA graph compatibility)
-        chol, _ = torch.linalg.cholesky_ex(spatial_lsp_correlation, check_errors=False)
+        # (use cholesky_ex for CUDA graph compatibility), with UTs at the same location
+        # (_spatial_correlation_sqrt)
+        chol = _spatial_correlation_sqrt(spatial_lsp_correlation)
         self._update_buffer("_spatial_lsp_correlation_matrix_sqrt", chol)
 
 

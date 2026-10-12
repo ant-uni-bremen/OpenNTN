@@ -335,7 +335,8 @@ class Test_URB(unittest.TestCase):
         ut_array = create_ut_ant(carrier_frequency)
         bs_array = create_bs_ant(carrier_frequency)
         for i in range(10):
-            bs_height = np.random.uniform(high=36000000, low=600000)
+            # A satellite is a platform from 160 km to 35 786 km
+            bs_height = np.random.uniform(high=35786000, low=160000)
             channel_model = Urban(carrier_frequency=carrier_frequency,
                                                 ut_array=ut_array,
                                                 bs_array=bs_array,

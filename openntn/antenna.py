@@ -415,8 +415,7 @@ class PanelArray(Object):
 
     This class is used to create models of the panel arrays used by the
     transmitters and receivers and that need to be specified when using the
-    :ref:`CDL <cdl>`, :ref:`DenseUrban <dur>`, :ref:`Urban <urb>`, and :ref:`SubUrban <sur>`
-    models.
+    :ref:`DenseUrban <dur>`, :ref:`Urban <urb>`, and :ref:`SubUrban <sur>` models.
 
     Example
     --------

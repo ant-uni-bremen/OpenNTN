@@ -18,7 +18,8 @@ import torch
 from sionna.phy import Object
 from sionna.phy.constants import SPEED_OF_LIGHT, PI
 from sionna.phy.channel.utils import rad_2_deg, wrap_angle_0_360
-from .utils import sample_bernoulli
+from .utils import (sample_bernoulli, _validate_platform, _is_satellite,
+                    _reference_elevation)
 from .antenna import PanelArray
 
 from . import models # pylint: disable=relative-beyond-top-level
@@ -32,6 +33,23 @@ _C_PHI_NLOS = {2: 0.501, 3: 0.680, 4: 0.779, 5: 0.860, 8: 1.018, 10: 1.090, 11: 
 _C_THETA_NLOS = {2: 0.430, 3: 0.594, 4: 0.697, 8: 0.889, 10: 0.957, 11: 1.031,
                  12: 1.104, 15: 1.1088, 19: 1.184, 20: 1.178}
 _SCALING_FACTORS = {"CPhiNLoS": _C_PHI_NLOS, "CThetaNLoS": _C_THETA_NLOS}
+
+# TR 38.811 V15.4.0, NOTE 8 of Tables 6.7.2-1a to 6.7.2-8b: "For satellite (e.g.GEO/LEO),
+# the departure angle spreads are zeros, i.e. mu_lgASD and mu_lgZSD are -inf, and
+# corresponding standard deviations are zeros." The parameter files hold the tables as
+# printed; for a satellite get_param returns these values instead, and zero
+# cross-correlations of ASD and ZSD with the other large scale parameters. The satellite
+# is the departure end of the rays as the generator draws them in both directions, so the
+# note applies to the uplink as well. With the note, the cluster ASD c_ASD at the
+# satellite is 0 as well, as clause 6.9.1 states for the link-level models derived from
+# this model ("the azimuth and elevation angular spreads of departure, ASD and ZSD, can
+# be considered zero, and all cluster AOD and ZOD angles the same"); the urban tables
+# print 0.08 to 6.63 degrees. Aerial platforms keep the values of the tables.
+_NOTE_8 = {"muASD": -math.inf, "muZSD": -math.inf, "sigmaASD": 0.0, "sigmaZSD": 0.0,
+           "cASD": 0.0}
+_NOTE_8.update({name: 0.0 for name in (
+    "corrASDvsDS", "corrASDvsSF", "corrASDvsASA", "corrASDvsK", "corrZSDvsSF", "corrZSDvsK",
+    "corrZSDvsDS", "corrZSDvsASD", "corrZSAvsASD", "corrZSDvsASA", "corrZSDvsZSA")})
 
 
 class SystemLevelScenario(Object):
@@ -141,16 +159,13 @@ class SystemLevelScenario(Object):
         self._requested_los = None
 
         # Atmospheric parameters. Set once here; set_topology changes only the
-        # parameters it is passed.
+        # parameters it is passed. Pressure, temperature and water vapour density
+        # default to the mean annual global reference atmosphere of TR 38.811
+        # V15.4.0, clause 6.6.4: T = 288.15 K, p = 1013.25 hPa, rho = 7.5 g/m^3.
         self._latitude = 47
-        self._lwc = 0.41
-        self._rain_rate = 40
-        self._atmospheric_pressure = 1020
-        self._temperature = 273
+        self._atmospheric_pressure = 1013.25
+        self._temperature = 288.15
         self._water_vapor_density = 7.5
-        self._relative_humidity = 50
-        self._diameter_earth_antenna = 3.6
-        self._antenna_efficiency = 0.5
 
         # Load parameters for this scenario
         self._load_params()
@@ -250,7 +265,8 @@ class SystemLevelScenario(Object):
     @property
     def indoor(self):
         r"""
-        Indoor state of UTs. `True` is indoor, `False` otherwise.
+        Indoor state of UTs. `True` is indoor, `False` otherwise. Always `False`: the
+        models accept outdoor UTs only.
         [batch size, number of UTs]"""
         return self._in_state
 
@@ -396,26 +412,27 @@ class SystemLevelScenario(Object):
 
     @property
     def zod_offset(self):
-        r"""Zenith angle of departure offset"""
+        r"""Zenith angle of departure offset [deg], 0 for every link: the parameter
+        tables of TR 38.811 have no offset"""
         return self._zod_offset
 
     @property
     def num_clusters_los(self):
         r"""Number of clusters for LoS scenario"""
-        angle_str = str(round(self._elevation_angle/10.0)*10)
+        angle_str = str(_reference_elevation(self._elevation_angle))
         return self._params_los["numClusters_" + angle_str]
 
     @property
     def num_clusters_nlos(self):
         r"""Number of clusters for NLoS scenario"""
-        angle_str = str(round(self._elevation_angle/10.0)*10)
+        angle_str = str(_reference_elevation(self._elevation_angle))
         return self._params_nlos["numClusters_" + angle_str]
 
     @property
     def num_clusters_max(self):
         r"""Maximum number of clusters over LoS and NLoS scenarios"""
         # Different models have different number of clusters
-        angle_str = str(round(self._elevation_angle/10.0)*10)
+        angle_str = str(_reference_elevation(self._elevation_angle))
         num_clusters_los = self._params_los["numClusters_" + angle_str]
         num_clusters_nlos = self._params_nlos["numClusters_" + angle_str]
         num_clusters_max = max(num_clusters_los, num_clusters_nlos)
@@ -423,81 +440,69 @@ class SystemLevelScenario(Object):
 
     @property
     def basic_pathloss(self):
-        r"""Basic pathloss component [dB].
-        See section 7.4.1 of 38.901 specification.
+        r"""Basic path loss PL_b [dB] without its shadow fading, section 6.6.2 of 38.811
+        specification: the free space path loss of eq. (6.6-2) plus, for NLOS links,
+        the clutter loss of Tables 6.6.2-1 to 6.6.2-3. Eq. (6.6-4) writes the shadow
+        fading SF into PL_b; the models apply it once, as the large scale parameter SF
+        of step 4 of section 7.5 of 38.901 specification, in step 12, because Tables
+        6.7.2-1a to 6.7.2-8b of 38.811 specification give its cross-correlations and
+        correlation distance.
         [batch size, num BS, num UT]"""
         return self._pl_b
 
     @property
     def gas_pathloss(self):
-        r"""Basic pathloss component [dB].
-        See section 7.4.1 of 38.901 specification.
+        r"""Attenuation by atmospheric gases PL_g [dB], section 6.6.4 of 38.811
+        specification, eq. (6.6-8): the zenith attenuation of ITU-R P.676-10, Annex 2,
+        divided by the sine of the elevation angle.
         [batch size, num BS, num UT]"""
         return self._pl_g
 
     @property
     def scintillation_pathloss(self):
-        r"""Basic pathloss component [dB].
-        See section 7.4.1 of 38.901 specification.
+        r"""Scintillation loss PL_s [dB], section 6.6.6 of 38.811 specification: the
+        ionospheric scintillation of section 6.6.6.1.4 below 6 GHz, the tropospheric
+        scintillation of section 6.6.6.2.1 from 6 GHz on.
         [batch size, num BS, num UT]"""
         return self._pl_s
 
     @property
     def entry_pathloss(self):
-        r"""Basic pathloss component [dB].
-        See section 7.4.1 of 38.901 specification.
+        r"""Building entry loss PL_e [dB], section 6.6.3 of 38.811 specification. It is 0
+        for every link, because the models accept outdoor UTs only.
         [batch size, num BS, num UT]"""
         return self._pl_e
 
     @property
-    def additional_pathloss(self):
-        r"""Basic pathloss component [dB].
-        See section 7.4.1 of 38.901 specification.
-        [batch size, num BS, num UT]"""
-        return self._pl_a
-
-    @property
     def free_space_pathloss(self):
-        r"""Free Space Pathloss, which is a part of the pathloss component [dB].
-        See section 7.4.1 of 38.901 specification. This variable is only used for model callibrations and testing.
+        r"""Free space path loss FSPL [dB], eq. (6.6-2) of 38.811 specification, which
+        is a part of the basic path loss. This variable is only used for model
+        calibrations and testing.
         [batch size, num BS, num UT]"""
         return self._fspl
 
     @property
     def latitude(self):
-        r"""Latitude of each UT, used for additional pathlosses
-        See section 6.6.6 of 38.811 specification. No effect while the cloud
-        and rain attenuation is disabled.
+        r"""Latitude of the UTs relative to the magnetic equator in degrees. Below
+        6 GHz it decides the ionospheric scintillation loss, section 6.6.6.1.4 of
+        38.811 specification: A_IS within 20 deg of the magnetic equator, 0 at higher
+        latitudes.
         """
         return self._latitude
 
     @property
-    def lwc(self):
-        r"""Liquid water content in kg/m^2, used for cloud attenuation
-        See section 6.6.5 of 38.811 specification. No effect while the cloud
-        attenuation is disabled.
-        """
-        return self._lwc
-
-    @property
-    def rain_rate(self):
-        r"""Rain rate in mm/h, used for rain attenuation
-        See section 6.6.5 of 38.811 specification. No effect while the rain
-        attenuation is disabled.
-        """
-        return self._rain_rate
-
-    @property
     def atmospheric_pressure(self):
-        r"""Atmospheric pressure in hPa, used for gas pathloss
-        See section 6.6.4 of 38.811 specification.
+        r"""Dry air pressure in hPa, used for the gas loss. Defaults to 1013.25, the
+        reference atmosphere of section 6.6.4 of 38.811 specification, which calls it
+        the dry air pressure; the total pressure is this plus the water vapour partial
+        pressure.
         """
         return self._atmospheric_pressure
 
     @property
     def temperature(self):
-        r"""Temperature in K, used for scintillation, gas, and cloud/rain losses
-        See section 6.6.6 of 38.811 specification.
+        r"""Temperature in K, used for the gas loss (section 6.6.4 of 38.811
+        specification). Defaults to 288.15, the reference atmosphere of section 6.6.4.
         """
         return self._temperature
 
@@ -509,30 +514,11 @@ class SystemLevelScenario(Object):
         return self._water_vapor_density
 
     @property
-    def relative_humidity(self):
-        r"""Relative humidity in percent, used for gas loss
-        See section 6.6.4 of 38.811 specification.
-        """
-        return self._relative_humidity
-
-    @property
-    def diameter_earth_antenna(self):
-        r"""The diamater of the Earth-stationed antenna, used for scintillation loss
-        See section 6.6.6 of 38.811 specification.
-        """
-        return self._diameter_earth_antenna
-
-    @property
-    def antenna_efficiency(self):
-        r"""Efficiency of the Earth-stationed antenna, used for scintillation loss, 0.5 is conservative estimate
-        See section 6.6.6 of 38.811 specification.
-        """
-        return self._antenna_efficiency
-
-    @property
     def doppler_enabled(self):
-        r"""Efficiency of the Earth-stationed antenna, used for scintillation loss, 0.5 is conservative estimate
-        See section 6.6.6 of 38.811 specification.
+        r"""If `True`, the channel contains the Doppler shift due to the motion of the
+        satellite (sections 6.7.1 and 6.8.1 of 38.811 specification); if `False`, it
+        does not. The Doppler shift due to the motion of the UTs is applied in either
+        case.
         """
         return self._doppler_enabled
 
@@ -547,7 +533,12 @@ class SystemLevelScenario(Object):
     def _update_attr(self, name, value):
         # store topology tensors as buffers so .to()/.cuda() moves them; copy_ when shape is stable, re-register otherwise
         existing = getattr(self, name, None)
-        if existing is not None and name in self._buffers and existing.shape == value.shape:
+        # A value or a buffer that requires gradients is registered anew: copy_ into a
+        # buffer that carries the graph of an earlier call would chain the graphs, and
+        # the backward pass of the later call would fail. Without gradients copy_ keeps
+        # the buffer, as torch.compile and CUDA graphs expect.
+        if (existing is not None and name in self._buffers and existing.shape == value.shape
+                and not value.requires_grad and not existing.requires_grad):
             existing.copy_(value)
         else:
             # Register a copy: the caller's tensor must not become the buffer, or the
@@ -557,9 +548,8 @@ class SystemLevelScenario(Object):
 
     def set_topology(self, ut_loc=None, bs_loc=None, ut_orientations=None,
         bs_orientations=None, ut_velocities=None, in_state=None, los=None, latitude=None,
-        lwc=None, rain_rate=None, atmospheric_pressure=None, temperature=None,
-        water_vapor_density=None, relative_humidity=None, diameter_earth_antenna=None,
-        antenna_efficiency=None, doppler_enabled=None):
+        atmospheric_pressure=None, temperature=None, water_vapor_density=None,
+        doppler_enabled=None):
         r"""
         Set the network topology.
 
@@ -570,13 +560,32 @@ class SystemLevelScenario(Object):
         reuse of the previously given value. Not specifying a value that was not
         set at a former call rises an error.
 
+        The topology tensors may require gradients. The scenario stores copies through
+        which the gradients flow, so its quantities (for example the 2D distances and
+        the LoS angles) stay differentiable with respect to the tensors passed, in every
+        call. The path coefficients and delays of the channel models are detached, so
+        gradients exist only for the quantities of the scenario.
+
         Input
         ------
             ut_loc : [batch size, number of UTs, 3], torch.float
                 Locations of the UTs [m]
 
             bs_loc : [batch size, number of BSs, 3], torch.float
-                Locations of BSs [m]
+                Locations of BSs [m]. One satellite or aerial platform per call
+                (number of BSs 1), at the same height in every batch example: a
+                satellite from 160 km to 35 786 km or an aerial platform from 8 km
+                to 50 km; `ValueError` otherwise. TR 38.811, clause 3.1, places
+                aerial platforms at 8 km to 50 km and LEO satellites from 500 km on;
+                the models accept satellites from 160 km, very low orbits included.
+                Table 4.5-1 gives typical altitudes (LEO 600 km to 1500 km, MEO
+                7000 km to 20 000 km, GEO 35 786 km), Table 5.1-1 the reference
+                deployments (GEO, non-GEO down to 600 km, UAS 8 km to 50 km). The
+                Faraday rotation of clause 6.8.2, given "In case of propagation for
+                spaceborne BS above the ionosphere", applies from 600 km, the lowest
+                satellite altitude of TR 38.811; a satellite below 600 km flies
+                within the F region of the ionosphere, for which TR 38.811 gives no
+                Faraday rotation.
 
             ut_orientations : [batch size, number of UTs, 3], torch.float
                 Orientations of the UTs arrays [radian]
@@ -589,7 +598,13 @@ class SystemLevelScenario(Object):
 
             in_state : [batch size, number of UTs], torch.bool
                 Indoor/outdoor state of UTs. `True` means indoor and `False`
-                means outdoor.
+                means outdoor. The models accept outdoor UTs only, for satellites
+                and aerial platforms, `ValueError` otherwise. TR 38.811 considers
+                only outdoor UTs for satellites (clause 6.1.2; Table 5.1-1, "100%
+                Outdoors" for the satellite deployments) and indoor UTs as well
+                for aerial platforms (clause 6.1.2; Table 5.1-1, "Indoor and
+                Outdoor" for UAS including HAPS), but the models have neither the
+                building entry loss of clause 6.6.3 nor O2I clusters.
 
             los : torch.bool or `None`
                 If not `None` (default value), all UTs located outdoor are
@@ -599,42 +614,29 @@ class SystemLevelScenario(Object):
                 (Section 7.4.2 of TR 38.901).
 
             atmospheric_pressure : float
-                Atmospheric pressure [hPa], used for the gas loss. Defaults
-                to 1020.
+                Dry air pressure p [hPa], used for the gas loss (ITU-R P.676-10,
+                Annex 2, with the total pressure p + e and the water vapour
+                partial pressure e = rho T / 216.7). Defaults to 1013.25, which
+                TR 38.811, clause 6.6.4, gives as the dry air pressure of the
+                mean annual global reference atmosphere.
 
             temperature : float
-                Temperature [K], used for the gas and the scintillation loss.
-                Defaults to 273.
+                Temperature [K], used for the gas loss. Defaults to 288.15, the
+                mean annual global reference atmosphere of TR 38.811, clause
+                6.6.4.
 
             water_vapor_density : float
                 Water vapour density [g/m^3], used for the gas loss. Defaults
                 to 7.5.
 
-            relative_humidity : float
-                Relative humidity [%], used for the scintillation loss.
-                Defaults to 50.
-
-            diameter_earth_antenna : float
-                Diameter of the Earth-stationed antenna [m], used for the
-                scintillation loss. Defaults to 3.6.
-
-            antenna_efficiency : float
-                Efficiency of the Earth-stationed antenna, used for the
-                scintillation loss. Defaults to 0.5.
-
             latitude : float
-                Latitude of the UTs [deg]. Used only by the cloud and rain
-                attenuation, which is disabled, so it has no effect. Defaults
-                to 47.
-
-            lwc : float
-                Liquid water content [kg/m^2]. Used only by the cloud
-                attenuation, which is disabled, so it has no effect. Defaults
-                to 0.41.
-
-            rain_rate : float
-                Rain rate [mm/h]. Used only by the rain attenuation, which is
-                disabled, so it has no effect. Defaults to 40.
+                Latitude of the UTs relative to the magnetic equator [deg], from
+                -90 to 90 (`ValueError` otherwise). Below 6 GHz the scintillation
+                loss is the ionospheric scintillation of TR 38.811, clause
+                6.6.6.1.4, for latitudes within 20 deg of the magnetic equator,
+                and 0 at higher latitudes. Defaults to 47, where the loss is 0,
+                as in the calibration of TR 38.821, Table 6.1.1.1-5 (UEs between
+                20 and 60 deg of latitude).
 
             An atmospheric parameter that is passed without new topology
             tensors updates the gas and scintillation losses of the current
@@ -668,6 +670,21 @@ class SystemLevelScenario(Object):
             or (self._ut_velocities is not None),\
             "`ut_velocities` is None and was not previously set"
 
+        # One satellite or aerial platform at one height per call, the latitude and
+        # the outdoor state of the UTs, checked before anything is stored
+        if bs_loc is not None:
+            bs_loc = self._convert(bs_loc)
+            _validate_platform(bs_loc)
+        if latitude is not None and not abs(latitude) <= 90.0:
+            raise ValueError(f"latitude {latitude} deg outside -90 deg to 90 deg")
+        # Outdoor UTs only, for satellites and aerial platforms: TR 38.811 V15.4.0
+        # considers only outdoor UTs for satellites and indoor UTs as well for aerial
+        # platforms (clause 6.1.2, Table 5.1-1), but the models have neither the
+        # building entry loss of clause 6.6.3 nor O2I clusters
+        if in_state is not None and bool(torch.as_tensor(in_state).any()):
+            raise ValueError("indoor UTs are not supported: the models accept outdoor "
+                             "UTs only (in_state False for every UT)")
+
         # Boolean used to keep track of whether or not we need to (re-)compute
         # the distances between users, correlation matrices...
         # This is required if the UT locations, BS locations, indoor/outdoor
@@ -675,31 +692,23 @@ class SystemLevelScenario(Object):
         need_for_update = False
 
         # Atmospheric parameters: a parameter that is not passed keeps its previous
-        # value. The gas and scintillation losses depend on these ones.
+        # value. The gas loss depends on the first three, the scintillation loss
+        # below 6 GHz on the latitude.
         atmosphere_updated = False
         for name, value in (("atmospheric_pressure", atmospheric_pressure),
                             ("temperature", temperature),
                             ("water_vapor_density", water_vapor_density),
-                            ("relative_humidity", relative_humidity),
-                            ("diameter_earth_antenna", diameter_earth_antenna),
-                            ("antenna_efficiency", antenna_efficiency)):
+                            ("latitude", latitude)):
             if value is not None:
                 setattr(self, "_" + name, value)
                 atmosphere_updated = True
-        # Used only by the cloud and rain attenuation, which is disabled
-        if latitude is not None:
-            self._latitude = latitude
-        if lwc is not None:
-            self._lwc = lwc
-        if rain_rate is not None:
-            self._rain_rate = rain_rate
 
         if ut_loc is not None:
             self._update_attr("_ut_loc", self._convert(ut_loc))
             need_for_update = True
 
         if bs_loc is not None:
-            self._update_attr("_bs_loc", self._convert(bs_loc))
+            self._update_attr("_bs_loc", bs_loc)
             need_for_update = True
 
         if bs_orientations is not None:
@@ -740,12 +749,9 @@ class SystemLevelScenario(Object):
             self._compute_pathloss_entry()
             # Compute the basic path-loss
             self._compute_pathloss_scintillation()
-            #The 3GPP model only considers the losses given above. However, there also are
-            #models for additional losses due to clouds and rain, which are considered in this function
-            #self._compute_pathloss_additional()
         elif atmosphere_updated:
-            # Only the gas and scintillation losses depend on the atmospheric
-            # parameters; they are deterministic, so nothing is drawn again.
+            # Only the losses that the atmospheric parameters can change are
+            # recomputed; they are deterministic, so nothing is drawn again.
             self._compute_pathloss_gas()
             self._compute_pathloss_scintillation()
         return need_for_update
@@ -809,7 +815,8 @@ class SystemLevelScenario(Object):
         r"""
         Given a ``parameter_name`` used in the configuration file, returns a
         tensor with shape [batch size, number of BSs, number of UTs] of the
-        parameter value according to each BS-UT link state (LoS, NLoS, indoor).
+        parameter value according to each BS-UT link state (LoS or NLoS; the
+        models accept outdoor UTs only).
 
         Input
         ------
@@ -818,6 +825,14 @@ class SystemLevelScenario(Object):
             "CPhiNLoS" or "CThetaNLoS" for the scaling factors of TR 38.811
             Tables 6.7.2-1aa and 6.7.2-1ab, selected by the number of
             clusters of each link state
+
+        For a satellite (160 km to 35 786 km), the departure spreads at the
+        satellite are zero, as NOTE 8 of TR 38.811 Tables 6.7.2-1a to 6.7.2-8b
+        states: "muASD" and "muZSD" are -inf, "sigmaASD" and "sigmaZSD" are 0, the
+        cross-correlations of ASD and ZSD with the other large scale parameters are
+        0, and so is the cluster ASD "cASD" (clause 6.9.1: "all cluster AOD and ZOD
+        angles the same"), in both link directions. Aerial platforms get the values
+        of the configuration file, which are those of the tables.
 
         Output
         -------
@@ -836,7 +851,7 @@ class SystemLevelScenario(Object):
 
         # Parameter value, rounds elevation angle to nearest table entry
         if parameter_name not in _SCALING_FACTORS:
-            angle_str = str(round(self._elevation_angle/10.0)*10)
+            angle_str = str(_reference_elevation(self._elevation_angle))
             parameter_value_los = self._params_los[parameter_name + '_' + angle_str]
             parameter_value_nlos = self._params_nlos[parameter_name + '_' + angle_str]
         else:
@@ -865,6 +880,13 @@ class SystemLevelScenario(Object):
 
         parameter_tensor = torch.where(self.los, parameter_value_los,
             parameter_value_nlos)
+
+        # NOTE 8 for satellites (see _NOTE_8)
+        if parameter_name in _NOTE_8:
+            satellite = _is_satellite(self.h_bs).unsqueeze(2)
+            parameter_tensor = torch.where(satellite,
+                torch.full_like(parameter_tensor, _NOTE_8[parameter_name]),
+                parameter_tensor)
 
         return parameter_tensor
 
@@ -903,7 +925,7 @@ class SystemLevelScenario(Object):
         #Radius of the Earth
         R_E = 6371000.0
 
-        #satellite height [num_bs]
+        #satellite height [num_bs], the same in every batch example (set_topology)
         height_val = self._bs_loc[:,:,2][0].to(torch.float64)
         #Calculating the 3d distance based on TR 38.811 V15.4.0, eq. (6.6-3) to consider the Earth's
         #curveture.
@@ -953,8 +975,20 @@ class SystemLevelScenario(Object):
 
         delta_loc_xy = ut_loc_xy_expanded_1 - ut_loc_xy_expanded_2
 
-        matrix_ut_distance_2d = torch.sqrt(torch.sum(torch.square(delta_loc_xy),
-                                                       dim=3))
+        # The distance of a UT to itself is 0 for every UT location, so its derivative
+        # is 0. The square root has an infinite derivative at 0, which the backward pass
+        # would multiply by the zero offset: inf times 0 is NaN, in the gradients of the
+        # distances and of the large scale parameters with respect to the UT locations.
+        # The square root is therefore taken wherever the squared distance is not 0, of
+        # 1 where it is 0, and the result replaced by 0 there; for every UT location the
+        # values are those of the square root, bit for bit, a NaN location giving NaN.
+        squared_distance = torch.sum(torch.square(delta_loc_xy), dim=3)
+        nonzero = squared_distance != 0
+        matrix_ut_distance_2d = torch.where(
+            nonzero,
+            torch.sqrt(torch.where(nonzero, squared_distance,
+                                   torch.ones_like(squared_distance))),
+            torch.zeros_like(squared_distance))
         self._update_attr("_matrix_ut_distance_2d", matrix_ut_distance_2d)
 
     def _sample_los(self):

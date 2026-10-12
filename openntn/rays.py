@@ -55,9 +55,16 @@ class Rays:
 
     xpr [batch size, number of BSs, number of UTs, number of clusters, number of rays], `torch.float`
         Coss-polarization power ratios.
+
+    strongest_cluster_indices : [batch size, number of BSs, number of UTs, 2], `torch.int64` or `None`
+        Indices of the two strongest clusters, whose rays are coupled within the
+        sub-clusters of TR 38.901 Table 7.5-5 and which step 11 splits into
+        sub-clusters. If `None`, step 11 selects the two clusters with the largest
+        powers. Defaults to `None`.
     """
 
-    def __init__(self, delays, powers, aoa, aod, zoa, zod, xpr):
+    def __init__(self, delays, powers, aoa, aod, zoa, zod, xpr,
+                 strongest_cluster_indices=None):
         self.delays = delays
         self.powers = powers
         self.aoa = aoa
@@ -65,6 +72,7 @@ class Rays:
         self.zoa = zoa
         self.zod = zod
         self.xpr = xpr
+        self.strongest_cluster_indices = strongest_cluster_indices
 
 
 class RaysGenerator(Object):
@@ -77,7 +85,7 @@ class RaysGenerator(Object):
 
     Note that a global scenario is set for the entire batches when instantiating
     this class (DenseUrban, Urban, or SubUrban). However, each UT-BS link can have its
-    specific state (LoS, NLoS, or indoor).
+    specific state (LoS or NLoS; the models accept outdoor UTs only).
 
     The batch size is set by the ``scenario`` given as argument when
     constructing the class.
@@ -125,6 +133,15 @@ class RaysGenerator(Object):
             device=self.device,
         ))
 
+        # Rays of the sub-clusters R1, R2 and R3 of the two strongest clusters,
+        # TR 38.901 V16.1.0, Table 7.5-5 (rays 1 to 20 as indices 0 to 19)
+        self.register_buffer("_subcluster_1_indices", torch.tensor(
+            [0, 1, 2, 3, 4, 5, 6, 7, 18, 19], dtype=torch.int64, device=self.device))
+        self.register_buffer("_subcluster_2_indices", torch.tensor(
+            [8, 9, 10, 11, 16, 17], dtype=torch.int64, device=self.device))
+        self.register_buffer("_subcluster_3_indices", torch.tensor(
+            [12, 13, 14, 15], dtype=torch.int64, device=self.device))
+
     #########################################
     # Public methods and properties
     #########################################
@@ -156,8 +173,14 @@ class RaysGenerator(Object):
         # XPRs
         xpr = self._cross_polarization_power_ratios()
 
-        # Random coupling
-        aoa, aod, zoa, zod = self._random_coupling(aoa, aod, zoa, zod)
+        # Random coupling. The rays of the two strongest clusters, by the powers
+        # of eq. (7.5-6) after the cluster elimination, are coupled within the
+        # sub-clusters of Table 7.5-5 (TR 38.901 V16.1.0, clause 7.5, step 8);
+        # step 11 splits the same two clusters.
+        strongest_cluster_indices = torch.topk(
+            powers, k=min(2, powers.shape[-1]), dim=-1).indices
+        aoa, aod, zoa, zod = self._random_coupling(aoa, aod, zoa, zod,
+                                                   strongest_cluster_indices)
 
         # Convert angles of arrival and departure from degree to radian
         aoa = deg_2_rad(aoa)
@@ -172,7 +195,8 @@ class RaysGenerator(Object):
                     aod    = aod,
                     zoa    = zoa,
                     zod    = zod,
-                    xpr    = xpr)
+                    xpr    = xpr,
+                    strongest_cluster_indices = strongest_cluster_indices)
 
         return rays
 
@@ -490,9 +514,9 @@ class RaysGenerator(Object):
         if angle_type == 'aod':
             azimuth_angles_los = scenario.los_aod
             cluster_angle_spread = scenario.get_param('cASD')
-            #Spread is 0 for satellite cases
-            if self._scenario.bs_loc[0, 0, 2] >= 160000:
-                azimuth_spread = torch.zeros_like(azimuth_spread)
+            # For a satellite the departure spread ASD is 0: the scenario applies NOTE 8
+            # of TR 38.811 V15.4.0, Tables 6.7.2-1a to 6.7.2-8b (get_param); the
+            # satellite is the departure end of the generated rays in both directions
 
         else:
             azimuth_angles_los = scenario.los_aoa
@@ -520,11 +544,12 @@ class RaysGenerator(Object):
             torch.sqrt(-torch.log(z)) / c_phi
         )
 
-        # Introducing random variation
+        # Introducing random variation. X_n is drawn per link, as the other
+        # random variables of step 7 (TR 38.901 V16.1.0, clause 7.5).
         random_sign = randint(
             0,
             2,
-            (batch_size, num_bs, 1, num_clusters_max),
+            (batch_size, num_bs, num_ut, num_clusters_max),
             dtype=torch.int32,
             device=self.device,
             generator=self.torch_rng,
@@ -671,8 +696,9 @@ class RaysGenerator(Object):
                 torch.tensor(10.0, dtype=self.dtype, device=self.device),
                 scenario.lsp_log_mean[:, :, :, 6],
             )
-            if self._scenario.bs_loc[0, 0, 2] >= 160000:
-                zenith_spread = torch.zeros_like(zenith_spread)
+            # For a satellite the departure spread ZSD and, with mu_lgZSD = -inf, the
+            # intra-cluster spread (3/8) 10^mu_lgZSD of TR 38.901 V16.1.0, eq. (7.5-20),
+            # are 0 (NOTE 8 of TR 38.811 V15.4.0, applied by the scenario in get_param)
         else:
             cluster_angle_spread = scenario.get_param('cZSA')
             zenith_angles_los = scenario.los_zoa
@@ -698,11 +724,12 @@ class RaysGenerator(Object):
         z = z.clamp(1e-6, 1.0)
         zenith_angles_prime = -zenith_spread * torch.log(z) / c_theta
 
-        # Random component
+        # Random component. X_n is drawn per link, as the other random variables
+        # of step 7 (TR 38.901 V16.1.0, clause 7.5).
         random_sign = randint(
             0,
             2,
-            (batch_size, num_bs, 1, num_clusters_max),
+            (batch_size, num_bs, num_ut, num_clusters_max),
             dtype=torch.int32,
             device=self.device,
             generator=self.torch_rng,
@@ -814,7 +841,7 @@ class RaysGenerator(Object):
         return self._zenith_angles(zenith_spread_departure, rician_k_factor,
                                    cluster_powers, 'zod')
 
-    def _shuffle_angles(self, angles):
+    def _shuffle_angles(self, angles, strongest_cluster_indices=None):
         # pylint: disable=line-too-long
         """
         Randomly shuffle a tensor carrying azimuth/zenith angles
@@ -824,6 +851,11 @@ class RaysGenerator(Object):
         ------
         angles : [batch size, num of BSs, num of UTs, maximum number of clusters, number of rays], torch.float
             Angles to shuffle
+
+        strongest_cluster_indices : [batch size, num of BSs, num of UTs, 2], torch.int64 or `None`
+            Indices of the two strongest clusters, whose rays are shuffled within
+            the sub-clusters of Table 7.5-5. If `None`, the rays of every cluster
+            are shuffled across the whole cluster.
 
         Output
         -------
@@ -838,19 +870,41 @@ class RaysGenerator(Object):
         num_ut = scenario.num_ut
 
         # Create randomly shuffled indices by arg-sorting samples from a random
-        # normal distribution
+        # normal distribution, drawn per link: step 8 couples the rays of each
+        # BS-UT link (TR 38.901 V16.1.0, clause 7.5)
         random_numbers = normal(
-            (batch_size, num_bs, 1, scenario.num_clusters_max, scenario.rays_per_cluster),
+            (batch_size, num_bs, num_ut, scenario.num_clusters_max,
+             scenario.rays_per_cluster),
             device=self.device,
             generator=self.torch_rng,
         )
         shuffled_indices = torch.argsort(random_numbers, dim=-1)
-        shuffled_indices = shuffled_indices.expand(-1, -1, num_ut, -1, -1)
+
+        if strongest_cluster_indices is not None:
+            # The same random numbers, sorted within each sub-cluster of Table
+            # 7.5-5, permute the rays of the two strongest clusters within their
+            # sub-clusters
+            ray_indices = torch.arange(scenario.rays_per_cluster, dtype=torch.int64,
+                                       device=self.device)
+            grouped_indices = ray_indices.reshape(
+                *([1] * (random_numbers.dim() - 1)), -1
+            ).expand_as(random_numbers).clone()
+            for group in (self._subcluster_1_indices,
+                          self._subcluster_2_indices,
+                          self._subcluster_3_indices):
+                within_group = torch.argsort(
+                    random_numbers.index_select(-1, group), dim=-1)
+                grouped_indices[..., group] = group[within_group]
+            strongest = torch.zeros_like(random_numbers[..., 0], dtype=torch.bool)
+            strongest = strongest.scatter(-1, strongest_cluster_indices, True)
+            shuffled_indices = torch.where(strongest.unsqueeze(-1),
+                                           grouped_indices, shuffled_indices)
+
         # Shuffling the angles
         shuffled_angles = torch.gather(angles, dim=4, index=shuffled_indices)
         return shuffled_angles
 
-    def _random_coupling(self, aoa, aod, zoa, zod):
+    def _random_coupling(self, aoa, aod, zoa, zod, strongest_cluster_indices=None):
         # pylint: disable=line-too-long
         """
         Randomly couples the angles within a cluster for both azimuth and
@@ -872,6 +926,10 @@ class RaysGenerator(Object):
         zod : [batch size, num of BSs, num of UTs, maximum number of clusters, number of rays], torch.float
             Paths zenith angles of departure [degree] (ZoD)
 
+        strongest_cluster_indices : [batch size, num of BSs, num of UTs, 2], torch.int64 or `None`
+            Indices of the two strongest clusters, whose rays are coupled within
+            the sub-clusters of Table 7.5-5
+
         Output
         -------
         shuffled_aoa : [batch size, num of BSs, num of UTs, maximum number of clusters, number of rays], torch.float
@@ -886,10 +944,10 @@ class RaysGenerator(Object):
         shuffled_zod : [batch size, num of BSs, num of UTs, maximum number of clusters, number of rays], torch.float
             Shuffled `zod`
         """
-        shuffled_aoa = self._shuffle_angles(aoa)
-        shuffled_aod = self._shuffle_angles(aod)
-        shuffled_zoa = self._shuffle_angles(zoa)
-        shuffled_zod = self._shuffle_angles(zod)
+        shuffled_aoa = self._shuffle_angles(aoa, strongest_cluster_indices)
+        shuffled_aod = self._shuffle_angles(aod, strongest_cluster_indices)
+        shuffled_zoa = self._shuffle_angles(zoa, strongest_cluster_indices)
+        shuffled_zod = self._shuffle_angles(zod, strongest_cluster_indices)
 
         return shuffled_aoa, shuffled_aod, shuffled_zoa, shuffled_zod
 

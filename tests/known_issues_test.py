@@ -8,16 +8,17 @@
 # strict expected failure whose reason states the observed and the expected behaviour.
 # Strict means that the test fails as soon as the behaviour changes, so the marker has
 # to be removed in the same change; the test then stays as a regression test.
+import json
 import math
+import os
 import unittest
 
-import pytest
 import torch
 
 from openntn import Antenna, AntennaArray, Urban
 from openntn import utils
 
-from statistical_checks import assert_std
+from statistical_checks import assert_correlation, assert_std
 
 CARRIER_FREQUENCY = 2.2e9
 ELEVATION_ANGLE = 50.0
@@ -73,48 +74,80 @@ def _applied_shadow_fading_db(model):
     return loss_db - deterministic, sc.los
 
 
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "spec_tables",
+                       "tr38811_v15.4.0.json"), encoding="ascii") as _f:
+    TABLES = json.load(_f)["tables"]
+
+
+def _limited_correlation(a):
+    """Correlation of Z and min(Z, a) for a standard normal Z: Cov(Z, min(Z, a)) is
+    Phi(a), and min(Z, a) has the mean -phi(a) + a (1 - Phi(a)) and the second moment
+    Phi(a) - a phi(a) + a^2 (1 - Phi(a))."""
+    pdf = math.exp(-0.5 * a * a) / math.sqrt(2.0 * math.pi)
+    cdf = 0.5 * (1.0 + math.erf(a / math.sqrt(2.0)))
+    mean = -pdf + a * (1.0 - cdf)
+    second = cdf - a * pdf + a * a * (1.0 - cdf)
+    return cdf / math.sqrt(second - mean * mean)
+
+
 class ShadowFading(unittest.TestCase):
     """TR 38.811 V15.4.0, Section 6.6.2, eq. (6.6-4): the path loss contains one shadow
     fading term SF ~ N(0, sigma_SF^2); Table 6.6.2-2 gives sigma_SF = 4 dB (LoS) and
-    6 dB (NLoS) for the urban scenario.
+    6 dB (NLoS) for the urban scenario. Tables 6.7.2-3a (LoS) and 6.7.2-4a (NLoS) give
+    the cross-correlations of this shadow fading with the other large scale parameters,
+    which the large scale parameter SF of TR 38.901 V16.1.0, clause 7.5, step 4 carries;
+    step 12 applies it to the channel coefficients.
 
-    Scenario of both tests: urban, S band (2.2 GHz), downlink, 50 degrees elevation,
-    satellite at 600 km, 2000 links with one UT per batch example, so that the LSP draws
+    Scenario of the tests: urban, S band (2.2 GHz), downlink, 50 degrees elevation,
+    satellite at 600 km, links with one UT per batch example, so that the LSP draws
     of different links are independent. Measured quantity: the shadow fading in dB that
     step 12 applies to the channel coefficients, i.e. the loss of the step 12 gain on
     unit coefficients minus FSPL, gas, scintillation and entry loss and, for NLoS links,
     the clutter loss."""
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="Under investigation: the shadow fading applied to the channel has "
-                              "about sqrt(2) times sigma_SF, as the shadow fading of the basic path "
-                              "loss (TR 38.811 eq. 6.6-4) and the shadow fading large-scale "
-                              "parameter are both applied; expected sigma_SF of Table 6.6.2-2")
     def test_shadow_fading_applied_once(self):
-        # Expected: standard deviation sigma_SF. Measured on the current code: 5.7 dB
-        # (LoS) and 8.3 dB (NLoS), the sum of two independent draws.
+        # Expected: standard deviation sigma_SF.
         model = _model()
         model.set_topology(*_topology(batch_size=2000, num_ut=1))
         sf_db, los = _applied_shadow_fading_db(model)
         assert_std(sf_db[los], 4.0, "applied SF, LoS")
         assert_std(sf_db[~los], 6.0, "applied SF, NLoS")
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="Under investigation: with enable_shadow_fading=False the shadow "
-                              "fading of the basic path loss (TR 38.811 eq. 6.6-4) is still "
-                              "applied; expected no shadow fading")
     def test_shadow_fading_disabled(self):
         # TR 38.811 has no switch for the shadow fading; enable_shadow_fading=False is a
         # model option ("If True, apply shadow fading. Otherwise doesn't."). With it, the
         # SF term of eq. (6.6-4) is absent and the applied shadow fading must be 0 dB.
-        # Measured on the current code: the SF draw of the basic path loss remains,
-        # standard deviation 4.0 dB (LoS) and 6.1 dB (NLoS).
         model = _model(enable_shadow_fading=False)
         model.set_topology(*_topology(batch_size=2000, num_ut=1))
         sf_db, los = _applied_shadow_fading_db(model)
         self.assertLess(float(sf_db.abs().max()), 1e-3,
                         f"applied SF remains: standard deviation {float(sf_db[los].std()):.2f} dB "
                         f"(LoS), {float(sf_db[~los].std()):.2f} dB (NLoS)")
+
+    def test_shadow_fading_correlations(self):
+        # Tables 6.7.2-3a (LoS) and 6.7.2-4a (NLoS), 50 degrees: the correlations of the
+        # shadow fading with lg DS and lg ZSA (the sign of the shadow fading as NOTE 2 of
+        # the tables: positive means more received power). Step 4 limits ZSA to 52
+        # degrees ("ZSA = min(ZSA, 52°)"); lg ZSA and SF are jointly normal, so the
+        # correlation of SF with the limited lg ZSA is that of the table times
+        # corr(Z, min(Z, a)) = Phi(a) / sqrt(Var(min(Z, a))) for a standard normal Z,
+        # with a = (lg 52 - mu_lgZSA) / sigma_lgZSA of the table. DS is not limited.
+        # 4000 links per link state, LoS and NLoS forced.
+        k = int(ELEVATION_ANGLE / 10) - 1
+        for los, table in ((True, "6.7.2-3a"), (False, "6.7.2-4a")):
+            rows = TABLES[table]["rows"]
+            model = _model()
+            model.set_topology(*_topology(batch_size=4000, num_ut=1), los=los)
+            gain_db = -_applied_shadow_fading_db(model)[0]
+            a = ((math.log10(52.0) - float(rows["mu_lgZSA"][k]))
+                 / float(rows["sigma_lgZSA"][k]))
+            label = f"{'LoS' if los else 'NLoS'}, Table {table}"
+            expected = {
+                "ds": float(rows["corr_DS_vs_SF"][k]),
+                "zsa": float(rows["corr_ZSA_vs_SF"][k]) * _limited_correlation(a)}
+            for name, rho in expected.items():
+                lg = torch.log10(getattr(model._lsp, name).double())
+                assert_correlation(gain_db, lg, rho, f"{label}: SF and lg {name.upper()}")
 
 
 class RayOffsets(unittest.TestCase):
@@ -172,25 +205,25 @@ class AtmosphericParameters(unittest.TestCase):
         sc.set_topology(temperature=300.0)
         torch.testing.assert_close(sc.gas_pathloss, reference.gas_pathloss)
 
-    def test_parameter_alone_updates_scintillation_loss(self):
-        # Ka band: the tropospheric scintillation loss depends on the temperature, the
-        # relative humidity and the Earth-stationed antenna.
-        parameters = {"temperature": 300.0, "relative_humidity": 70.0,
-                      "diameter_earth_antenna": 1.0, "antenna_efficiency": 0.6}
+    def test_temperature_leaves_ka_band_scintillation_loss_unchanged(self):
+        # Ka band: the tropospheric scintillation loss is the value of TR 38.811
+        # V15.4.0, Table 6.6.6.2.1-1 (clause 6.6.6.2.1), so the temperature does not
+        # change it, whether it is passed alone or with the topology. The gas loss,
+        # which the temperature changes, has its own test above.
         topology = _topology()
         reference = _model(carrier_frequency=20e9)._scenario
-        reference.set_topology(*topology, **parameters)
+        reference.set_topology(*topology, temperature=300.0)
 
         sc = _model(carrier_frequency=20e9)._scenario
         sc.set_topology(*topology)
         before = sc.scintillation_pathloss.clone()
-        sc.set_topology(**parameters)
-        self.assertFalse(torch.equal(sc.scintillation_pathloss, before))
-        torch.testing.assert_close(sc.scintillation_pathloss, reference.scintillation_pathloss)
+        sc.set_topology(temperature=300.0)
+        self.assertTrue(torch.equal(sc.scintillation_pathloss, before))
+        self.assertTrue(torch.equal(reference.scintillation_pathloss, before))
 
     def test_parameter_alone_draws_nothing(self):
         # Only the gas and scintillation losses are recomputed: the LoS states, the
-        # basic path loss with its shadow fading draw and the large scale parameters
+        # basic path loss and the large scale parameters, among them the shadow fading,
         # stay as they are.
         model = _model()
         model.set_topology(*_topology())
@@ -223,9 +256,6 @@ class AtmosphericParameters(unittest.TestCase):
 
 class AtmosphericDefaults(unittest.TestCase):
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="Under investigation: the default atmosphere is 273 K and 1020 hPa; "
-                              "TR 38.811 clause 6.6.4 gives 288.15 K and 1013.25 hPa for all UEs")
     def test_gas_loss_defaults(self):
         # TR 38.811 V15.4.0, clause 6.6.4: T = 288.15 K, p = 1013.25 hPa,
         # rho = 7.5 g/m^3 for all UEs.

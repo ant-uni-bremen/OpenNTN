@@ -80,7 +80,11 @@ class Urban(SystemLevelChannel):
         Link direction. Either "uplink" or "downlink".
 
     elevation_angle : float
-        elevation angle of the LOS path of the satellite/HAPS vs. ground horizon in degrees
+        elevation angle of the LOS path of the satellite/HAPS vs. ground horizon in degrees.
+        The tables of TR 38.811 are given at the reference elevation angles 10 to 90
+        degrees in steps of 10 degrees; the model takes the values of the reference
+        angle nearest to the elevation angle, and an angle midway between two reference
+        angles takes the higher one (25 degrees takes 30 degrees).
 
     enable_pathloss : bool
         If `True`, apply pathloss. Otherwise doesn't. Defaults to `True`.
@@ -122,6 +126,10 @@ class Urban(SystemLevelChannel):
 
         tau : [batch size, num_rx, num_tx, num_paths], torch.float
             Path delays [s]
+
+    The path coefficients and delays are detached from the autograd graph, as in
+    Sionna, so gradients with respect to the topology exist only for the quantities
+    of the scenario.
     """
 
     def __init__(self, carrier_frequency, ut_array, bs_array,

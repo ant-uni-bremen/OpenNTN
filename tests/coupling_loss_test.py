@@ -10,8 +10,15 @@
 #   - total path loss PL = PL_b + PL_g + PL_s + PL_e, eq. (6.6-1);
 #   - basic path loss PL_b = FSPL + SF + CL, eq. (6.6-4), with the shadow fading and
 #     clutter loss of Table 6.6.2-2 and the LOS probability of Table 6.6.1-1, both at
-#     the reference elevation angle nearest to 12.5 degrees, 10 degrees.
-# The statistical checks use the tolerances of statistical_checks.py.
+#     the reference elevation angle nearest to 12.5 degrees, 10 degrees. The models
+#     apply the shadow fading SF once, as the large scale parameter SF of TR 38.901
+#     V16.1.0, clause 7.5, step 4, in step 12 (Tables 6.7.2-1a to 6.7.2-8b of TR 38.811
+#     give its cross-correlations and correlation distance), so PL_b is FSPL + CL, bit
+#     for bit, and the shadow fading is 10 lg(sf) of the large scale parameter sf
+#     (positive means more received power, NOTE 2 of Tables 6.7.2-1a to 6.7.2-8b).
+# The statistical checks use the tolerances of statistical_checks.py. The topology has
+# one UT per batch example, so that the shadow fading samples of different links are
+# independent (the shadow fading of UTs of one example is spatially correlated).
 import math
 import unittest
 
@@ -53,8 +60,8 @@ class TestCouplingLoss(unittest.TestCase):
                                    elevation_angle=ELEVATION_ANGLE,
                                    enable_pathloss=True,
                                    enable_shadow_fading=True)
-        topology = utils.gen_single_sector_topology(batch_size=1000,
-                                                    num_ut=4,
+        topology = utils.gen_single_sector_topology(batch_size=4000,
+                                                    num_ut=1,
                                                     scenario="urb",
                                                     elevation_angle=ELEVATION_ANGLE,
                                                     bs_height=GEO_HEIGHT)
@@ -88,13 +95,17 @@ class TestCouplingLoss(unittest.TestCase):
     def test_basic_path_loss_distribution(self):
         sc = self.scenario
         los = sc.los
-        shadow_and_clutter = (sc.basic_pathloss - sc.free_space_pathloss).double()
         assert_proportion(int(los.sum()), los.numel(), LOS_PROBABILITY, "LOS fraction")
-        assert_mean(shadow_and_clutter[los], 0.0, SIGMA_SF_LOS, "LOS: PL_b - FSPL, mean")
-        assert_std(shadow_and_clutter[los], SIGMA_SF_LOS, "LOS: PL_b - FSPL, std")
-        assert_mean(shadow_and_clutter[~los], CLUTTER_LOSS, SIGMA_SF_NLOS,
-                    "NLOS: PL_b - FSPL, mean")
-        assert_std(shadow_and_clutter[~los], SIGMA_SF_NLOS, "NLOS: PL_b - FSPL, std")
+        basic, fspl = sc.basic_pathloss, sc.free_space_pathloss
+        cl = torch.tensor(CLUTTER_LOSS, dtype=basic.dtype, device=basic.device)
+        self.assertTrue(torch.equal(basic[los], fspl[los]), "LOS: PL_b differs from FSPL")
+        self.assertTrue(torch.equal(basic[~los], fspl[~los] + cl),
+                        "NLOS: PL_b differs from FSPL + CL")
+        shadow_fading = 10.0 * torch.log10(self.channel_model._lsp.sf.double())
+        assert_mean(shadow_fading[los], 0.0, SIGMA_SF_LOS, "LOS: shadow fading, mean")
+        assert_std(shadow_fading[los], SIGMA_SF_LOS, "LOS: shadow fading, std")
+        assert_mean(shadow_fading[~los], 0.0, SIGMA_SF_NLOS, "NLOS: shadow fading, mean")
+        assert_std(shadow_fading[~los], SIGMA_SF_NLOS, "NLOS: shadow fading, std")
 
 
 if __name__ == '__main__':

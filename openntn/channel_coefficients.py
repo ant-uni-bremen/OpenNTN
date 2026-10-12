@@ -14,15 +14,53 @@ based on 3GPP TR38.901, with TR38.811 serving mainly as an extension.
 """
 
 import math
+from typing import Union
 
 import torch
 
 from sionna.phy import PI, SPEED_OF_LIGHT, config
 from sionna.phy import Object
 from sionna.phy.utils import rand
-from .utils import compute_satellite_speed
+from .utils import (compute_satellite_speed, _is_satellite, _has_faraday_rotation,
+                    _SATELLITE_HEIGHTS)
 
 __all__ = ["Topology", "ChannelCoefficientsGenerator"]
+
+# Radius of the Earth [m], as in TR 38.811 V15.4.0, eq. (6.6-3)
+_EARTH_RADIUS = 6371000.0
+
+
+def _satellite_doppler_speed(bs_height: torch.Tensor, elevation_angle: float,
+                             dtype: torch.dtype,
+                             device: Union[str, torch.device]) -> torch.Tensor:
+    r"""Speed of the satellite along the line of sight to a UT in the orbital plane [m/s]
+
+    TR 38.811 V15.4.0, clauses 6.7.1 and 6.9.2, gives the Doppler shift due to the motion
+    of the satellite as :math:`f_{d} = (v_{sat}/c) (R/(R+h)) \cos(\alpha) f_c`, with the
+    orbital speed :math:`v_{sat}`, the radius :math:`R` of the Earth, the height
+    :math:`h` and the elevation angle :math:`\alpha`; this is the largest shift, for a
+    UT in the orbital plane (clause 5.3.4.4). This function returns
+    :math:`v_{sat} (R/(R+h)) \cos(\alpha)`, with the speed of a circular orbit. The
+    rotation of the Earth is neglected, as clause 5.3.4.3 does at first order. A
+    geostationary satellite (35 786 km) "is fixed and therefore no Doppler shift is
+    induced" (clause 5.3.2.3), and "For GEO and HAPS, the Doppler shift component is
+    mainly caused by the UE movement" (clause 5.3.4.4): the speed is 0 for a
+    geostationary satellite and for an aerial platform.
+
+    :param bs_height: Height of the platform [m], shape [num_bs]
+    :param elevation_angle: Elevation angle [deg]
+    :param dtype: Data type of the output
+    :param device: Device of the output
+
+    :output: [num_bs], `torch.float`. Speed along the line of sight [m/s]
+    """
+    height = torch.as_tensor(bs_height, dtype=dtype, device=device)
+    elevation_angle_rad = torch.as_tensor(elevation_angle, dtype=dtype,
+                                          device=device) * (PI/180.0)
+    speed = (torch.cos(elevation_angle_rad) * compute_satellite_speed(height)
+             * (_EARTH_RADIUS/(_EARTH_RADIUS + height)))
+    orbiting = _is_satellite(height) & (height < _SATELLITE_HEIGHTS[1])
+    return torch.where(orbiting, speed, torch.zeros_like(speed))
 
 
 class Topology:
@@ -67,12 +105,26 @@ class Topology:
         Orientations of the receivers, which are either BSs or UTs depending on
         the link direction [radian].
 
+    bs_height : [number of BSs], `torch.float`
+        Height of the satellite or aerial platform [m]
+
+    elevation_angle : float
+        Elevation angle of the satellite or aerial platform [deg]
+
     doppler_enabled : bool
         Indicates if Doppler shift induced phase rotation should be simulated.
 
     los_phase : [batch size, number of TXs, number of RXs], `torch.float`
         Propagation phase -2 pi d3D f_c / c of the LoS path, reduced to [0, 2 pi) in
         double precision before the cast to the model precision [radian].
+
+    The attribute ``sat_speed`` [batch size] is the speed of the satellite along the
+    line of sight to the UTs [m/s], v_sat (R/(R+h)) cos(elevation angle) cos(2 pi U)
+    with U uniform per batch example (the direction of the orbit relative to the UTs);
+    v_sat (R/(R+h)) cos(elevation angle) is the largest value, which TR 38.811 V15.4.0,
+    clauses 6.7.1 and 6.9.2, gives for the Doppler shift due to the motion of the
+    satellite. It is 0 for a geostationary satellite (clause 5.3.2.3) and for an aerial
+    platform. The rotation of the Earth is neglected (clause 5.3.4.3).
     """
 
     def __init__(self,  velocities,
@@ -103,13 +155,10 @@ class Topology:
         self.elevation_angle = elevation_angle
         self.doppler_enabled = doppler_enabled
         self.los_phase = los_phase
-        # TODO In the best case we would verify the height, however, this ran into issues with eager execution at the moment
-        # for now, we assume the satellite to always be used, despite the other checks for it already in place
-        # In a future version we will test the sat height and set sat_speed to none if the bs is too low to be a satellite
-        sat_speed = compute_satellite_speed(bs_height).to(los_aoa.device)
-        elevation_angle_rad = torch.as_tensor(elevation_angle, dtype=los_aoa.dtype,
-            device=los_aoa.device) * (PI/180.0)
-        max_sat_speed_for_elevation_angle = torch.cos(elevation_angle_rad) * sat_speed
+        # The largest speed of the satellite along the line of sight, 0 for a
+        # geostationary satellite and for an aerial platform (one platform per call)
+        max_sat_speed_for_elevation_angle = _satellite_doppler_speed(
+            bs_height, elevation_angle, los_aoa.dtype, los_aoa.device)
         batch_size = los_aoa.shape[0]
         random_direction_per_batch = rand([batch_size], dtype=los_aoa.dtype,
             device=los_aoa.device,
@@ -626,13 +675,9 @@ class ChannelCoefficientsGenerator(Object):
         # [batch size, num_tx, num rx, num clusters, num rays, num time steps]
         exponent = 2*PI/lambda_0*(r_hat_ut*v_uts_bar).sum(dim=-2)*t
 
-        # Check if a satellite is used (height of satellite is at least 600km). This is done to potentially incorporate HAPS later
-        bs_height_threshold = torch.less_equal(
-            torch.as_tensor(600000.0, device=topology.bs_height.device),
-            topology.bs_height)
-        doppler_enabled = torch.as_tensor(topology.doppler_enabled,
-            dtype=torch.bool, device=topology.bs_height.device)
-        if torch.logical_and(bs_height_threshold, doppler_enabled):
+        # The Doppler shift due to the motion of the satellite: the speed along the line
+        # of sight (Topology), 0 for a geostationary satellite and an aerial platform
+        if topology.doppler_enabled:
             # We get the maximum speed of the satellite based on its orbit and the users elevation angle. This value is multiplied with a random constant between [cos(0),cos(2pi))
             # to simulate the random direction of the orbit in relation to the users.
             max_sat_speed_for_elevation_angle = topology.sat_speed
@@ -885,11 +930,14 @@ class ChannelCoefficientsGenerator(Object):
 
         h_phase = self._step_11_phase_matrix(phi, rays)
 
-        # Add Faraday phase rotation in NTN case
-        if torch.greater_equal(topology.bs_height, torch.as_tensor(600000.0, device=topology.bs_height.device)):
-            rays_shape = rays.aoa.shape
-            faraday_phase_rotation = self._step_11_faraday_rotation(carrier_frequency=carrier_frequency, aod_shape=rays_shape)
-            h_phase = torch.matmul(h_phase, faraday_phase_rotation)
+        # Add the Faraday rotation (TR 38.811 V15.4.0, clause 6.8.2: "spaceborne BS above
+        # the ionosphere") for a satellite from 600 km on (_has_faraday_rotation); not for
+        # a satellite below 600 km, which flies within the ionosphere, nor for an aerial
+        # platform. The other switches of a satellite start at 160 km (_is_satellite).
+        rays_shape = rays.aoa.shape
+        faraday_phase_rotation = self._step_11_faraday_rotation(carrier_frequency=carrier_frequency, aod_shape=rays_shape)
+        h_phase = torch.where(_has_faraday_rotation(topology.bs_height).all(),
+                              torch.matmul(h_phase, faraday_phase_rotation), h_phase)
 
         h_field = self._step_11_field_matrix(topology, rays.aoa, rays.aod,
                                                     rays.zoa, rays.zod, h_phase)
@@ -938,9 +986,22 @@ class ChannelCoefficientsGenerator(Object):
             powers = rays.powers
             delays = rays.delays
 
-            # Sort all clusters along their power
-            strongest_clusters = torch.argsort(powers, dim=-1,
-                descending=True)
+            # The two strongest clusters are those whose rays step 8 coupled within
+            # the sub-clusters (TR 38.901 V16.1.0, clause 7.5, steps 8 and 11). A
+            # second sort could pick another cluster when clusters have equal
+            # powers, for example two clusters of zero power after the elimination.
+            strongest_2 = getattr(rays, "strongest_cluster_indices", None)
+            if strongest_2 is None:
+                # Sort all clusters along their power
+                strongest_clusters = torch.argsort(powers, dim=-1,
+                    descending=True)
+            else:
+                remaining_powers = powers.scatter(-1, strongest_2,
+                    torch.full_like(strongest_2, -torch.inf, dtype=powers.dtype))
+                strongest_rest = torch.argsort(remaining_powers, dim=-1,
+                    descending=True)[..., :powers.shape[-1] - 2]
+                strongest_clusters = torch.cat([strongest_2, strongest_rest],
+                    dim=-1)
 
             # Sort delays according to the same ordering
             delays_sorted = torch.gather(delays, dim=3, index=strongest_clusters)
@@ -1033,12 +1094,13 @@ class ChannelCoefficientsGenerator(Object):
         # Field matrix
         h_phase = self._h_phase_los_const.reshape(1, 1, 1, 1, 1, 2, 2)
 
-        # Add Faraday phase rotation in NTN case
-        if torch.greater_equal(topology.bs_height, torch.as_tensor(600000.0, device=topology.bs_height.device)):
-
-            rays_shape = aoa.shape
-            faraday_phase_rotation = self._step_11_faraday_rotation(carrier_frequency=carrier_frequency, aod_shape=rays_shape)
-            h_phase = torch.matmul(h_phase, faraday_phase_rotation)
+        # Add the Faraday rotation for a satellite from 600 km on (TR 38.811 V15.4.0,
+        # clause 6.8.2; _has_faraday_rotation), as for the NLOS paths; the other
+        # switches of a satellite start at 160 km (_is_satellite)
+        rays_shape = aoa.shape
+        faraday_phase_rotation = self._step_11_faraday_rotation(carrier_frequency=carrier_frequency, aod_shape=rays_shape)
+        h_phase = torch.where(_has_faraday_rotation(topology.bs_height).all(),
+                              torch.matmul(h_phase, faraday_phase_rotation), h_phase)
 
         h_field = self._step_11_field_matrix(topology, aoa, aod, zoa, zod,
                                                                     h_phase)

@@ -16,7 +16,7 @@ import torch
 
 from sionna.phy import PI, config, dtypes
 from sionna.phy.utils import expand_to_rank
-from sionna.phy.utils.random import uniform, normal
+from sionna.phy.utils.random import uniform
 
 
 def subcarrier_frequencies(num_subcarriers, subcarrier_spacing,
@@ -563,7 +563,7 @@ def drop_uts_in_sector(batch_size, num_ut, bs_height, elevation_angle, isd,
         Number of UTs to sample per batch example
 
     bs_height : torch.float
-        Minimum BS-UT distance [m]
+        Height of the BS (satellite or aerial platform) [m]
 
     isd : torch.float
         Inter-site distance, i.e., the distance between two adjacent BSs [m]
@@ -666,7 +666,12 @@ def set_3gpp_scenario_parameters(   scenario,
         Maximum UT elevation [m]
 
     indoor_probability : None or torch.float
-        Probability of a UT to be indoor. Currently 0 for NTN
+        Probability of a UT to be indoor, returned as given (default 0). The
+        topology generators ignore it and place all UTs outdoor: the models
+        accept outdoor UTs only, for satellites and aerial platforms. TR 38.811
+        considers only outdoor UTs for satellites and indoor UTs as well for
+        aerial platforms (clause 6.1.2), but the models have neither the
+        building entry loss of clause 6.6.3 nor O2I clusters.
 
     min_ut_velocity : None or torch.float
         Minimum UT velocity [m/s]
@@ -699,7 +704,8 @@ def set_3gpp_scenario_parameters(   scenario,
         Maximum UT elevation [m]
 
     indoor_probability : torch.float
-        Probability of a UT to be indoor
+        Probability of a UT to be indoor, as given (default 0); the topology
+        generators ignore it
 
     min_ut_velocity : torch.float
         Minimum UT velocity [m/s]
@@ -734,7 +740,7 @@ def set_3gpp_scenario_parameters(   scenario,
                                 'elevation_angle' : _const(80.),
                                 'min_ut_height' : _const(1.5),
                                 'max_ut_height' : _const(1.5),
-                                'indoor_probability' : _const(0.0),#Zero as HAPS are currently not considered
+                                'indoor_probability' : _const(0.0),#Zero: the models accept outdoor UTs only
                                 'min_ut_velocity' : _const(0.0),
                                 'max_ut_velocity' : _const(0.0)
                             },
@@ -744,7 +750,7 @@ def set_3gpp_scenario_parameters(   scenario,
                                 'bs_height' : _const(600000.0),
                                 'min_ut_height' : _const(1.5),
                                 'max_ut_height' : _const(1.5),
-                                'indoor_probability' : _const(0.0),#Zero as HAPS are currently not considered
+                                'indoor_probability' : _const(0.0),#Zero: the models accept outdoor UTs only
                                 'min_ut_velocity' : _const(0.0),
                                 'max_ut_velocity' : _const(0.0),
                             },
@@ -754,7 +760,7 @@ def set_3gpp_scenario_parameters(   scenario,
                                 'bs_height' : _const(600000.0),
                                 'min_ut_height' : _const(1.5),
                                 'max_ut_height' : _const(1.5),
-                                'indoor_probability' : _const(0.0),#Zero as HAPS are currently not considered
+                                'indoor_probability' : _const(0.0),#Zero: the models accept outdoor UTs only
                                 'min_ut_velocity' : _const(0.0),
                                 'max_ut_velocity' : _const(0.0)
                             }
@@ -855,8 +861,8 @@ def relocate_uts(ut_loc, sector_id, cell_loc):
 
     return ut_loc_rotated_translated
 
-# TODO A future version will support the indoor states. However, as the standard has not yet
-# included the indoor state, this cannot yet be done.
+# The models accept outdoor UTs only (set_topology rejects indoor UTs): they have neither
+# the building entry loss of TR38.811 6.6.3 nor O2I clusters, so all UTs are outdoor here.
 def generate_uts_topology(  batch_size,
                             num_ut,
                             drop_area,
@@ -912,7 +918,11 @@ def generate_uts_topology(  batch_size,
         Maximum UT elevation [m]
 
     indoor_probability : None or torch.float
-        Probability of a UT to be indoor
+        Ignored: the models accept outdoor UTs only, for satellites and aerial
+        platforms, so the probability of a UT to be indoor is 0. TR 38.811
+        considers only outdoor UTs for satellites and indoor UTs as well for
+        aerial platforms (clause 6.1.2), but the models have neither the
+        building entry loss of clause 6.6.3 nor O2I clusters.
 
     min_ut_velocity : None or torch.float
         Minimum UT velocity [m/s]
@@ -938,7 +948,7 @@ def generate_uts_topology(  batch_size,
 
     in_state : [batch_size, num_ut], torch.float
         Indoor/outdoor state of UTs. `True` means indoor, `False` means
-        outdoor.
+        outdoor. Always `False`: the models accept outdoor UTs only.
     """
 
     assert drop_area in ('sector', 'cell'),\
@@ -982,7 +992,9 @@ def generate_uts_topology(  batch_size,
                             ut_loc_z], dim=-1)
 
     # Randomly generating the UT indoor/outdoor state
-    #Currently indoor scenarios are not supported and therefore the probability is forced to be 0. This line already exists to support future implementations.
+    # The models accept outdoor UTs only (set_topology rejects indoor UTs), so the
+    # probability is forced to be 0, whatever the caller passes. The draw stays for
+    # an implementation of indoor UTs.
     indoor_probability = 0.0
     in_state = sample_bernoulli([batch_size, num_ut], indoor_probability,
                                 precision=precision, device=device)
@@ -1111,7 +1123,14 @@ def gen_single_sector_topology( batch_size,
         Inter-site distance [m]
 
     bs_height : None or torch.float
-        BS elevation [m]
+        Height of the BS [m]: a satellite from 160 km to 35 786 km or an aerial
+        platform from 8 km to 50 km, as the ``set_topology`` method of the models
+        accepts. TR 38.811, clause 3.1, places aerial platforms at 8 km to 50 km and
+        LEO satellites from 500 km on; satellites from 160 km, very low orbits
+        included, are accepted. Table 4.5-1 gives typical altitudes (LEO 600 km to
+        1500 km, MEO 7000 km to 20 000 km, GEO 35 786 km), Table 5.1-1 the reference
+        deployments (GEO, non-GEO down to 600 km, UAS 8 km to 50 km). Defaults to
+        600 km.
 
     elevation_angle : None or torch.float
         elevation angle of UTs and BS. Assumed constant for all UTs
@@ -1123,7 +1142,11 @@ def gen_single_sector_topology( batch_size,
         Maximum UT elevation [m]
 
     indoor_probability : None or torch.float
-        Probability of a UT to be indoor
+        Ignored: the models accept outdoor UTs only, for satellites and aerial
+        platforms, so the probability of a UT to be indoor is 0. TR 38.811
+        considers only outdoor UTs for satellites and indoor UTs as well for
+        aerial platforms (clause 6.1.2), but the models have neither the
+        building entry loss of clause 6.6.3 nor O2I clusters.
 
     min_ut_velocity : None or torch.float
         Minimum UT velocity [m/s]
@@ -1142,7 +1165,7 @@ def gen_single_sector_topology( batch_size,
         UTs locations
 
     bs_loc : [batch_size, 1, 3], torch.float
-        BS location. Set to (0,0,0) for all batch examples.
+        BS location. Set to (0, 0, ``bs_height``) for all batch examples.
 
     ut_orientations : [batch_size, num_ut, 3], torch.float
         UTs orientations [radian]
@@ -1155,7 +1178,7 @@ def gen_single_sector_topology( batch_size,
 
     in_state : [batch_size, num_ut], torch.float
         Indoor/outdoor state of UTs. `True` means indoor, `False` means
-        outdoor.
+        outdoor. Always `False`: the models accept outdoor UTs only.
     """
 
     params = set_3gpp_scenario_parameters(  scenario,
@@ -1180,7 +1203,8 @@ def gen_single_sector_topology( batch_size,
     #if isinstance(bs_height, int):
     #    bs_height = float(bs_height)
 
-    # Currently only satellites are supported, which start at 600'000m according to 3GPP TR38.811 Table 4.5-1: Typical characteristics of Airborne or Space-borne vehicles
+    # The height is validated by set_topology of the models: a satellite from 160 km to
+    # 35 786 km or an aerial platform from 8 km to 50 km
 
     if precision is None:
         rdtype = config.dtype
@@ -1228,268 +1252,6 @@ def gen_single_sector_topology( batch_size,
 
     return ut_loc, bs_loc, ut_orientations, bs_orientation, ut_velocities,\
             in_state
-
-#TODO currently unused in NTN cases. A future version will include these as well.
-def gen_single_sector_topology_interferers( batch_size,
-                                            num_ut,
-                                            num_interferer,
-                                            scenario,
-                                            min_bs_ut_dist=None,
-                                            isd=None,
-                                            bs_height=None,
-                                            min_ut_height=None,
-                                            max_ut_height=None,
-                                            indoor_probability = None,
-                                            min_ut_velocity=None,
-                                            max_ut_velocity=None,
-                                            precision=None,
-                                            device=None):
-    # pylint: disable=line-too-long
-    r"""
-    Generate a batch of topologies consisting of a single BS located at the
-    origin, ``num_ut`` UTs randomly and uniformly dropped in a cell sector, and
-    ``num_interferer`` interfering UTs randomly dropped in the adjacent cells.
-
-    The following picture shows how UTs are sampled
-
-    .. figure:: ../figures/drop_uts_in_sector_interferers.png
-        :align: center
-        :scale: 30%
-
-    UTs orientations are randomly and uniformly set, whereas the BS orientation
-    is set such that it is oriented towards the center of the sector it
-    serves.
-
-    The drop configuration can be controlled through the optional parameters.
-    Parameters set to `None` are set to valid values according to the chosen
-    ``scenario`` (see [TR38901]_).
-
-    The returned batch of topologies can be used as-is with the
-    :meth:`set_topology` method of the system level models, i.e.
-    :class:`~sionna.phy.channel.tr38811.DenseUrban`, :class:`~sionna.phy.channel.tr38811.Urban`,
-    and :class:`~sionna.phy.channel.tr38811.SubUrban`.
-
-    In the returned ``ut_loc``, ``ut_orientations``, ``ut_velocities``, and
-    ``in_state`` tensors, the first ``num_ut`` items along the axis with index
-    1 correspond to the served UTs, whereas the remaining ``num_interferer``
-    items correspond to the interfering UTs.
-
-    Example
-    --------
-    >>> # Create antenna arrays
-    >>> bs_array = PanelArray(num_rows_per_panel = 4,
-    ...                      num_cols_per_panel = 4,
-    ...                      polarization = 'dual',
-    ...                      polarization_type = 'VH',
-    ...                      antenna_pattern = '38.901',
-    ...                      carrier_frequency = 3.5e9)
-    >>>
-    >>> ut_array = PanelArray(num_rows_per_panel = 1,
-    ...                       num_cols_per_panel = 1,
-    ...                       polarization = 'single',
-    ...                       polarization_type = 'V',
-    ...                       antenna_pattern = 'omni',
-    ...                       carrier_frequency = 3.5e9)
-    >>> # Create channel model
-    >>> channel_model = Urban(carrier_frequency = 3.5e9,
-    ...                     o2i_model = 'low',
-    ...                     ut_array = ut_array,
-    ...                     bs_array = bs_array,
-    ...                     direction = 'uplink')
-    >>> # Generate the topology
-    >>> topology = gen_single_sector_topology_interferers(batch_size = 100,
-    ...                                                   num_ut = 4,
-    ...                                                   num_interferer = 4,
-    ...                                                   scenario = 'urb')
-    >>> # Set the topology
-    >>> ut_loc, bs_loc, ut_orientations, bs_orientations, ut_velocities, in_state = topology
-    >>> channel_model.set_topology(ut_loc,
-    ...                            bs_loc,
-    ...                            ut_orientations,
-    ...                            bs_orientations,
-    ...                            ut_velocities,
-    ...                            in_state)
-    >>> channel_model.show_topology()
-
-    .. image:: ../figures/drop_uts_in_sector_topology_inter.png
-
-    Input
-    --------
-    batch_size : int
-        Batch size
-
-    num_ut : int
-        Number of UTs to sample per batch example
-
-    num_interferer : int
-        Number of interfeering UTs per batch example
-
-    scenario : str
-        System leven model scenario. Must be one of "dur", "urb", or "sur".
-
-    min_bs_ut_dist : None or torch.float
-        Minimum BS-UT distance [m]
-
-    isd : None or torch.float
-        Inter-site distance [m]
-
-    bs_height : None or torch.float
-        BS elevation [m]
-
-    min_ut_height : None or torch.float
-        Minimum UT elevation [m]
-
-    max_ut_height : None or torch.float
-        Maximum UT elevation [m]
-
-    indoor_probability : None or torch.float
-        Probability of a UT to be indoor
-
-    min_ut_velocity : None or torch.float
-        Minimum UT velocity [m/s]
-
-    max_ut_velocity : None or torch.float
-        Maximim UT velocity [m/s]
-
-    precision : `None` (default) | "single" | "double"
-        Precision used for internal calculations and outputs.
-        If set to `None`,
-        :attr:`~sionna.phy.config.Config.precision` is used.
-
-    Output
-    ------
-    ut_loc : [batch_size, num_ut, 3], torch.float
-        UTs locations. The first ``num_ut`` items along the axis with index
-        1 correspond to the served UTs, whereas the remaining
-        ``num_interferer`` items correspond to the interfeering UTs.
-
-    bs_loc : [batch_size, 1, 3], torch.float
-        BS location. Set to (0,0,0) for all batch examples.
-
-    ut_orientations : [batch_size, num_ut, 3], torch.float
-        UTs orientations [radian]. The first ``num_ut`` items along the
-        axis with index 1 correspond to the served UTs, whereas the
-        remaining ``num_interferer`` items correspond to the interfeering
-        UTs.
-
-    bs_orientations : [batch_size, 1, 3], torch.float
-        BS orientation [radian]. Oriented towards the center of the sector.
-
-    ut_velocities : [batch_size, num_ut, 3], torch.float
-        UTs velocities [m/s]. The first ``num_ut`` items along the axis
-        with index 1 correspond to the served UTs, whereas the remaining
-        ``num_interferer`` items correspond to the interfeering UTs.
-
-    in_state : [batch_size, num_ut], torch.float
-        Indoor/outdoor state of UTs. `True` means indoor, `False` means
-        outdoor. The first ``num_ut`` items along the axis with
-        index 1 correspond to the served UTs, whereas the remaining
-        ``num_interferer`` items correspond to the interfeering UTs.
-    """
-
-    params = set_3gpp_scenario_parameters(  scenario,
-                                            min_bs_ut_dist,
-                                            isd,
-                                            bs_height,
-                                            min_ut_height,
-                                            max_ut_height,
-                                            indoor_probability,
-                                            min_ut_velocity,
-                                            max_ut_velocity,
-                                            precision=precision,
-                                            device=device)
-    min_bs_ut_dist, isd, bs_height, min_ut_height, max_ut_height,\
-            indoor_probability, min_ut_velocity, max_ut_velocity = params
-
-    if precision is None:
-        rdtype = config.dtype
-    else:
-        rdtype = dtypes[precision]["torch"]["dtype"]
-
-    if device is None:
-        device = config.device
-
-    generator = config.torch_rng(device)
-
-    bs_height = torch.as_tensor(bs_height, dtype=rdtype, device=device)
-    isd = torch.as_tensor(isd, dtype=rdtype, device=device)
-    min_bs_ut_dist = torch.as_tensor(min_bs_ut_dist, dtype=rdtype,
-                                     device=device)
-
-    # Setting BS to (0,0,bs_height)
-    bs_loc = torch.stack([  torch.zeros([batch_size, 1], dtype=rdtype,
-                                        device=device),
-                            torch.zeros([batch_size, 1], dtype=rdtype,
-                                        device=device),
-                            bs_height.expand(batch_size, 1)], dim=-1)
-
-    # Setting the BS orientation such that it is downtilted towards the center
-    # of the sector
-    sector_center = (min_bs_ut_dist + 0.5 * isd) * 0.5
-    bs_downtilt = 0.5 * PI - torch.atan(sector_center / bs_height)
-    bs_yaw = torch.tensor(PI / 3.0, dtype=rdtype, device=device)
-    bs_orientation = torch.stack([  bs_yaw.expand(batch_size, 1),
-                                    bs_downtilt.expand(batch_size, 1),
-                                    torch.zeros([batch_size, 1], dtype=rdtype,
-                                                device=device)], dim=-1)
-
-    # Generating the UTs located in the UTs served by the BS
-    ut_topology = generate_uts_topology(    batch_size,
-                                            num_ut,
-                                            'sector',
-                                            torch.zeros([2], dtype=rdtype,
-                                                        device=device),
-                                            min_bs_ut_dist,
-                                            isd,
-                                            min_ut_height,
-                                            max_ut_height,
-                                            indoor_probability,
-                                            min_ut_velocity,
-                                            max_ut_velocity,
-                                            precision,
-                                            device)
-    ut_loc, ut_orientations, ut_velocities, in_state = ut_topology
-
-
-    ## Generating the UTs located in the adjacent cells
-
-    # Users are randomly dropped in one of the two adjacent cells
-    cos_pi_6 = torch.cos(torch.tensor(PI / 6.0, dtype=rdtype, device=device))
-    sin_pi_6 = torch.sin(torch.tensor(PI / 6.0, dtype=rdtype, device=device))
-    zero = torch.tensor(0.0, dtype=rdtype, device=device)
-    inter_cell_center = torch.stack([torch.stack([zero, isd]),
-                                     torch.stack([isd * cos_pi_6,
-                                                  isd * sin_pi_6])],
-                                    dim=0)
-    cell_index = torch.randint(low=0, high=2, size=[batch_size, num_interferer],
-                               dtype=torch.int64, device=device,
-                               generator=generator)
-    inter_cells = inter_cell_center[cell_index]
-
-    inter_topology = generate_uts_topology(     batch_size,
-                                                num_interferer,
-                                                'cell',
-                                                inter_cells,
-                                                min_bs_ut_dist,
-                                                isd,
-                                                min_ut_height,
-                                                max_ut_height,
-                                                indoor_probability,
-                                                min_ut_velocity,
-                                                max_ut_velocity,
-                                                precision,
-                                                device)
-    inter_loc, inter_orientations, inter_velocities, inter_in_state \
-        = inter_topology
-
-    ut_loc = torch.cat([ut_loc, inter_loc], dim=1)
-    ut_orientations = torch.cat([ut_orientations, inter_orientations], dim=1)
-    ut_velocities = torch.cat([ut_velocities, inter_velocities], dim=1)
-    in_state = torch.cat([in_state, inter_in_state], dim=1)
-
-    return ut_loc, bs_loc, ut_orientations, bs_orientation, ut_velocities,\
-            in_state
-
 
 def _toeplitz(col, row):
     """
@@ -1688,371 +1450,362 @@ def one_ring_corr_mat(phi_deg, num_ant, d_h=0.5, sigma_phi_deg=15,
 
     return r
 
+# ITU-R P.676-10 (09/2013), Annex 2: the specific attenuations of dry air and water
+# vapour and their equivalent heights in closed form, for frequencies from 1 GHz to
+# 350 GHz
+
+
+def _p676_10_dry_air(f: float, rp: float, rt: float) -> float:
+    r"""Specific attenuation of dry air [dB/km] by ITU-R P.676-10, Annex 2, eqs. (22a)
+    to (22u)
+
+    :param f: Frequency [GHz], 1 to 350
+    :param rp: Pressure ratio r_p, the total air pressure divided by 1013 hPa
+    :param rt: Temperature ratio r_t = 288/(273 + t), the temperature t in deg C
+
+    :output: `float`. gamma_o [dB/km]
+    """
+    def phi(a: float, b: float, c: float, d: float) -> float:
+        return rp**a*rt**b*math.exp(c*(1.0 - rp) + d*(1.0 - rt))               # (22u)
+
+    if f <= 54.0:
+        xi1 = phi(0.0717, -1.8132, 0.0156, -1.6515)                            # (22g)
+        xi2 = phi(0.5146, -4.6368, -0.1921, -5.7416)                           # (22h)
+        xi3 = phi(0.3414, -6.5851, 0.2130, -8.5854)                            # (22i)
+        return (7.2*rt**2.8/(f**2 + 0.34*rp**2*rt**1.6)
+                + 0.62*xi3/((54.0 - f)**(1.16*xi1) + 0.83*xi2))*f**2*rp**2*1e-3  # (22a)
+    if f <= 66.0:
+        gamma_54 = 2.192*phi(1.8286, -1.9487, 0.4051, -2.8509)                 # (22n)
+        gamma_58 = 12.59*phi(1.0045, 3.5610, 0.1588, 1.2834)                   # (22o)
+        gamma_60 = 15.0*phi(0.9003, 4.1335, 0.0427, 1.6088)                    # (22p)
+        gamma_62 = 14.28*phi(0.9886, 3.4176, 0.1827, 1.3429)                   # (22q)
+        gamma_64 = 6.819*phi(1.4320, 0.6258, 0.3177, -0.5914)                  # (22r)
+        gamma_66 = 1.908*phi(2.0717, -4.1404, 0.4910, -4.8718)                 # (22s)
+        if f <= 60.0:
+            return math.exp(math.log(gamma_54)/24.0*(f - 58.0)*(f - 60.0)
+                            - math.log(gamma_58)/8.0*(f - 54.0)*(f - 60.0)
+                            + math.log(gamma_60)/12.0*(f - 54.0)*(f - 58.0))    # (22b)
+        if f <= 62.0:
+            return gamma_60 + (gamma_62 - gamma_60)*(f - 60.0)/2.0              # (22c)
+        return math.exp(math.log(gamma_62)/8.0*(f - 64.0)*(f - 66.0)
+                        - math.log(gamma_64)/4.0*(f - 62.0)*(f - 66.0)
+                        + math.log(gamma_66)/8.0*(f - 62.0)*(f - 64.0))         # (22d)
+    if f <= 120.0:
+        xi4 = phi(-0.0112, 0.0092, -0.1033, -0.0009)                           # (22j)
+        xi5 = phi(0.2705, -2.7192, -0.3016, -4.1033)                           # (22k)
+        xi6 = phi(0.2445, -5.9191, 0.0422, -8.0719)                            # (22l)
+        xi7 = phi(-0.1833, 6.5589, -0.2402, 6.131)                             # (22m)
+        return (3.02e-4*rt**3.5 + 0.283*rt**3.8/((f - 118.75)**2 + 2.91*rp**2*rt**1.6)
+                + 0.502*xi6*(1.0 - 0.0163*xi7*(f - 66.0))
+                / ((f - 66.0)**(1.4346*xi4) + 1.15*xi5))*f**2*rp**2*1e-3      # (22e)
+    delta = -0.00306*phi(3.211, -14.94, 1.583, -16.37)                         # (22t)
+    return (3.02e-4/(1.0 + 1.9e-5*f**1.5)
+            + 0.283*rt**0.3/((f - 118.75)**2 + 2.91*rp**2*rt**1.6)
+            )*f**2*rp**2*rt**3.5*1e-3 + delta                                  # (22f)
+
+
+def _p676_10_water_vapour(f: float, rp: float, rt: float, rho: float) -> float:
+    r"""Specific attenuation of water vapour [dB/km] by ITU-R P.676-10, Annex 2, eqs.
+    (23a) to (23d)
+
+    :param f: Frequency [GHz], 1 to 350
+    :param rp: Pressure ratio r_p, the total air pressure divided by 1013 hPa
+    :param rt: Temperature ratio r_t = 288/(273 + t), the temperature t in deg C
+    :param rho: Water vapour density [g/m^3]
+
+    :output: `float`. gamma_w [dB/km]
+    """
+    eta1 = 0.955*rp*rt**0.68 + 0.006*rho                                       # (23b)
+    eta2 = 0.735*rp*rt**0.5 + 0.0353*rt**4*rho                                 # (23c)
+
+    def g(f_i: float) -> float:
+        return 1.0 + ((f - f_i)/(f + f_i))**2                                  # (23d)
+
+    return (3.98*eta1*math.exp(2.23*(1.0 - rt))/((f - 22.235)**2 + 9.42*eta1**2)*g(22.0)
+            + 11.96*eta1*math.exp(0.7*(1.0 - rt))/((f - 183.31)**2 + 11.14*eta1**2)
+            + 0.081*eta1*math.exp(6.44*(1.0 - rt))/((f - 321.226)**2 + 6.29*eta1**2)
+            + 3.66*eta1*math.exp(1.6*(1.0 - rt))/((f - 325.153)**2 + 9.22*eta1**2)
+            + 25.37*eta1*math.exp(1.09*(1.0 - rt))/(f - 380.0)**2
+            + 17.4*eta1*math.exp(1.46*(1.0 - rt))/(f - 448.0)**2
+            + 844.6*eta1*math.exp(0.17*(1.0 - rt))/(f - 557.0)**2*g(557.0)
+            + 290.0*eta1*math.exp(0.41*(1.0 - rt))/(f - 752.0)**2*g(752.0)
+            + 8.3328e4*eta2*math.exp(0.99*(1.0 - rt))/(f - 1780.0)**2*g(1780.0)
+            )*f**2*rt**2.5*rho*1e-4                                            # (23a)
+
+
+def _p676_10_dry_air_height(f: float, rp: float) -> float:
+    r"""Equivalent height of dry air [km] by ITU-R P.676-10, Annex 2, eqs. (25a) to
+    (25e)
+
+    :param f: Frequency [GHz], 1 to 350
+    :param rp: Pressure ratio r_p, the total air pressure divided by 1013 hPa
+
+    :output: `float`. h_o [km]
+    """
+    t1 = (4.64/(1.0 + 0.066*rp**-2.3)
+          * math.exp(-((f - 59.7)/(2.87 + 12.4*math.exp(-7.9*rp)))**2))         # (25b)
+    t2 = 0.14*math.exp(2.12*rp)/((f - 118.75)**2 + 0.031*math.exp(2.2*rp))     # (25c)
+    t3 = (0.0114/(1.0 + 0.14*rp**-2.6)*f*(-0.0247 + 0.0001*f + 1.61e-6*f**2)
+          / (1.0 - 0.0169*f + 4.1e-5*f**2 + 3.2e-7*f**3))                      # (25d)
+    h_o = 6.1/(1.0 + 0.17*rp**-1.1)*(1.0 + t1 + t2 + t3)                       # (25a)
+    if f < 70.0:
+        h_o = min(h_o, 10.7*rp**0.3)                                           # (25e)
+    return h_o
+
+
+def _p676_10_water_vapour_height(f: float, rp: float) -> float:
+    r"""Equivalent height of water vapour [km] by ITU-R P.676-10, Annex 2, eqs. (26a)
+    and (26b)
+
+    :param f: Frequency [GHz], 1 to 350
+    :param rp: Pressure ratio r_p, the total air pressure divided by 1013 hPa
+
+    :output: `float`. h_w [km]
+    """
+    sigma_w = 1.013/(1.0 + math.exp(-8.6*(rp - 0.57)))                         # (26b)
+    return 1.66*(1.0 + 1.39*sigma_w/((f - 22.235)**2 + 2.56*sigma_w)
+                 + 3.37*sigma_w/((f - 183.31)**2 + 4.69*sigma_w)
+                 + 1.58*sigma_w/((f - 325.1)**2 + 2.89*sigma_w))               # (26a)
+
+
 def compute_pathloss_gas(self):
 
         r"""Calculates the pathloss of a scenario based on 3GPP TR38.811 6.6.4
 
-        The mathematical process is described in more detail in ITU-R P.676. The loss is defined for
-        frequencies between 1GHz and 350GHz.
+        TR 38.811, clause 6.6.4, takes for system level simulations "The method of
+        Annex 2 in ITU-R P.676", the approximate method for frequencies up to 350 GHz;
+        Annex 1 gives the complete line-by-line method that Annex 2 approximates. The
+        loss is computed by Annex 2 of ITU-R P.676-10 (09/2013) as printed, the last
+        revision whose Annex 2 gives the specific attenuations and the equivalent
+        heights in closed form: the specific attenuation of dry air of eqs. (22a) to
+        (22u) and of water vapour of eqs. (23a) to (23d), the equivalent heights of dry
+        air of eqs. (25a) to (25e) and of water vapour of eqs. (26a) and (26b), and the
+        zenith attenuation of eq. (27), for the UT at the surface (0 km) and the
+        elevation angle of the scenario (eq. (28); TR 38.811, eq. (6.6-8)),
+
+        .. math::
+            PL_g = \frac{\gamma_o h_o + \gamma_w h_w}{\sin\alpha}
+
+        The atmosphere is the scenario's: the temperature T, the water vapour density
+        rho and the atmospheric pressure, which is the dry air pressure p, as TR 38.811
+        clause 6.6.4 calls 1013.25 hPa ("p the dry air pressure"). Annex 2 takes the
+        pressure ratio r_p = p_tot/1013 with the total air pressure p_tot = p + e, where
+        e = rho T / 216.7 is the water vapour partial pressure (Annex 1, eq. (4)), and
+        the temperature ratio r_t = 288/(273 + t) with the temperature t = T - 273.15 in
+        deg C.
+
+        The carrier frequency must lie between 1 GHz and 350 GHz, the range of Annex 2
+        (`ValueError` otherwise). Clause 6.6.4 excludes UE altitudes above 10 km and
+        frequencies within 0.5 GHz of the centres of resonance lines from the method;
+        no error is raised for them.
 
         """
 
-        # Constants set during scenario creation
-        T=self._temperature
-        p=self._atmospheric_pressure
+        T = float(self._temperature)
+        p = float(self._atmospheric_pressure)
+        rho = float(self._water_vapor_density)
+        f = float(self._carrier_frequency)/1e9
+        if not 1.0 <= f <= 350.0:
+            raise ValueError(f"carrier frequency {f} GHz outside 1 GHz to 350 GHz, the "
+                             f"range of ITU-R P.676-10, Annex 2")
 
-        f = self._carrier_frequency/(10.0**9.0)
-        pw=self._water_vapor_density#water vapor density
+        # Pressure ratio of the total pressure p + e, with the water vapour partial
+        # pressure of Annex 1, eq. (4); temperature ratio of the temperature in deg C
+        e = rho*T/216.7
+        rp = (p + e)/1013.0
+        t = T - 273.15
+        rt = 288.0/(273.0 + t)
 
-        # Calculate the water vapor specific attenuation(Yw)
-        # For more detail see ITU-R P.676-5 (23a)
-        rt=288/T
-        rp=p/1013
-        n1=0.955*rp*(rt**0.68)+(0.006*pw)
-        n2=0.735*rp*(rt**0.5)+(0.0353*(rt**4)*pw)
-        Yw = (((3.98*n1*math.exp(2.23*(1-rt))) / (((f-22.235)**2) + 9.42*(n1**2))) * (1+((f-22) / (f+22))**2) + \
-            ((11.96*n1*math.exp(0.7*(1-rt))) / (((f-183.31)**2) + 11.14*(n1**2))) + \
-            ((0.081*n1*math.exp(6.44*(1-rt))) / (((f-321.226)**2) + (6.29*(n1**2)))) + \
-            ((3.66*n1*math.exp(1.6*(1-rt))) / (((f-325.153)**2) + 9.22*(n1**2))) + \
-            ((25.37*n1*math.exp(1.09*(1-rt))) / ((f-380)**2)) + \
-            ((17.4*n1*math.exp(1.46*(1-rt))) / ((f-448)**2)) + \
-            ((844.6*n1*math.exp(0.17*(1-rt))) / ((f-557)**2)) * (1+((f-557)/(f+557))**2) + \
-            ((290*n1*math.exp(0.41*(1-rt))) / ((f-752)**2)) * (1+((f-752)/(f+752))**2) + \
-            ((83328*n2*math.exp(0.99*(1-rt))) / ((f-1780)**2)) * (1+((f-1780)/(f+1780))**2)) * \
-            ((f**2) * (rt**2.5) * (pw*10**(1-5)))
-
-        # calculation of the path length for water vapor contents(hw) (km)
-        conw=1.013/(1+math.exp((0-8.1)*(rp-0.57)))
-        hw=1.66*(1+((1.39*conw)/(((f-22.235)**2)+(2.56*conw)))+((3.37*conw)/(((f-183.31)**2)+(4.69*conw)))+((1.5*conw)/(((f-325.1)**2)+(2.89*conw))))
-
-        #water vapor attenuation in zenith angle path (dB)
-        Aw=Yw*hw
-
-        ###constants
-        ee1=(rp**0.0717)*(rt**(-1.8132))*math.exp((0.0156*(1-rp))+(-1.6515*(1-rt)))
-        ee2=(rp**0.5146)*(rt**(-4.6368))*math.exp(((-0.1921)*(1-rp))+(-5.7416*(1-rt)))
-        ee3=(rp**0.3414)*(rt**(0-6.5851))*math.exp(((0.2130)*(1-rp))+(-8.5854*(1-rt)))
-        ee4=(rp**(-0.0112))*(rt**(0.0092))*math.exp((-0.1033*(1-rp))+(-0.0009*(1-rt)))
-        ee5=(rp**0.2705)*(rt**(-2.7192))*math.exp((-0.3016*(1-rp))+(-4.1033*(1-rt)))
-        ee6=(rp**0.2445)*(rt**(-5.9191))*math.exp((0.0422*(1-rp))+(-8.0719*(1-rt)))
-        ee7=(rp**(-0.1833))*(rt**(6.5589))*math.exp((-0.2402*(1-rp))+(6.131*(1-rt)))
-
-        g54 = 2.136 * rp**1.4975 * rt**(-1.5852) * math.exp((-2.5196)*(1-rt))
-        g57 = 9.984 * rp**0.9313 * rt**(2.6732) * math.exp((0.8563)*(1-rt))
-        g60 = 15.42 * rp**0.8595 * rt**(3.6178) * math.exp((1.1521)*(1-rt))
-        g63 = 10.63 * rp**0.9298 * rt**(2.3284) * math.exp((0.6287)*(1-rt))
-        g66 = 1.944 * rp**1.6657 * rt**(-3.3714) * math.exp((-4.1643)*(1-rt))
-
-
-        # Calculation of the dry air specific attenuation
-        # For more detail see ITU-R P.676-5 (22a)
-        if f <= 60.0:
-            N = 0.0
-        else:
-            N = -15.0
-
-        if f <= 54.0:
-            Yo=(((7.2*(rt**2.8))/((f**2)+(0.34*(rp**2)*(rt**1.6))))+((0.62*ee3)/(((54-f)**(1.16*ee1))+(0.83*ee2))))*((f**2)*(rp**2)*(10**(-3)))
-
-        elif 54.0 < f and f <= 66.0:
-            Yo = math.exp((
-                            ((54.0**(-N)) * math.log(g54) * (f - 57.0) * (f - 60.0) * (f - 63.0) * (f - 66.0) / 1944.0) -
-                            ((57.0**(-N)) * math.log(g57) * (f - 54.0) * (f - 60.0) * (f - 63.0) * (f - 66.0) / 486.0) +
-                            ((60.0**(-N)) * math.log(g60) * (f - 54.0) * (f - 57.0) * (f - 63.0) * (f - 66.0) / 324.0) -
-                            ((63.0**(-N)) * math.log(g63) * (f - 54.0) * (f - 57.0) * (f - 60.0) * (f - 66.0) / 486.0) +
-                            ((66.0**(-N)) * math.log(g66) * (f - 54.0) * (f - 57.0) * (f - 60.0) * (f - 63.0) / 1944.0)
-                            )* f**N)
-
-        elif 66.0 < f and f <= 120.0:
-            Yo = 3.02 * 10.0**(-4) * rt**(3.5) + ((0.283*rt**3.8)/((f-118.75)**2.0 +2.91 * rp**2.0 * rt**1.6)) + ((0.502 * ee6 * (1 - 0.0163 * ee7 * (f - 66.0)))/((f - 66.0) ** (1.4346 * ee4 + 1.15 * ee5)))
-        # TODO In eager execution this code requires Yo to always be set. The best solution would be to throw an exception if illeagal frequencies are encoutered. However, this
-        # currently breaks eager execution and thus uses this value instead. A future version will properly cath this case and throw an exceotion.For now this is not
-        # necessary, as the frequency range is not supported by the standard.
-        else:
-            Yo = 0.0
-
-        # Calculation of the equivalent height
-        t1=(4.64/(1+(0.066*(rp**(-2.3)))))*math.exp(-(((f-59.7)/(2.87+(12.4*math.exp((-7.9)*rp))))**2.0))
-        t2=(0.14*math.exp(2.12*rp))/(((f-118.75)**2)+0.031*math.exp(2.2*rp))
-        t3=(0.0114/(1+(0.14*(rp**(-2.6)))))*f*((-0.0247+(0.0001*f)+(1.61*(10.0**(-6.0))*f**2.0))/(1.0-(0.0169*f)+(4.1*(10.0**(-5.0))*f**2)+ (3.2*(10.0**(-7.0))*f**3.0)))
-        ho=(6.1/(1.0+(0.17*(rp**(-1.1)))))*(1.0+t1+t2+t3)
-
-        # Dry air attenuation in zenith angle path (dB)
-        Ao=Yo*ho
-
-        # Calculate the total gases attenuation for the given elevation
+        # Zenith attenuation, eq. (27), and the slant path, eq. (28) and TR 38.811
+        # eq. (6.6-8)
+        A_zenith = (_p676_10_dry_air(f, rp, rt)*_p676_10_dry_air_height(f, rp)
+                    + _p676_10_water_vapour(f, rp, rt, rho)
+                    * _p676_10_water_vapour_height(f, rp))
         Elev = self._elevation_angle
-        Atotx = (Ao + Aw) / math.sin(math.radians(Elev))
-        GasAtt = abs(Atotx)
+        GasAtt = A_zenith/math.sin(math.radians(Elev))
 
         pl_g = torch.zeros_like(self.los, dtype=self.dtype) + GasAtt
 
         self._pl_g = pl_g
 
 
+# TR 38.811 V15.4.0, Table 6.6.6.2.1-1: tropospheric attenuation [dB] with 99 %
+# probability at 20 GHz in Toulouse, per reference elevation angle [deg]
+_TROPOSPHERIC_SCINTILLATION = {10: 1.08, 20: 0.48, 30: 0.30, 40: 0.22, 50: 0.17, 60: 0.13,
+                               70: 0.12, 80: 0.12, 90: 0.12}
+
+
 def compute_pathloss_scintilation(self):
+        r"""Calculates the scintillation loss :math:`PL_S` of a scenario based on 3GPP
+        TR38.811 6.6.6
+
+        From 6 GHz on, the loss is the tropospheric scintillation of clause 6.6.6.2.1:
+        "As baseline for system-level simulations above 6 GHz, the fading due to
+        scintillation PL_S is equal to the tropospheric attenuation level at 99% of the
+        time derived from Figure 6.6.6.2.1-1 and summarized in Table 6.6.6.2.1-1". The
+        table is given for 20 GHz in Toulouse; it is used at every carrier frequency from
+        6 GHz on, as TR 38.821 V16.2.0 does in its link budgets at 20 GHz and 30 GHz
+        (Tables 6.1.3.2-1 and 6.1.3.3-1). The value is that of the reference elevation
+        angle nearest to the elevation angle of the scenario, as for the other tables of
+        TR 38.811 (clauses 6.6.1 and 6.6.2); an elevation angle midway between two
+        reference angles takes the higher one. The loss does not depend on the
+        atmospheric parameters of the scenario.
+
+        Below 6 GHz, the loss is the ionospheric scintillation of clause 6.6.6.1.4: for
+        system-level simulations below 6 GHz, PL_S is A_IS of eq. (6.6-13) for latitudes
+        within 20 deg of the magnetic equator, and PL_S = 0 at higher latitudes (between
+        20 and 60 deg, and above 60 deg, where the model does not apply). The latitude is
+        that of the scenario, the latitude of the UTs relative to the magnetic equator,
+        around which the clause places the region of the model; it applies to every
+        link. :math:`A_{IS} = P_{fluc}/\sqrt{2}`, with :math:`P_{fluc}` = 1.1 dB at
+        4 GHz, the value of the example of the clause at 2 GHz, multiplied by
+        :math:`(f/4)^{-1.5}`, f in GHz.
+
+        """
 
         f = self._carrier_frequency/(10.0**9.0)
-        #For frequencies above 6GHz, we only consider the troposhperic scintillation.
-        #Below 6GHz we only consider Ionospheric scintillation.
-        #6GHz exactly is not covered by either model. However, the tropospheric model is calculated for 1-350GHz, thus we add this
-        #edge case to the troposhperic scintillation
         if f >= 6.0:
-            T=self._temperature
-            #  Calculate the saturation water vapor pressure
-            T_celcius = T-273
-
-
-            es = 6.1121 * math.exp((17.502 * T_celcius) / (T_celcius + 240.97))
-
-            # Compute the wet term of the radio refractivity
-            H = self._relative_humidity # Relative humidity in percentage
-            Nwet = 3732 * H * es / ((T_celcius + 273)**2)
-
-            #  Calculate the standard deviation of the signal amplitude
-            ref = 3.6e-3 + (Nwet * 1e-4) # in dB
-
-            #  Calculate the effective path length
-            hL = 1000 # Height of turbulent layer in meters
-            Elev = self._elevation_angle
-            L = (2 * hL) / (math.sqrt(math.sin(math.radians(Elev))**2 + 2.35e-4 + math.sin(math.radians(Elev))))
-
-            # Step 5: Calculate the effective antenna diameter
-            D = self._diameter_earth_antenna # antenna diameter in meters
-            efficiency = self._antenna_efficiency # Antenna efficiency
-            Deff = math.sqrt(efficiency) * D
-            # Step 6: Calculate the antenna averaging factor
-
-            x = (1.22 * Deff**2 * f) / L
-            g = math.sqrt(3.86 * (x**2 + 1)**(11/12) * math.sin((11/6) * math.atan(1/x)) - 7.08 * x**(5/6))
-
-            # Step 7: Calculate the standard deviation of the signal for the period and propagation path
-            g_x = (ref * f**(7/12) * g) / (math.sin(math.radians(Elev))**1.2)
-            # Step 8: Calculate the time percentage factor
-            p = 0.01 # Time percentage in #
-            a_p = -0.061 * (math.log10(p))**3 + 0.072 * (math.log10(p))**2 - 1.71 * math.log10(p) + 3.0
-
-            # Step 9: Calculate the scintillation fade depth
-            TroScin = a_p * g_x
-
-            TScin=abs(TroScin)
-            pl_s = torch.zeros_like(self.los, dtype=self.dtype) + TScin
+            # Nearest reference elevation angle; an angle midway between two takes the
+            # higher one
+            reference_angle = _reference_elevation(self._elevation_angle)
+            pl_s = torch.zeros_like(self.los, dtype=self.dtype) \
+                + _TROPOSPHERIC_SCINTILLATION[reference_angle]
             self._pl_s = pl_s
 
         #For carrier frequencies below 6GHz we only consider Ionospheric scintillation
-        else:
-             #TODO: Add check that the latidue is valid (between 20 and 60 degrees above or below the equator)
+        elif abs(self._latitude) <= 20.0:
             #Pathloss at 4GHz
             Pluc_4GHz = 1.1
             #Exponent to scale the frequeny loss below 6GHz TODO: check the applied frequencies
             n = -1.5
-            #Scale scintillation pathloss at 4GHz to used carrier frequency by applying 3GPP TR38.811 6.6-12
+            #Scale P_fluc at 4GHz to the carrier frequency, step 2 of 3GPP TR38.811 6.6.6.1.4
             AIs = Pluc_4GHz * (f/4)**(n)
             #Get final loss by dividing by sqrt(2) according to 3GPP TR38.811 6.6-13
             pl_s = torch.zeros_like(self.los, dtype=self.dtype) + (AIs/math.sqrt(2.0))
             self._pl_s = pl_s
+        else:
+            # Outside +-20 deg of the magnetic equator PL_S = 0 (TR 38.811 clause
+            # 6.6.6.1.4)
+            self._pl_s = torch.zeros_like(self.los, dtype=self.dtype)
 
 
 
 def compute_pathloss_entry(self):
-        #Currently only 0, as no HAPS are considered an thus no building cases
+        # The building entry loss of TR38.811 6.6.3 is 0 for every link: the models
+        # accept outdoor UTs only (set_topology rejects indoor UTs)
         pl_e = torch.zeros_like(self.los, dtype=self.dtype)
         self._pl_e = pl_e
         #ntnu.compute_pathloss_gas(self)
 
 def compute_pathloss_basic(self):
-        r"""Computes the basic pathloss based on TR38.811 6.6-1 in dB."""
+        r"""Computes the basic path loss PL_b in dB of TR38.811 6.6.2 without its shadow
+        fading: PL_b = FSPL + CL, with the free space path loss of eq. (6.6-2) and, for
+        NLOS links, the clutter loss CL of Tables 6.6.2-1 to 6.6.2-3 (0 dB for LOS
+        links). Eq. (6.6-4) writes the shadow fading SF into PL_b; the models apply it
+        once, as the large scale parameter SF of step 4 of TR38.901 7.5, in step 12
+        (Tables 6.7.2 of TR38.811 give its cross-correlations and correlation
+        distance)."""
         distance_3d = self._distance_3d
         fc = self._carrier_frequency/(10**9)
-        angle_str = str(round(self._elevation_angle/10.0)*10)
+        angle_str = str(_reference_elevation(self._elevation_angle))
 
         fspl = 32.45 + 20*math.log10(fc) + 20*torch.log10(distance_3d)
         self._fspl = fspl
         cl = self._params_nlos["CL" + '_' + angle_str]
-        sigmaSF_los = self._params_los["sigmaSF" + '_' + angle_str]
-        sigmaSF_nlos = self._params_nlos["sigmaSF" + '_' + angle_str]
 
-        generator = config.torch_rng(str(self.los.device))
-        SF_los = normal(list(self.los.shape), mean=0.0, std=sigmaSF_los,
-                        dtype=self.dtype, device=self.los.device,
-                        generator=generator)
-        SF_nlos = normal(list(self.los.shape), mean=0.0, std=sigmaSF_nlos,
-                         dtype=self.dtype, device=self.los.device,
-                         generator=generator)
-
-        pl_los = fspl + SF_los
-        pl_nlos = fspl + SF_nlos + cl
-        pl_b = torch.where(self.los, pl_los, pl_nlos)
+        pl_b = torch.where(self.los, fspl, fspl + cl)
 
         self._pl_b = pl_b
 
-# TODO this function computes additional pathlosses, which are usually considered 0 in many callibration cases of 3GPP. However, we still have implemented them and will
-# verify their use. For now, we run into not yet understood issues in eager execution, which will be fixed in a future version.
-# Additionally, the temperature and lattitude will become topology parameters, so that these can be adapted freely in the user interface, instead
-# of using the standard ITU values
-def compute_pathloss_additional(self):
-        r"""Cmoputes the PL due to rain and cloud attenuation based on 3GPP TR38.811 6.6.5"""
-        ###Cloud attenuation(based on ITU-R P.840-3)
-        f = self._carrier_frequency/(10**9)
-        T=self._temperature
-        LWC=self._lwc
-        Lat=self._latitude
-        #Step 1: Calculation of the principal & secondary relaxation frequencies:
-        theta=300/T#constant
-        fp=20.09-142*(theta-1)+294*(theta-1)**2 #Primary relaxation frequency (GHz)
-        fs=590-1500*(theta-1) # Secondary relaxation frequency (GHz)
+# Heights of the platforms that the channel models accept [m]. TR 38.811 V15.4.0,
+# clause 3.1, places aerial platforms "typically at an altitude between 8 to 50 km" and
+# LEO satellites "typically at an altitude between 500 km to 2000 km"; the models accept
+# satellites from 160 km, very low orbits included, to GEO at 35 786 km. Table 4.5-1
+# gives typical altitudes (LEO 600 km to 1500 km, MEO 7000 km to 20 000 km, GEO
+# 35 786 km), Table 5.1-1 the reference deployments (GEO, non-GEO down to 600 km, UAS
+# 8 km to 50 km).
+_SATELLITE_HEIGHTS = (160e3, 35786e3)
+_AERIAL_HEIGHTS = (8e3, 50e3)
+# Lowest height of the Faraday rotation [m]. TR 38.811 V15.4.0, clause 6.8.2, gives the
+# rotation "In case of propagation for spaceborne BS above the ionosphere". 600 km is
+# the lowest satellite altitude of TR 38.811 (Table 4.5-1, LEO; Table 5.1-1, non-GEO),
+# a convention of the specification, not a boundary of the ionosphere: a satellite
+# below it flies within the F region of the ionosphere, below much of its electron
+# content, and TR 38.811 gives no Faraday rotation for it.
+_FARADAY_ROTATION_HEIGHT = 600e3
 
-        #Step 2:Calculation of the complex dielectric permittivity of water:
 
-        eo=77.6+103.3*(theta-1)#constant
-        e1=5.48#constant
-        e2=3.51#constant
-        eta2=(f/fp)*((eo-e1)/(1+(f/fp)** 2))+(f/fs)*((e1-e2)/(1+(f/fs)**2))
-        eta1=((eo-e1)/(1+(f/fp)**2))+((e1-e2)/(1+(f/fs)**2))+e2 #Complex dielectric permittivity of water
-        n=(2+eta1)/eta2
+def _is_satellite(height: torch.Tensor) -> torch.Tensor:
+    r"""Satellite or not, by the height of the platform
 
-        #Step 3: cloud specific attenuation coefficient ((dB/km)/(g/m**3))
+    A platform from 160 km to 35 786 km is a satellite. The accepted heights, the zero
+    departure spreads at the satellite (NOTE 8 of TR 38.811 Tables 6.7.2-1a to 6.7.2-8b,
+    with the cluster ASD) and the satellite Doppler shift use this range; the Faraday
+    rotation applies from 600 km only (``_has_faraday_rotation``).
 
-        Kl=0.819*f/(eta2*(1+n**2)) #Specific Cloud attenuation coefficient((dB/km)/(g/m**3))
+    :param height: Heights of the platforms [m]
 
-        #Step 4:cloud attenuation
-        Elev = self._elevation_angle
-        CAtten=LWC*Kl/math.sin(math.radians(Elev)) #cloud attenuation in dB
+    :output: `torch.bool` tensor of the shape of ``height``, `True` for a satellite
+    """
+    return (height >= _SATELLITE_HEIGHTS[0]) & (height <= _SATELLITE_HEIGHTS[1])
 
-        #  disp(['Cloud attenuation= ', num2str(CAtten),' dB'])
-        if self._direction == "downlink":
-            hs = self._bs_loc[:,:,2]
-        else:
-            hs = 0
 
-        ### Rain Attenuation
-        hr = 5 - 0.075*(Lat - 23) # rain height for latitude more than 23 deg
-        x = Elev*math.pi/180 # convert elevation angle to radians
-        ls = (hr-hs)/math.sin(x) # slant path length
-        lg = ((ls/1000)*math.cos(x)) # horizontal projection length in km
-        # Initialize variables
-        log_k = 0
+def _has_faraday_rotation(height: torch.Tensor) -> torch.Tensor:
+    r"""Faraday rotation of TR 38.811 clause 6.8.2 or not, by the height of the platform
 
-        # Constants for each value of j
-        a = [-5.33980, -0.35351, -0.23789, -0.94158]
-        b = [-0.10008, 1.26970, 0.86036, 0.64552]
-        c = [1.13098, 0.45400, 0.15354, 0.16817]
-        m = -0.18961
-        d = 0.71147
+    A satellite from 600 km on gets the rotation; a satellite below 600 km, which flies
+    within the ionosphere, and an aerial platform do not (``_FARADAY_ROTATION_HEIGHT``).
 
-        # Iterate over j values from 1 to 4 and calculate the sum
-        for j in range(len(a)):
-            log_k = log_k + (a[j] * math.exp(-((math.log10(f) - b[j]) / c[j])**2))
+    :param height: Heights of the platforms [m]
 
-        # Add (m * log10(f)) and d to the final log_k value
-        log_k = log_k + (m * math.log10(f)) + d
+    :output: `torch.bool` tensor of the shape of ``height``, `True` with the rotation
+    """
+    return _is_satellite(height) & (height >= _FARADAY_ROTATION_HEIGHT)
 
-        # Calculate k by taking the antilogarithm (10**x) of log_k
-        kH = 10**log_k
 
-        # Initialize variables
-        log_k1 = 0
+def _validate_platform(bs_loc: torch.Tensor) -> None:
+    r"""Checks that ``bs_loc`` describes one satellite or aerial platform at one height
 
-        # Constants for each value of j
-        a1= [-3.80595,-3.44965 ,-0.39902 ,0.50167  ]
-        b1 = [0.56934,-0.22911  ,0.73042 ,1.07319  ]
-        c1 = [0.81061, 0.51059, 0.11899, 0.27195]
-        x1 = -0.16398
-        d1 = 0.63297
+    The channel models simulate one platform per call, with one nominal elevation angle
+    and one height for every batch example.
 
-        # Iterate over j values from 1 to 4 and calculate the sum
-        for l in range(len(a1)):
-            log_k1 = log_k1 + (a1[l] * math.exp(-((math.log10(f) - b1[l]) / c1[l])**2))
+    :param bs_loc: Locations of the BSs [m], shape [batch size, num_bs, 3]
 
-        # Add (m * log10(f)) and d to the final log_k value
-        log_k1 = log_k1 + (x1 * math.log10(f)) + d1
+    :output: `None`. Raises `ValueError` for more than one BS, for heights that differ
+        across the batch and for heights outside 160 km to 35 786 km (satellite) and
+        8 km to 50 km (aerial platform).
+    """
+    if bs_loc.shape[1] != 1:
+        raise ValueError(f"one satellite or aerial platform per call: bs_loc has "
+                         f"{bs_loc.shape[1]} BSs")
+    height = bs_loc[:, 0, 2]
+    lowest, highest = (float(v) for v in torch.aminmax(height))
+    if lowest != highest:
+        raise ValueError(f"one height per call: the BS heights range from {lowest} m to "
+                         f"{highest} m across the batch")
+    satellite = _SATELLITE_HEIGHTS[0] <= lowest <= _SATELLITE_HEIGHTS[1]
+    aerial = _AERIAL_HEIGHTS[0] <= lowest <= _AERIAL_HEIGHTS[1]
+    if not (satellite or aerial):
+        raise ValueError(f"BS height {lowest} m: a satellite is at 160 km to 35 786 km, "
+                         f"an aerial platform at 8 km to 50 km")
 
-        # Calculate k by taking the antilogarithm (10**x) of log_k
-        kV = 10**log_k1
 
-        # Initialize variables
-        log_k2 = 0
+def _reference_elevation(elevation_angle: float) -> int:
+    r"""Reference elevation angle of the tables of TR 38.811 for an elevation angle
 
-        # Constants for each value of j
-        a2= [-0.14318,0.29591 ,0.32177 ,-5.37610 ,16.1721   ]
-        b2 = [1.82442 ,0.77564  ,0.63773 ,-0.96230, -3.29980 ]
-        c2 = [-0.55187,0.19822,0.13164,1.47828,3.43990]
-        x2 = 0.67849
-        d2 = -1.95537
+    TR 38.811 V15.4.0 gives its tables at the reference elevation angles 10 deg to 90 deg
+    in steps of 10 deg, and a UT takes the values of the reference angle nearest to its
+    elevation angle (clauses 6.6.1 and 6.6.2). The clauses give no rule for an angle
+    midway between two reference angles; such an angle takes the higher one (round half
+    up), so 25, 45, 65 and 85 deg take 30, 50, 70 and 90 deg, and 15, 35, 55 and 75 deg
+    take 20, 40, 60 and 80 deg.
 
-        # Iterate over j values from 1 to 5 and calculate the sum
-        for i in range(len(a2)):
-            log_k2= log_k2 + (a2[i] * math.exp(-((math.log10(f) - b2[i]) / c2[i])**2))
+    :param elevation_angle: Elevation angle [deg]
 
-        # Add (m * log10(f)) and d to the final log_k value
-        log_k2 = log_k2 + (x2 * math.log10(f)) + d2
+    :output: `int`. The reference elevation angle [deg]
+    """
+    return 10*math.floor(elevation_angle/10.0 + 0.5)
 
-        # Calculate k by taking the antilogarithm (10**x) of log_k
-        aH = log_k2
-
-        # Initialize variables
-        log_k3 = 0
-
-        # Constants for each value of j
-        a3= [-0.07771,0.56727 ,-0.20238,-48.2991 ,48.5833    ]
-        b3 = [2.33840 ,0.95545,1.14520,0.791669 ,0.791459  ]
-        c3 = [-0.76284,0.54039,0.26809,0.116226,0.116479]
-        x3 = -0.053739
-        d3 = 0.83433
-
-        # Iterate over j values from 1 to 5 and calculate the sum
-        for n in range(len(a3)):
-            log_k3= log_k3 + (a3[n] * math.exp(-((math.log10(f) - b3[n]) / c3[n])**2))
-
-        # Add (m * log10(f)) and d to the final log_k value
-        log_k3 = log_k3 + (x3 * math.log10(f)) + d3
-
-        # Calculate k by taking the antilogarithm (10**x) of log_k
-        aV = log_k3
-
-        y = math.cos(x)**2
-        y1 = math.cos(2*45*math.pi/180)
-        y2 = y*y1
-
-        #k and a are frequency dependent constants
-
-        k = (kH + kV + (kH - kV )*y2)/2
-        a = (kH*aH + kV*aV +(kH*aH - kV*aV)*y2) / (2*k)
-        #TODO The parameter r here is believed to be a constant, but might depend on the scenario/topology. If so, it needs to be added to the parameterlist.
-        #Rain rate in mm/h
-        r = 40
-        #specific attenuation
-        yr = k*r**a
-        # horizontal reduction factor(hrf)
-        m1 = lg*yr/f
-        m2 = 0.38*(1-math.exp(-2*lg))
-        m3 = 0.78*math.sqrt(m1-m2)
-        hrf = 1/(1+m3)
-        # vertical adjustment factor
-        z1 = (hr-hs)/(lg*hrf)
-        z2 = z1*math.pi/180
-        # TODO Here the inversion of the matrix does not work breaking the entire simulation. It might be due to the large numbers in NTN
-        # causing a null matrix which cant be inverted, but this is not yet understood fully yet.
-        #z = torch.linalg.inv(torch.tan(z2))
-        z = math.tan(z2)
-        if z>x:
-            lr =  lg*hrf/math.cos(x)
-        else:
-            lr=ls
-        vrf = 1/(1+math.sqrt(math.sin(x))*(31*(1-math.exp(-x))*(math.sqrt(lr*yr)/f**2)-0.45))
-
-        #   effective path length
-        le = lr*vrf
-
-        # predicted attenuation for 0.01# excedence
-        att = le*yr
-        Ratt=abs(att)
-
-        total_att = Ratt + CAtten
-
-        pl_a = torch.zeros_like(self.los, dtype=self.dtype) + total_att
-
-        self._pl_a = pl_a
 
 #Function that computes the satellite speed as a function of its height.
 def compute_satellite_speed(h_sat):
@@ -2061,43 +1814,5 @@ def compute_satellite_speed(h_sat):
     r_earth = 6371000.0#Earths radius in m
 
     #Equation (8.41) from Curtis, H. D. (2005). Orbital Mechanics for Engineering Students. Butterworth-Heinemann. ISBN: 0 7506 6169 0.
-    v_sat = torch.sqrt(torch.as_tensor((G*M)/((r_earth)+(h_sat))))#speed of the satellite in given Orbit around Earth in km/s
+    v_sat = torch.sqrt(torch.as_tensor((G*M)/((r_earth)+(h_sat))))#speed of the satellite in given Orbit around Earth in m/s
     return v_sat
-
-def compute_stallite_doppler(h_sat, elevation_angle, carrier_frequency):
-        r"""Compute the maximum radian Doppler frequency [Hz] for a given
-        speed [m/s].
-
-        The maximum radian Doppler frequency :math:`\omega_d` is calculated
-        as:
-
-        .. math::
-            \omega_d = 2\pi  \frac{v}{c} f_c
-
-        where :math:`v` [m/s] is the speed of the receiver relative to the
-        transmitter, :math:`c` [m/s] is the speed of light and,
-        :math:`f_c` [Hz] the carrier frequency.
-
-        Input
-        ------
-        speed : float
-            Speed [m/s]
-
-        Output
-        --------
-        doppler_shift : float
-            Doppler shift [Hz]
-        """
-        #Experimental addition according to 811 6.9.2
-        #G = 6.6743 * (10 ** (-11)) #Gravitational constant of Earth in m^3/(kg*s^2)
-        #M = 5.972 * (10 ** 24) #Mass of Earth in kg
-
-        v_light = 299792458.0# speed of light in m/s (as m/s * 3.6 to get km/h)
-        r_earth = 6371000.0#Earths radius in m
-
-        #Equation (8.41) from Curtis, H. D. (2005). Orbital Mechanics for Engineering Students. Butterworth-Heinemann. ISBN: 0 7506 6169 0.
-        #v_sat = torch.sqrt((G*M)/((r_earth)+(h_sat)))#speed of the satellite in given Orbit around Earth in km/s
-        v_sat = compute_satellite_speed(h_sat)
-        additional_doppler_shift_811 = (v_sat/v_light) * ((r_earth/(r_earth+h_sat)) * np.cos(np.deg2rad(elevation_angle))) * carrier_frequency
-
-        return additional_doppler_shift_811 + carrier_frequency

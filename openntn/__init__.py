@@ -31,7 +31,4 @@ from .urban_scenario import UrbanScenario
 from .urban import Urban
 from .sub_urban_scenario import SubUrbanScenario
 from .sub_urban import SubUrban
-# TDL and CDL are not yet implemented and only exist here as a template
-from .tdl import TDL
-from .cdl import CDL
 

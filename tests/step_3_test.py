@@ -2,14 +2,24 @@
 # SPDX-License-Identifier: MIT
 #
 # This file tests step 3, the basic path loss of TR 38.811 Section 6.6.2, eq. (6.6-4):
-# PL_b = FSPL + SF + CL, with SF ~ N(0, sigma_SF^2) and CL = 0 dB for LoS UEs.
-# After subtracting FSPL, the LoS samples must have mean 0 and standard deviation
-# sigma_SF(LoS), and the NLoS samples mean CL and standard deviation sigma_SF(NLoS).
+# PL_b = FSPL + SF + CL, with SF ~ N(0, sigma_SF^2) and CL = 0 dB for LoS UEs. The
+# models apply the shadow fading SF once, as the large scale parameter SF of TR 38.901
+# V16.1.0, clause 7.5, step 4, in step 12, because Tables 6.7.2-1a to 6.7.2-8b of TR
+# 38.811 give the cross-correlations of SF with the other large scale parameters and its
+# correlation distance; the basic path loss is FSPL + CL. So PL_b equals FSPL for LoS
+# links and FSPL + CL for NLoS links, bit for bit (CL of the table in the data type of
+# the model), and the shadow fading, 10 lg(sf) of the large scale parameter sf (positive
+# means more received power, NOTE 2 of Tables 6.7.2-1a to 6.7.2-8b), has mean 0 and
+# standard deviation sigma_SF(LoS) or sigma_SF(NLoS).
 # The expected values are transcribed from TR 38.811 V15.4.0, Tables 6.6.2-1 (dense
 # urban), 6.6.2-2 (urban) and 6.6.2-3 (suburban and rural), at the reference elevation
 # angles 10, 20, ..., 90 degrees.
-# The tolerances are statistical, see statistical_checks.py; the SF samples of different
-# links are independent.
+# The tolerances are statistical, see statistical_checks.py. The topology has one UT per
+# batch example: the shadow fading of UTs of the same example is spatially correlated
+# (correlation distance of Tables 6.7.2-1a to 6.7.2-8b), so that the samples of
+# different links are independent.
+
+import torch
 
 from openntn import utils   # The code to test
 import unittest   # The test framework
@@ -36,8 +46,7 @@ def create_bs_ant(carrier_frequency):
 _MODELS = {"urb": Urban, "dur": DenseUrban, "sur": SubUrban}
 _CARRIER = {"s_band": 2.2e9, "ka_band": 20e9}
 _ELEVS = (10, 20, 30, 40, 50, 60, 70, 80, 90)
-BATCH_SIZE = 100
-NUM_UT = 100
+BATCH_SIZE = 10000
 
 # (sigma_SF LoS [dB], sigma_SF NLoS [dB], CL [dB]) per elevation angle 10..90 degrees
 _EXPECTED = {
@@ -79,23 +88,30 @@ def run_test(scenario, band, elevation_angle):
                                       enable_pathloss=True,
                                       enable_shadow_fading=True)
 
-    topology = utils.gen_single_sector_topology(batch_size=BATCH_SIZE, num_ut=NUM_UT,
+    topology = utils.gen_single_sector_topology(batch_size=BATCH_SIZE, num_ut=1,
                                                 scenario=scenario,
                                                 elevation_angle=float(elevation_angle),
                                                 bs_height=600000.0)
     channel_model.set_topology(*topology)
 
-    # Subtract FSPL to isolate Clutter Loss (CL) and Shadow Fading (SF)
-    loss_no_fspl = channel_model._scenario.basic_pathloss - channel_model._scenario.free_space_pathloss
-    los = channel_model._scenario.los
-    loss_los = loss_no_fspl[los]
-    loss_nlos = loss_no_fspl[~los]
-
+    sc = channel_model._scenario
+    los = sc.los
+    fspl = sc.free_space_pathloss
+    basic = sc.basic_pathloss
     where = f"{scenario}/{band}/{elevation_angle}deg"
-    assert_mean(loss_los, 0.0, sf_los_sigma, f"LoS mean, {where}")
-    assert_std(loss_los, sf_los_sigma, f"LoS std, {where}")
-    assert_mean(loss_nlos, nlos_cl, sf_nlos_sigma, f"NLoS mean, {where}")
-    assert_std(loss_nlos, sf_nlos_sigma, f"NLoS std, {where}")
+
+    # PL_b = FSPL (LoS) and FSPL + CL (NLoS), bit for bit
+    cl = torch.tensor(nlos_cl, dtype=basic.dtype, device=basic.device)
+    assert torch.equal(basic[los], fspl[los]), f"LoS: PL_b differs from FSPL, {where}"
+    assert torch.equal(basic[~los], fspl[~los] + cl), \
+        f"NLoS: PL_b differs from FSPL + CL, {where}"
+
+    # The shadow fading in dB, positive for more received power
+    sf_db = 10.0 * torch.log10(channel_model._lsp.sf.double())
+    assert_mean(sf_db[los], 0.0, sf_los_sigma, f"LoS mean, {where}")
+    assert_std(sf_db[los], sf_los_sigma, f"LoS std, {where}")
+    assert_mean(sf_db[~los], 0.0, sf_nlos_sigma, f"NLoS mean, {where}")
+    assert_std(sf_db[~los], sf_nlos_sigma, f"NLoS std, {where}")
 
 
 def _make_case(scenario, band, elevation_angle):
