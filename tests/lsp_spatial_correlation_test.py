@@ -24,6 +24,7 @@ import pytest
 import torch
 from sionna.phy import config
 
+import openntn
 from openntn import Antenna, DenseUrban, lsp
 from openntn.utils import gen_single_sector_topology
 from statistical_checks import assert_std
@@ -35,8 +36,7 @@ ELEVATION_ANGLE = 30
 # UT 2 at the location of UT 1 and UT 3 7.6 m from it in x, closer than every
 # correlation distance in LOS (12 m to 37 m in Table 6.7.2-1a)
 OFFSETS = ((0.0, 0.0), (0.0, 0.0), (7.6, 0.0))
-_MODELS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                       "openntn", "models")
+_MODELS = os.path.join(os.path.dirname(openntn.__file__), "models")
 
 
 def _parameters(state):
@@ -71,7 +71,7 @@ def _topology(batch_size=2):
 def _colocated(ut_loc, examples=slice(0, 1)):
     """The UTs of the given batch examples moved to OFFSETS from their first UT."""
     ut_loc = ut_loc.clone()
-    offsets = torch.tensor(OFFSETS, dtype=ut_loc.dtype)
+    offsets = torch.tensor(OFFSETS, dtype=ut_loc.dtype, device=ut_loc.device)
     ut_loc[examples, :, :2] = ut_loc[examples, :1, :2] + offsets
     return ut_loc
 

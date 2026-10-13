@@ -18,6 +18,7 @@ import torch
 from sionna.phy import Object
 from sionna.phy.constants import SPEED_OF_LIGHT, PI
 from sionna.phy.channel.utils import rad_2_deg, wrap_angle_0_360
+from sionna.phy.utils import rand
 from .utils import (sample_bernoulli, _validate_platform, _is_satellite,
                     _reference_elevation)
 from .antenna import PanelArray
@@ -88,12 +89,18 @@ class SystemLevelScenario(Object):
         Precision used for internal calculations and outputs.
         If set to `None`,
         :attr:`~sionna.phy.config.Config.precision` is used.
+
+    device : `None` (default) | str
+        Device for computation (e.g., ``"cpu"``, ``"cuda:0"``).
+        If `None`, :attr:`~sionna.phy.config.Config.device` at the
+        construction is used. ``ut_array`` and ``bs_array`` must be on this
+        device; `ValueError` otherwise.
     """
 
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True, doppler_enabled=True,
-        precision=None):
-        super().__init__(precision=precision)
+        precision=None, device=None):
+        super().__init__(precision=precision, device=device)
         # Direction
         assert direction in ("uplink", "downlink"), \
             "'direction' must be 'uplink' or 'downlink'"
@@ -129,6 +136,17 @@ class SystemLevelScenario(Object):
             "'ut_array' must be an instance of PanelArray"
         assert isinstance(bs_array, PanelArray), \
             "'bs_array' must be an instance of PanelArray"
+        # An array creates its tensors on its own device, so an array on another device
+        # would make the computations with the scenario's tensors fail. Sionna 2.2.0
+        # rejects it when it is assigned; this check, before the assignment, gives the
+        # same error with Sionna 2.0.1
+        for name, array in (("ut_array", ut_array), ("bs_array", bs_array)):
+            if array.device != self.device:
+                raise ValueError(
+                    f"{type(self).__name__} is on device {self.device!r}, but its "
+                    f"{name} ({type(array).__name__}) is on device {array.device!r}. "
+                    f"Build both on the same device, e.g. "
+                    f"{type(array).__name__}(..., device={self.device!r}).")
         self._ut_array = ut_array
         self._bs_array = bs_array
 
@@ -1001,7 +1019,8 @@ class SystemLevelScenario(Object):
             los_probability = self.los_probability
             los = sample_bernoulli([self.batch_size, self.num_bs,
                                         self.num_ut], los_probability,
-                                        precision=self.precision)
+                                        precision=self.precision,
+                                        device=self.device)
         else:
             los = torch.full((self.batch_size, self.num_bs, self.num_ut),
                             self._requested_los, dtype=torch.bool,
@@ -1022,7 +1041,7 @@ class SystemLevelScenario(Object):
             torch.tensor(0.0, dtype=self.dtype, device=self.device))
 
         # Sample the indoor 2D distances for each BS-UT link
-        self._update_attr("_distance_2d_in", (torch.rand([self.batch_size, self.num_bs,
+        self._update_attr("_distance_2d_in", (rand([self.batch_size, self.num_bs,
             self.num_ut], dtype=self.dtype, device=self.device,
             generator=self.torch_rng) * (self.max_2d_in - self.min_2d_in)
             + self.min_2d_in) * indoor_mask)

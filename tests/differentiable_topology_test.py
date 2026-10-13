@@ -118,7 +118,8 @@ def test_ut_distance_gradient():
     xy = ut_loc.detach()[..., :2]
     offset = xy.unsqueeze(2) - xy.unsqueeze(1)                       # p_i - p_j
     distance = torch.linalg.vector_norm(offset, dim=-1, keepdim=True)
-    other = ~torch.eye(xy.shape[1], dtype=torch.bool).unsqueeze(-1)  # j != i
+    other = ~torch.eye(xy.shape[1], dtype=torch.bool,
+                       device=xy.device).unsqueeze(-1)               # j != i
     expected_xy = 2.0 * torch.where(other, offset / torch.where(other, distance, 1.0),
                                     0.0).sum(dim=2)
     expected = torch.cat([expected_xy, torch.zeros_like(expected_xy[..., :1])], dim=-1)
@@ -165,7 +166,8 @@ def test_large_scale_parameter_gradients(scenario):
     topology = _topology()
     ut_loc = topology[0].clone()
     ut_loc[..., :2] = ut_loc[:, :1, :2] + torch.tensor(CLOSE_UT_OFFSETS,
-                                                         dtype=ut_loc.dtype)
+                                                         dtype=ut_loc.dtype,
+                                                         device=ut_loc.device)
     entries = ((0, 0, 0), (0, 1, 1), (1, 2, 0))       # (batch example, UT, coordinate)
 
     def large_scale_parameters(location):

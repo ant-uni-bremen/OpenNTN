@@ -176,6 +176,20 @@ class SystemLevelChannel(ChannelModel):
 
     def __call__(self, num_time_samples, sampling_frequency, foo=None):
 
+        # A model stays on the device and in the precision of its construction, as
+        # Sionna's models do: .to() moves or casts the registered tensors, but neither
+        # the device and the precision of the model and its parts nor the tensors held
+        # outside the buffers, and the call would fail deep inside. The device and the
+        # dtype of one topology tensor are compared; this reads no tensor values.
+        ut_loc = self._scenario._ut_loc
+        if ut_loc is not None and (ut_loc.device != torch.device(self.device)
+                                   or ut_loc.dtype != self.dtype):
+            raise ValueError(
+                f"{type(self).__name__} was built on device {self.device!r} in "
+                f"{self.precision} precision, but its tensors are {ut_loc.dtype} on "
+                f"{ut_loc.device}; build the model with the device and precision it "
+                f"is to use instead of moving or casting it")
+
         # Some channel layers (GenerateOFDMChannel and GenerateTimeChannel)
         # give as input (batch_size, num_time_samples, sampling_frequency)
         # instead of (num_time_samples, sampling_frequency), as specified

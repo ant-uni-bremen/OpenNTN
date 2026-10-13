@@ -2,6 +2,64 @@
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0a3] - 2026-10-13
+
+Third pre-release of OpenNTN for Sionna 2.x: the models take the argument `device`, and
+`torch.compile` captures their channel generation without graph breaks; the simulation
+results are unchanged.
+
+### Added
+
+- The argument `device` of `DenseUrban`, `Urban`, `SubUrban`, their scenarios and
+  `SystemLevelScenario`: the device on which the model creates its tensors and
+  computes, for example `"cuda:0"`. It defaults to `sionna.phy.config.device` at the
+  construction, the device that the models took before. The antenna arrays `ut_array`
+  and `bs_array` must be built on the same device (the argument `device` of the
+  antenna classes); otherwise the construction raises `ValueError`. Before, Sionna
+  2.0.1 accepted such an array, and Sionna 2.2.0 raised a `ValueError` of its own with
+  the same text. `set_topology` now draws the random LOS states on the device of the
+  model; before, it drew them on the device in `sionna.phy.config.device` at the time
+  of the call, which failed when that was not the device of the model (2.0.0a1 and
+  2.0.0a2).
+
+### Changed
+
+- A model that was moved to another device or cast to another precision after its last
+  `set_topology`, for example with `.to()`, `.cuda()` or `.double()`, raises
+  `ValueError` when it is called: the message names the device and the precision of the
+  construction and those of the tensors, and advises to build the model with the device
+  and precision it is to use. The models stay on the device and in the precision of
+  their construction, as Sionna's models do: `.to()` moves or casts the registered
+  tensors, but not the device and the precision of the model and its parts. Before, the
+  call failed inside the channel generation with a `RuntimeError` such as "Tensor on
+  device cpu is not on the expected device meta!" after a move, or "expected scalar
+  type Double but found ComplexFloat" after a cast to double precision. A model moved
+  or cast at another point, before `set_topology` or before a new topology, still fails
+  with an error from PyTorch, in `set_topology` or in the call.
+
+### Fixed
+
+- `torch.compile` captures the channel generation of `DenseUrban`, `Urban` and
+  `SubUrban` without graph breaks, also with `fullgraph=True`, and the results are
+  unchanged. The Faraday rotation of TR 38.811 V15.4.0, clause 6.8.2, converted its
+  angle ψ = 108°/f², with f in GHz (eq. (6.8-2)), from a tensor to a Python number in
+  every call, and `DenseUrban` held its number of rays per cluster, 20, as a tensor,
+  which the generation of the rays converted to a Python number to use it as a slice
+  bound. With the code of 2.0.0a2, `torch._dynamo.explain` found 11 graph breaks in a
+  call of `Urban` or `SubUrban` and 19 in a call of `DenseUrban` (20 with
+  `always_generate_lsp=True`), in both link directions and both precisions, and
+  `fullgraph=True` failed. The angle is now computed once, when the model is built, and
+  the number of rays per cluster is the integer 20 in the three models. Affected earlier
+  versions: 2.0.0a1 and 2.0.0a2; the versions for Sionna 0.19 and 1.x are built on
+  TensorFlow and are not affected.
+- With 2.0.0a2, on a machine with a CUDA GPU, 7 cases of
+  `tests/differentiable_topology_test.py` and `tests/lsp_spatial_correlation_test.py`
+  failed, because the tests built tensors on the CPU: defects of the tests, not of the
+  package. The tests now build these tensors on the device of the topology.
+  `tests/lsp_spatial_correlation_test.py` now reads the parameter files through the
+  installed package, so that it also runs against an installed package. No result of the
+  package changes. Affected earlier version: 2.0.0a2.
+
 ## [2.0.0a2] - 2026-10-12
 
 Second pre-release of OpenNTN for Sionna 2.x. Its corrections change simulation results;

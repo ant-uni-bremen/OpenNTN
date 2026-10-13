@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 from sionna.phy import PI, config, dtypes
-from sionna.phy.utils import expand_to_rank
+from sionna.phy.utils import expand_to_rank, randint
 from sionna.phy.utils.random import uniform
 
 
@@ -975,9 +975,8 @@ def generate_uts_topology(  batch_size,
     if drop_area == 'sector':
         sectors = torch.tensor(0, dtype=torch.int32, device=device)
     elif drop_area == 'cell':
-        sectors = torch.randint(low=0, high=3, size=[batch_size, num_ut],
-                                dtype=torch.int32, device=device,
-                                generator=generator)
+        sectors = randint(0, 3, [batch_size, num_ut], dtype=torch.int32,
+                          device=device, generator=generator)
     ut_loc_xy = relocate_uts(ut_loc_xy,
                              sectors,
                              cell_loc_xy)

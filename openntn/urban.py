@@ -13,7 +13,7 @@ from . import UrbanScenario
 
 class Urban(SystemLevelChannel):
     # pylint: disable=line-too-long
-    r"""Urban(carrier_frequency, ut_array, bs_array, direction, enable_pathloss=True, enable_shadow_fading=True, always_generate_lsp=False, precision=None)
+    r"""Urban(carrier_frequency, ut_array, bs_array, direction, enable_pathloss=True, enable_shadow_fading=True, always_generate_lsp=False, precision=None, device=None)
 
     Urban channel model from 3GPP [TR38811]_ specification.
 
@@ -110,6 +110,16 @@ class Urban(SystemLevelChannel):
         If set to `None`,
         :attr:`~sionna.phy.config.Config.precision` is used.
 
+    device : `None` (default) | str
+        Device for computation (e.g., ``"cpu"``, ``"cuda:0"``).
+        If `None`, :attr:`~sionna.phy.config.Config.device` at the
+        construction is used. ``ut_array`` and ``bs_array`` must be built on
+        this device (their argument ``device``); `ValueError` otherwise. The
+        model stays on this device and in its precision: moved with ``.to()``
+        or cast after the last ``set_topology``, it raises `ValueError` when
+        called; a move or cast at another point fails with an error from
+        PyTorch.
+
     Input
     -----
 
@@ -135,11 +145,12 @@ class Urban(SystemLevelChannel):
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True,
         average_street_width=20.0, average_building_height=5.0,
-        always_generate_lsp=False, doppler_enabled=True, precision=None):
+        always_generate_lsp=False, doppler_enabled=True, precision=None, device=None):
 
         # urban scenario
         scenario = UrbanScenario(carrier_frequency, ut_array, bs_array,
             direction, elevation_angle, enable_pathloss, enable_shadow_fading,
-            average_street_width, average_building_height, doppler_enabled, precision)
+            average_street_width, average_building_height, doppler_enabled, precision,
+            device=device)
 
         super().__init__(scenario, always_generate_lsp)

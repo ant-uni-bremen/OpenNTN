@@ -261,6 +261,23 @@ class ChannelCoefficientsGenerator(Object):
         self._rx_array = rx_array
         self._subclustering = subclustering
 
+        # Faraday rotation angle psi = 108 deg / f^2, f in GHz, of TR 38.811 V15.4.0,
+        # eq. (6.8-2), computed once from the carrier frequency, in its precision, and
+        # kept as the Python floats cos(psi) and sin(psi): converting a tensor to a
+        # Python number in the call would break the graph of torch.compile
+        carrier_frequency_in_GHz = carrier_frequency/(1e9)
+        psi_in_deg = 108.0/(carrier_frequency_in_GHz*carrier_frequency_in_GHz)
+        psi_in_rad = float(psi_in_deg * (PI/180.0))
+        self._faraday_cos = math.cos(psi_in_rad)
+        self._faraday_sin = math.sin(psi_in_rad)
+        # The 2 x 2 rotation of eq. (6.8-1), built once and broadcast against the phase
+        # matrices of the rays in the call, instead of four tensors of their full size
+        cos_val = complex(self._faraday_cos, 0.0)
+        sin_val = complex(self._faraday_sin, 0.0)
+        self.register_buffer("_faraday_rotation", torch.tensor(
+            [[cos_val, -sin_val], [sin_val, cos_val]], dtype=self.cdtype,
+            device=self.device))
+
         # Sub-cluster information for intra cluster delay spread clusters
         # This is hardcoded from Table 7.5-5
         # Register as buffers for device/CUDAGraph compatibility
@@ -1182,20 +1199,7 @@ class ChannelCoefficientsGenerator(Object):
         return h, delays_nlos
 
     def _step_11_faraday_rotation(self, carrier_frequency, aod_shape):
-        carrier_frequency_in_GHz = carrier_frequency/(1e9)
-        psi_in_deg = 108.0/(carrier_frequency_in_GHz*carrier_frequency_in_GHz)
-        # TODO there is a bug report here,  appearently passing a Tensor to a NumPy call, which is not supported. Assumably psi in the functions is the issue,
-        # but the bug could not yet be replicated. This comment serves as a reminder in case of future resurgence of the issue
-        psi_in_rad = psi_in_deg * (PI/180.0)
-        cos_val = complex(math.cos(psi_in_rad), 0.0)
-        sin_val = complex(math.sin(psi_in_rad), 0.0)
-        faraday_cos = torch.full(tuple(aod_shape), cos_val,
-            dtype=self.cdtype, device=self.device)
-        faraday_sin = torch.full(tuple(aod_shape), sin_val,
-            dtype=self.cdtype, device=self.device)
-        faraday_minus_sin = torch.full(tuple(aod_shape), -sin_val,
-            dtype=self.cdtype, device=self.device)
-        faraday_phase_rot = torch.stack(
-            [faraday_cos, faraday_minus_sin, faraday_sin, faraday_cos],
-            dim=-1).reshape(*tuple(aod_shape), 2, 2)
-        return faraday_phase_rot
+        # The rotation built at the construction (__init__), from the carrier frequency
+        # given there, shaped to broadcast against phase matrices of the shape
+        # aod_shape + (2, 2); the argument carrier_frequency is kept for the callers
+        return self._faraday_rotation.reshape(*([1] * len(aod_shape)), 2, 2)

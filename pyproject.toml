@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openntn"
-version = "2.0.0a2"
+version = "2.0.0a3"
 description = "An extension of the Sionna framework with 3GPP TR38.811 non-terrestrial-network channel models"
 readme = "README.md"
 requires-python = ">=3.11"

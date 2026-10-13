@@ -61,15 +61,22 @@ class DenseUrbanScenario(SystemLevelScenario):
         Precision used for internal calculations and outputs.
         If set to `None`,
         :attr:`~sionna.phy.config.Config.precision` is used.
+
+    device : `None` (default) | str
+        Device for computation (e.g., ``"cpu"``, ``"cuda:0"``).
+        If `None`, :attr:`~sionna.phy.config.Config.device` at the
+        construction is used. ``ut_array`` and ``bs_array`` must be on this
+        device; `ValueError` otherwise.
     """
 
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True,
         average_street_width=20.0, average_building_height=5.0, doppler_enabled = True,
-        precision=None):
+        precision=None, device=None):
 
         super().__init__(carrier_frequency, ut_array, bs_array,
-            direction, elevation_angle, enable_pathloss, enable_shadow_fading, doppler_enabled, precision)
+            direction, elevation_angle, enable_pathloss, enable_shadow_fading, doppler_enabled, precision,
+            device)
 
         # Average street width [m]
         # Register as buffers for CUDAGraph compatibility
@@ -138,7 +145,7 @@ class DenseUrbanScenario(SystemLevelScenario):
     @property
     def rays_per_cluster(self):
         r"""Number of rays per cluster"""
-        return torch.tensor(20, dtype=torch.int32, device=self.device)
+        return 20
 
     @property
     def los_parameter_filepath(self):
