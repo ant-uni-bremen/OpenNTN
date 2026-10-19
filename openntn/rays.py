@@ -92,17 +92,17 @@ class RaysGenerator(Object):
 
     Parameters
     ----------
-    scenario : :class:`~sionna.phy.channel.tr38811.SystemLevelScenario``
+    scenario : :class:`~openntn.SystemLevelScenario`
         Scenario used to generate LSPs
 
     Input
     -----
-    lsp : :class:`~sionna.phy.channel.tr38811.LSP`
+    lsp : :class:`~openntn.LSP`
         LSPs samples
 
     Output
     ------
-    rays : :class:`~sionna.phy.channel.tr38811.Rays`
+    rays : :class:`~openntn.Rays`
         Rays samples
     """
 
@@ -307,7 +307,32 @@ class RaysGenerator(Object):
         mask = mask + nlos_slice_mask * mask_nlos
 
         # Save the mask
-        self._cluster_mask = mask
+        self._update_buffer("_cluster_mask", mask)
+
+    def _update_buffer(self, name: str, value: torch.Tensor) -> None:
+        r"""Stores a tensor derived from the topology as the buffer ``name``
+
+        The value is copied into the existing buffer when its shape stays the same and
+        neither of the two requires gradients, so that the address of the buffer stays
+        the same across topologies of the same shapes, as CUDA graphs need; otherwise it
+        is registered anew, since copying into a buffer that carries the graph of an
+        earlier call would chain the graphs of the two calls. The rule of
+        ``LSPGenerator._update_buffer`` and ``SystemLevelScenario._update_attr``.
+
+        :param name: Name of the buffer
+
+        :param value: Value to store
+
+        :output: `None`
+        """
+        existing = getattr(self, name, None)
+        if (existing is not None and name in self._buffers and existing.shape == value.shape
+                and not value.requires_grad and not existing.requires_grad):
+            existing.copy_(value)
+        else:
+            if hasattr(self, name) and name not in self._buffers:
+                delattr(self, name)
+            self.register_buffer(name, value)
 
     def _cluster_delays(self, delay_spread, rician_k_factor):
         # pylint: disable=line-too-long
@@ -343,8 +368,10 @@ class RaysGenerator(Object):
         # Getting scaling parameter according to each BS-UT link scenario
         delay_scaling_parameter = scenario.get_param("rTau").unsqueeze(3)
 
-        # Generating random cluster delays
-        # We don't start at 0 to avoid numerical errors
+        # Generating random cluster delays. X_n of TR 38.901 eq. (7.5-1) is uniform on
+        # (0, 1); here it lies in [1e-6, 1), which keeps ln X_n finite. The guard acts with
+        # the probability 1e-6 per cluster: it cuts the unscaled delay at
+        # -ln(1e-6) r_tau DS = 13.8 r_tau DS
         delay_spread = delay_spread.unsqueeze(3)
         x = (
             rand(
@@ -392,8 +419,8 @@ class RaysGenerator(Object):
 
         Input
         ------
-        delays : [batch size, num of BSs, num of UTs, maximum number of clusters], torch.float
-            Path delays [s]
+        delay_spread : [batch size, num of BSs, num of UTs], torch.float
+            RMS delay spread of each BS-UT link.
 
         rician_k_factor : [batch size, num of BSs, num of UTs], torch.float
             Rician K-factor of each BS-UT link. Used only for LoS links.

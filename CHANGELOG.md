@@ -2,6 +2,201 @@
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0a4] - 2026-10-19
+
+Fourth pre-release of OpenNTN for Sionna 2.x: its corrections change simulation results
+(the first section names them), and the interface changes, with a renamed property,
+private path loss functions, removed arguments and checks of the inputs that raise
+`ValueError` or `TypeError`.
+
+### Changes that affect simulation results
+
+- Ionospheric scintillation of aerial platforms: links to an aerial platform (8 km to
+  50 km) below 6 GHz no longer get the ionospheric scintillation loss of TR 38.811
+  V15.4.0, clause 6.6.6.1.4; its Table 6.10.1-1 gives the scintillation as negligible
+  for the deployment of UAS including HAPS below 6 GHz, whose links stay below the
+  ionosphere. Within 20° of the magnetic equator such links got 2.2 dB at 2 GHz
+  (1.93 dB at 2.185 GHz); at higher latitudes, the default of 47° included, the loss
+  was already 0. Satellites keep the loss. Affected earlier versions: 2.0.0a2 and
+  2.0.0a3; the versions for Sionna 0.19 and 1.x and 2.0.0a1 gave the loss at every
+  latitude, also to platforms at the heights of aerial platforms, which they accepted
+  without a check.
+- Antenna element pattern `"dlp"`: it now includes the maximum directional gain of
+  5 dBi that R1-1802551, Table 2, gives for the element of the co-phased dual linearly
+  polarized UE array, which TR 38.811 V15.4.0, clause 6.4.2, uses. Its maximum was
+  0 dBi, so every path of a channel with `"dlp"` elements was 5 dB too weak for each end
+  that uses them, 10 dB with `"dlp"` at both ends (computed with this version); the
+  element `"38.901"` already included its 8 dBi. Affected earlier versions: the
+  versions for Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3.
+- The UTs of `generate_uts_topology` and `gen_single_sector_topology` now face the
+  satellite or aerial platform, as the generators intend: the bearing of a UT at
+  negative x was off by 180° (`atan` of y/x instead of the angle of (x, y)), so its
+  boresight pointed away from the platform, 180° minus twice the elevation angle off
+  the line of sight. This concerns UTs with a directional antenna element: with the
+  element `"38.901"` their gain toward the platform was -22 dBi instead of +8 dBi at
+  elevation angles up to 30° and -3.5 dBi at 60°. `generate_uts_topology` with
+  `drop_area="cell"` places about a third of the UTs at negative x;
+  `gen_single_sector_topology` does so on average for at most about 0.6 % of the UTs at
+  600 km and elevation angles up to 80°, but for up to a fifth at 20 km and a third at
+  8 km at 80°, where the loss was 1 to 2 dB on average (computed with this version). At
+  90° nothing changes. Their docstrings now state the orientations that they set: the
+  BS facing the nadir and each UT facing the BS; they said that the UT orientations
+  were random and that the BS faced the centre of the sector. Affected earlier
+  versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3.
+- Dual-polarized antenna arrays with `polarization_type="VH"`: the two elements of each
+  pair now have the slant angles 0° and 90°, a vertically and a horizontally polarized
+  element, as in TR 38.901 V16.1.0, clause 7.3.2 (polarization model 2) and the "X-pol
+  (0/+90 degree)" configuration of its clause 7.8.2, and as R1-1802551, Table 1, gives
+  for the UE arrays of TR 38.811 V15.4.0, clause 6.4.2. They had the slant angles -45°
+  and +45°, those of `polarization_type="cross"`, because the constructor tested the
+  wrong argument. This concerns every `PanelArray`, `Antenna` and `AntennaArray` built
+  with `polarization="dual"` and `polarization_type="VH"`, at the satellite, the aerial
+  platform or the UT, in all scenarios, bands, directions and link states. The power of
+  each element of such a pair changes; the power summed over the two elements of a pair
+  does not. In the characterization outputs of the test suite, a satellite array of
+  four such pairs and a vertically polarized UT element, the power per antenna pair
+  changed by up to 32 dB, the power summed over the satellite's elements by less than
+  1e-14 relative (computed with this version). Affected earlier versions: the versions
+  for Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3.
+- Faraday rotation in the uplink: the polarization of uplink paths to a satellite from
+  600 km is now rotated in the same direction as on the downlink, as seen from the earth
+  station, as ITU-R P.618-13, section 4, states, and between the scatterers near the UT
+  and the satellite, as on the downlink. Before, the uplink rotated the UT's field
+  before the scatterers and in the opposite direction (TR 38.811 V15.4.0, eqs. (6.8-1a)
+  and (6.8-1b), are written for the downlink). The rotation is 108°/f² (f in GHz;
+  6.75° to 29.9° in the S band, 0.07° to 0.30° in the Ka band). This changes the power
+  between single elements (by tens of dB, without a bound near a polarization null on a
+  LOS path) and, for the paths through scatterers, the power that the satellite
+  collects over two orthogonal elements, which no longer depends on the rotation (it
+  did by up to 13 dB for single paths); the power over two orthogonal elements at
+  either end of a LOS path does not change (computed with this version). Affected
+  earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3.
+
+### Added
+
+- The argument `aperture_radius` of `AntennaElement`, `PanelArray`, `Antenna` and
+  `AntennaArray`: the radius a of the circular aperture of the element pattern
+  `"aperture"` of TR 38.811 V15.4.0, clause 6.4.1, in multiples of the wavelength, as
+  the element spacings of `PanelArray`. For an aperture of diameter D at the carrier
+  frequency f, a = D f/(2c), with c the speed of light; the 2 m of TR 38.821 V16.2.0,
+  Table 6.1.1.1-1, at 2 GHz give a = 6.67. It defaults to 10, the radius of Figure
+  6.4.1-1 of TR 38.811, which the pattern always used before, so results do not change;
+  the other patterns do not use it. A value that is a bool or not a real number raises
+  `TypeError`, one that is not positive and finite `ValueError`.
+
+### Changed
+
+- A model moved to another device or cast to another precision, for example with
+  `.to()`, `.cuda()` or `.double()`, now raises `ValueError` in every order:
+  `set_topology` checks the device and the precision of its tensors first, as the call
+  already did after the last `set_topology`. Before, a model moved or cast before
+  `set_topology` or between two topologies failed with an error from PyTorch in
+  `set_topology` or in the call, such as "Tensor on device meta is not on the expected
+  device cpu!" or "expected scalar type ComplexFloat but found Double". Affected
+  earlier version: 2.0.0a3; 2.0.0a1 and 2.0.0a2 had no such check.
+- `AntennaPanel.polarization` replaces the misspelt `AntennaPanel.porlarization`,
+  which is removed without an alias. The property returns the polarization of the
+  panel, `"single"` or `"dual"`, under the name of the same property of Sionna's
+  `AntennaPanel` and of `PanelArray`. Affected earlier versions: the versions for
+  Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3, which have only `porlarization`.
+- `always_generate_lsp` of `DenseUrban`, `Urban` and `SubUrban`, and `doppler_enabled`
+  of these models, of their scenarios, of the `set_topology` method of the scenarios
+  and of `Topology`, must be `True` or `False` (`None` in `set_topology`, which keeps
+  the flag); other values raise `TypeError`. Before, any value was accepted and taken
+  by its truth value. The arguments `average_street_width` and
+  `average_building_height`, which came before them, are removed (see "Removed"), so a
+  call that passes the arguments of the earlier versions by position would otherwise
+  take the street width as one of the flags; it now raises `TypeError`. Affected
+  earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3,
+  which accept any value.
+- Invalid inputs raise `ValueError` instead of `AssertionError`, also under
+  `python -O`, which removed these checks, so that the invalid inputs went on
+  unchecked: an elevation angle outside 10° to 90°, a carrier frequency outside 1.9 GHz
+  to 4 GHz and 19 GHz to 40 GHz, a `direction` other than `"uplink"` and `"downlink"`,
+  and arrays whose carrier frequency differs from that of the model (`DenseUrban`,
+  `Urban`, `SubUrban` and their scenarios); a first `set_topology` that leaves out one
+  of the topology tensors; the element pattern of `AntennaElement`; the polarization of
+  `AntennaPanel`, `PanelArray`, `Antenna` and `AntennaArray`, the polarization type of
+  the last three, and panel spacings of `PanelArray` that do not exceed the panel size;
+  the properties `ant_pol2`, `ant_ind_pol2` and `ant_pos_pol2` of a single-polarized
+  array; the scenario of `set_3gpp_scenario_parameters` and
+  `gen_single_sector_topology`; and the drop area of `generate_uts_topology`. A
+  `ut_array` or `bs_array` that is not a `PanelArray`, `Antenna` or `AntennaArray`
+  raises `TypeError` instead of `AssertionError`, as an argument of the wrong type. The
+  conditions and the messages are those of the earlier checks. Under `python -O`, a
+  model at an elevation angle of 5° or at 6 GHz, for example, was built without an
+  error (the code before this change). Affected earlier versions: the versions for
+  Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3, which check these inputs with `assert`.
+- Antenna arrays built in another precision than the model raise a `ValueError` that
+  names both precisions. Before, the check of the carrier frequencies failed with its
+  message on the frequencies or, at a frequency whose wavelength both precisions hold
+  exactly, such as 2 398 339 664 Hz (0.125 m), the model was built and its call failed
+  with an error from PyTorch. Affected earlier versions: 2.0.0a1 to 2.0.0a3; the
+  versions for Sionna 0.19 and 1.x raised an `InvalidArgumentError` of TensorFlow on
+  the data types (computed with TensorFlow 2.18.1 and 2.19.0).
+
+### Removed
+
+- The path loss functions `compute_pathloss_basic`, `compute_pathloss_entry`,
+  `compute_pathloss_gas` and `compute_pathloss_scintilation` of `openntn.utils` are no
+  longer public. They take a scenario of the package, such as a `DenseUrbanScenario`,
+  and store their results in its tensors, so only the scenarios use them, in
+  `set_topology`. The path loss terms stay available as the properties
+  `basic_pathloss`, `gas_pathloss`, `scintillation_pathloss`, `entry_pathloss` and
+  `free_space_pathloss` of the scenarios. Affected earlier versions: the versions for
+  Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3, whose `utils` module has them.
+- The arguments `average_street_width` and `average_building_height` of `DenseUrban`,
+  `Urban`, `SubUrban` and their scenarios, and the scenario properties of the same
+  names: no computation used them. TR 38.811 has no such parameters; the models took
+  them over from the rural macro model (RMa) of TR 38.901 in Sionna, whose path loss
+  uses them. A call that passes one of them by name raises `TypeError`; for a call by
+  position, see "Changed". Affected earlier versions: the versions for Sionna 0.19 and
+  1.x, and 2.0.0a1 to 2.0.0a3, which accept them.
+
+### Fixed
+
+- With `torch.compile(mode="reduce-overhead")`, which captures the call of
+  `DenseUrban`, `Urban` and `SubUrban` as CUDA graphs, a new topology of the same
+  shapes no longer makes the next call record its graphs again: `set_topology` now
+  writes the tensors that it derives from the topology (the means and standard
+  deviations of the large scale parameters, the ZOD offset, the path loss terms, the
+  cluster mask and the large scale parameters drawn with the topology) into the
+  existing tensors when their shapes stay the same and no gradients are involved, as it
+  already did for the topology itself. Before, it replaced up to 13 of the inputs of
+  the captured graphs, and PyTorch recorded and kept one more set of graphs after every
+  new topology. Measured on an RTX 4090 with torch 2.14.1 (DenseUrban at 2 GHz, 8 and
+  64 topologies of the same shapes): one recording in all instead of one per topology,
+  and the first call after `set_topology` as fast as the next calls, 0.44 to 1.93 ms
+  (computed with this version). A topology with another batch size still records new
+  graphs, which PyTorch keeps. The results are unchanged. The tensors derived from the
+  topology are now buffers of the model and appear in its `state_dict()`. A tensor
+  taken from the model after `set_topology`, such as the path loss terms or the means
+  of the large scale parameters, is now overwritten by the next `set_topology` of the
+  same shapes, as the topology tensors already were; clone it to keep its values.
+  Affected earlier versions: 2.0.0a1 to 2.0.0a3; the versions for Sionna 0.19 and 1.x
+  are built on TensorFlow and are not affected.
+- Documentation: the docstrings referred to the classes of this package in the module
+  `sionna.phy.channel.tr38811`, which does not exist with the package `openntn`, and to
+  `sionna.ofdm.ResourceGrid` instead of `sionna.phy.ofdm.ResourceGrid`. The examples of
+  `DenseUrban`, `Urban`, `SubUrban` and `gen_single_sector_topology` built the model
+  without the required `elevation_angle`, the last one with an argument `o2i_model` that
+  no model takes, and the signatures at the top of the docstrings of the models left out
+  `elevation_angle` and `doppler_enabled`. The docstrings of the models and their
+  scenarios named the antenna arrays `rx_array` and `tx_array` instead of `ut_array` and
+  `bs_array`, those of the scenarios described `always_generate_lsp`, which only the
+  models take, and those of the models named the first input of the call
+  `num_time_steps` instead of `num_time_samples`. The argument `doppler_enabled` of the
+  models, their scenarios, `SystemLevelScenario` and its `set_topology` had no
+  description. `set_3gpp_scenario_parameters` and `gen_single_sector_topology`
+  described a parameter `min_bs_ut_dist` that they do not take, `exp_corr_mat` a
+  parameter `dtype` instead of `precision` and `device`, and `time_to_ofdm_channel` its
+  parameter `rg` as `resource_grid`; `AntennaPanel` described its property
+  `horizontal_spacing` as the vertical spacing. They now name `openntn`, the current
+  paths of Sionna and the arguments of the signatures, and describe `doppler_enabled`.
+  No result changes. Affected earlier versions: 2.0.0a1 to 2.0.0a3; the versions for
+  Sionna 0.19 and 1.x have the same texts, apart from the module paths, which named the
+  module that their installation linked into Sionna.
+
 ## [2.0.0a3] - 2026-10-13
 
 Third pre-release of OpenNTN for Sionna 2.x: the models take the argument `device`, and

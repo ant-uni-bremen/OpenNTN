@@ -113,6 +113,7 @@ class Topology:
 
     doppler_enabled : bool
         Indicates if Doppler shift induced phase rotation should be simulated.
+        Must be `True` or `False`; `TypeError` otherwise.
 
     los_phase : [batch size, number of TXs, number of RXs], `torch.float`
         Propagation phase -2 pi d3D f_c / c of the LoS path, reduced to [0, 2 pi) in
@@ -141,6 +142,10 @@ class Topology:
                         elevation_angle,
                         doppler_enabled,
                         los_phase):
+        # A flag, as in the models and their scenarios, which check it as well
+        if not isinstance(doppler_enabled, bool):
+            raise TypeError(f"doppler_enabled must be True or False, not "
+                            f"{doppler_enabled!r}")
         self.velocities = velocities
         self.moving_end = moving_end
         self.los_aoa = los_aoa
@@ -951,10 +956,13 @@ class ChannelCoefficientsGenerator(Object):
         # the ionosphere") for a satellite from 600 km on (_has_faraday_rotation); not for
         # a satellite below 600 km, which flies within the ionosphere, nor for an aerial
         # platform. The other switches of a satellite start at 160 km (_is_satellite).
+        # In both directions it acts between the scatterers and the satellite
+        # (_step_11_apply_faraday_rotation).
         rays_shape = rays.aoa.shape
         faraday_phase_rotation = self._step_11_faraday_rotation(carrier_frequency=carrier_frequency, aod_shape=rays_shape)
         h_phase = torch.where(_has_faraday_rotation(topology.bs_height).all(),
-                              torch.matmul(h_phase, faraday_phase_rotation), h_phase)
+                              self._step_11_apply_faraday_rotation(
+                                  h_phase, faraday_phase_rotation, topology), h_phase)
 
         h_field = self._step_11_field_matrix(topology, rays.aoa, rays.aod,
                                                     rays.zoa, rays.zod, h_phase)
@@ -1117,7 +1125,8 @@ class ChannelCoefficientsGenerator(Object):
         rays_shape = aoa.shape
         faraday_phase_rotation = self._step_11_faraday_rotation(carrier_frequency=carrier_frequency, aod_shape=rays_shape)
         h_phase = torch.where(_has_faraday_rotation(topology.bs_height).all(),
-                              torch.matmul(h_phase, faraday_phase_rotation), h_phase)
+                              self._step_11_apply_faraday_rotation(
+                                  h_phase, faraday_phase_rotation, topology), h_phase)
 
         h_field = self._step_11_field_matrix(topology, aoa, aod, zoa, zod,
                                                                     h_phase)
@@ -1203,3 +1212,35 @@ class ChannelCoefficientsGenerator(Object):
         # given there, shaped to broadcast against phase matrices of the shape
         # aod_shape + (2, 2); the argument carrier_frequency is kept for the callers
         return self._faraday_rotation.reshape(*([1] * len(aod_shape)), 2, 2)
+
+    def _step_11_apply_faraday_rotation(self, h_phase: torch.Tensor,
+                                        faraday_phase_rotation: torch.Tensor,
+                                        topology: Topology) -> torch.Tensor:
+        r"""Multiplies the polarization matrices of the rays by the Faraday rotation
+
+        TR 38.811 V15.4.0, clause 6.8.2, post-multiplies the polarization matrices of
+        TR 38.901 V16.1.0, eqs. (7.5-28) and (7.5-29), by the rotation
+        :math:`F_r(\psi)` (eqs. (6.8-1a) and (6.8-1b)). The equations are written for
+        the downlink, where the satellite transmits: the rotation acts on the field of
+        the satellite, between the satellite and the scatterers near the UT, where the
+        ionosphere is. ITU-R P.618-13, section 4, which TR 38.811 cites for
+        :math:`\psi`: "As seen from the earth station, the planes of polarization rotate
+        in the same direction on the up- and down-links." In the uplink, where the UT
+        transmits, the rotation is therefore pre-multiplied: it acts between the
+        scatterers and the satellite, and it turns the field of the LOS path in the
+        direction of the downlink as seen from the earth station. The direction of the
+        link is a Python value of the topology, so the choice adds no graph break under
+        ``torch.compile``.
+
+        :param h_phase: Polarization matrices of the rays, shape [..., 2, 2]
+        :param faraday_phase_rotation: Faraday rotation :math:`F_r(\psi)`, of a shape
+            that broadcasts against that of ``h_phase``
+        :param topology: Topology of the network; its ``moving_end`` is "tx" in the
+            uplink and "rx" in the downlink
+
+        :output: [..., 2, 2], `torch.complex`. The polarization matrices multiplied by
+            the Faraday rotation
+        """
+        if topology.moving_end == "tx":
+            return torch.matmul(faraday_phase_rotation, h_phase)
+        return torch.matmul(h_phase, faraday_phase_rotation)

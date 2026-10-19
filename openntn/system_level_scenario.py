@@ -12,6 +12,7 @@ import json
 import math
 from abc import abstractmethod
 from importlib.resources import files
+from typing import Optional
 
 import torch
 
@@ -85,6 +86,12 @@ class SystemLevelScenario(Object):
         If set to `True`, apply shadow fading. Otherwise, does not.
         Defaults to True.
 
+    doppler_enabled : bool
+        If `True`, the channel contains the Doppler shift due to the motion of the
+        satellite (sections 6.7.1 and 6.8.1 of 38.811 specification); if `False`, it
+        does not. The Doppler shift due to the motion of the UTs is applied in either
+        case. Defaults to `True`. Must be `True` or `False`; `TypeError` otherwise.
+
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
@@ -100,16 +107,22 @@ class SystemLevelScenario(Object):
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True, doppler_enabled=True,
         precision=None, device=None):
+        # A flag, checked so that a call that passes an average street width by position
+        # after enable_shadow_fading raises instead of taking it as the flag
+        if not isinstance(doppler_enabled, bool):
+            raise TypeError(f"doppler_enabled must be True or False, not "
+                            f"{doppler_enabled!r}")
         super().__init__(precision=precision, device=device)
         # Direction
-        assert direction in ("uplink", "downlink"), \
-            "'direction' must be 'uplink' or 'downlink'"
+        if not (direction in ("uplink", "downlink")):
+            raise ValueError("'direction' must be 'uplink' or 'downlink'")
         self._direction = direction
 
         #As 1.98GHz is specifically mentioned in the standard 3GPP TR38.811, we lowered the S-Band lower end from 2GHz to 1.9GHz
         #As 19.7GHz is specifically mentioned in the standard 3GPP TR38.811, we lowered the Ka-Band lower end from 26GHz to 19GHz
-        assert carrier_frequency >= 19e9 and carrier_frequency <= 40e9 or carrier_frequency >= 1.9e9 and carrier_frequency <= 4e9, \
-                "Carrier frequency must be either in S Band (1.9GHz-4GHz) or Ka Band (19GHz - 40GHz)"
+        if not (carrier_frequency >= 19e9 and carrier_frequency <= 40e9 or carrier_frequency >= 1.9e9 and carrier_frequency <= 4e9):
+            raise ValueError(
+                "Carrier frequency must be either in S Band (1.9GHz-4GHz) or Ka Band (19GHz - 40GHz)")
         #if direction == "downlink":
         #    assert carrier_frequency >= 19e9 and carrier_frequency <= 40e9 or carrier_frequency >= 1.9e9 and carrier_frequency <= 4e9, \
         #        "Carrier frequency in downlink must be either in S Band (1.9GHz-4GHz) or Ka Band (19GHz - 40GHz)"
@@ -132,10 +145,10 @@ class SystemLevelScenario(Object):
                 device=self.device))
 
         # UTs and BSs arrays
-        assert isinstance(ut_array, PanelArray), \
-            "'ut_array' must be an instance of PanelArray"
-        assert isinstance(bs_array, PanelArray), \
-            "'bs_array' must be an instance of PanelArray"
+        if not (isinstance(ut_array, PanelArray)):
+            raise TypeError("'ut_array' must be an instance of PanelArray")
+        if not (isinstance(bs_array, PanelArray)):
+            raise TypeError("'bs_array' must be an instance of PanelArray")
         # An array creates its tensors on its own device, so an array on another device
         # would make the computations with the scenario's tensors fail. Sionna 2.2.0
         # rejects it when it is assigned; this check, before the assignment, gives the
@@ -147,18 +160,30 @@ class SystemLevelScenario(Object):
                     f"{name} ({type(array).__name__}) is on device {array.device!r}. "
                     f"Build both on the same device, e.g. "
                     f"{type(array).__name__}(..., device={self.device!r}).")
+        # An array also creates its tensors in its own precision, and a call with arrays
+        # in another precision than the scenario fails. Checked before the wavelengths,
+        # which each object rounds in its own precision, so that the error names the
+        # precisions and not the carrier frequencies
+        for name, array in (("ut_array", ut_array), ("bs_array", bs_array)):
+            if array.precision != self.precision:
+                raise ValueError(
+                    f"{type(self).__name__} is in {self.precision} precision, but its "
+                    f"{name} ({type(array).__name__}) is in {array.precision} "
+                    f"precision. Build the arrays in the precision of the model, e.g. "
+                    f"{type(array).__name__}(..., precision={self.precision!r}).")
         self._ut_array = ut_array
         self._bs_array = bs_array
 
-        #assert math.isclose(ut_array._lambda_0, bs_array._lambda_0, abs_tol=0.01) and math.isclose(ut_array._lambda_0, self._lambda_0, abs_tol=0.01) and math.isclose(ut_array._lambda_0, bs_array._lambda_0, abs_tol=0.01), \
-        # Assert that the carrier frequencies of all elemnts are the same. As the antennas only save the wavelength, this is compared representatively
-        assert ut_array._lambda_0 == bs_array._lambda_0 == self._lambda_0, \
-            "The carrier frequencies of ut antenna, bs antenna and scenario must match"
+        # Check that the carrier frequencies of all elements are the same. As the antennas only save the wavelength, this is compared representatively
+        if not (ut_array._lambda_0 == bs_array._lambda_0 == self._lambda_0):
+            raise ValueError(
+                "The carrier frequencies of ut antenna, bs antenna and scenario must match")
         # data type
 
 
 
-        assert elevation_angle >= 10.0 and elevation_angle <= 90.0, "elevation angle must be in range [10,90]"
+        if not (elevation_angle >= 10.0 and elevation_angle <= 90.0):
+            raise ValueError("elevation angle must be in range [10,90]")
         self._elevation_angle = elevation_angle
 
         # Pathloss and shadow fading
@@ -480,7 +505,9 @@ class SystemLevelScenario(Object):
     def scintillation_pathloss(self):
         r"""Scintillation loss PL_s [dB], section 6.6.6 of 38.811 specification: the
         ionospheric scintillation of section 6.6.6.1.4 below 6 GHz, the tropospheric
-        scintillation of section 6.6.6.2.1 from 6 GHz on.
+        scintillation of section 6.6.6.2.1 from 6 GHz on. Below 6 GHz links to an aerial
+        platform get 0: Table 6.10.1-1 gives the scintillation as negligible for UAS
+        including HAPS below 6 GHz.
         [batch size, num BS, num UT]"""
         return self._pl_s
 
@@ -502,9 +529,10 @@ class SystemLevelScenario(Object):
     @property
     def latitude(self):
         r"""Latitude of the UTs relative to the magnetic equator in degrees. Below
-        6 GHz it decides the ionospheric scintillation loss, section 6.6.6.1.4 of
-        38.811 specification: A_IS within 20 deg of the magnetic equator, 0 at higher
-        latitudes.
+        6 GHz it decides the ionospheric scintillation loss of links to a satellite,
+        section 6.6.6.1.4 of 38.811 specification: A_IS within 20 deg of the magnetic
+        equator, 0 at higher latitudes. Links to an aerial platform get 0 at every
+        latitude (Table 6.10.1-1 of 38.811 specification).
         """
         return self._latitude
 
@@ -550,6 +578,10 @@ class SystemLevelScenario(Object):
 
     def _update_attr(self, name, value):
         # store topology tensors as buffers so .to()/.cuda() moves them; copy_ when shape is stable, re-register otherwise
+        # The tensors derived from the topology (the LSP means and standard deviations,
+        # the ZOD offset, the path loss terms) are stored the same way, so that their
+        # addresses stay the same across topologies of the same shapes, as CUDA graphs
+        # need: a graph records the addresses of its inputs.
         existing = getattr(self, name, None)
         # A value or a buffer that requires gradients is registered anew: copy_ into a
         # buffer that carries the graph of an earlier call would chain the graphs, and
@@ -563,6 +595,34 @@ class SystemLevelScenario(Object):
             # copy_ of a later call would overwrite it. clone() rather than detach()
             # keeps gradients with respect to the topology.
             self._register_buffer_safe(name, value.clone())
+
+    def _check_device_and_precision(self, model: Optional[Object] = None) -> None:
+        r"""Checks that the tensors are still on the device and in the precision of the
+        construction
+
+        A model stays on the device and in the precision of its construction, as
+        Sionna's models do: ``.to()`` moves or casts its registered tensors, but neither
+        the device and the precision of the model and its parts nor the tensors held
+        outside the buffers, so a computation would fail inside with an error from
+        PyTorch. The device and the dtype of the carrier frequency, a buffer registered
+        at the construction, are compared with those of the model; no tensor value is
+        read.
+
+        :param model: The model that the error names with its device and precision.
+            Defaults to `None`, the scenario itself.
+
+        :output: `None`. Raises `ValueError` if the carrier frequency is on another
+            device or of another dtype than the model.
+        """
+        model = self if model is None else model
+        reference = self._carrier_frequency
+        if (reference.device != torch.device(model.device)
+                or reference.dtype != model.dtype):
+            raise ValueError(
+                f"{type(model).__name__} was built on device {model.device!r} in "
+                f"{model.precision} precision, but its tensors are {reference.dtype} on "
+                f"{reference.device}; build the model with the device and precision it "
+                f"is to use instead of moving or casting it")
 
     def set_topology(self, ut_loc=None, bs_loc=None, ut_orientations=None,
         bs_orientations=None, ut_velocities=None, in_state=None, los=None, latitude=None,
@@ -583,6 +643,14 @@ class SystemLevelScenario(Object):
         the LoS angles) stay differentiable with respect to the tensors passed, in every
         call. The path coefficients and delays of the channel models are detached, so
         gradients exist only for the quantities of the scenario.
+
+        The topology tensors and the tensors derived from them (for example the 2D
+        distances, the LoS angles, the path loss terms and the means of the large
+        scale parameters) are written into the existing tensors when their shapes stay
+        the same and no gradients are involved, so that their addresses stay the same,
+        as CUDA graphs need. A tensor taken from the scenario after ``set_topology`` is
+        therefore overwritten by the next ``set_topology`` of the same shapes; clone it
+        to keep its values.
 
         Input
         ------
@@ -650,11 +718,20 @@ class SystemLevelScenario(Object):
             latitude : float
                 Latitude of the UTs relative to the magnetic equator [deg], from
                 -90 to 90 (`ValueError` otherwise). Below 6 GHz the scintillation
-                loss is the ionospheric scintillation of TR 38.811, clause
-                6.6.6.1.4, for latitudes within 20 deg of the magnetic equator,
-                and 0 at higher latitudes. Defaults to 47, where the loss is 0,
+                loss of links to a satellite is the ionospheric scintillation of
+                TR 38.811, clause 6.6.6.1.4, for latitudes within 20 deg of the
+                magnetic equator, and 0 at higher latitudes; links to an aerial
+                platform get 0 at every latitude, as Table 6.10.1-1 gives the
+                scintillation as negligible for UAS including HAPS below 6 GHz.
+                Defaults to 47, where the loss is 0,
                 as in the calibration of TR 38.821, Table 6.1.1.1-5 (UEs between
                 20 and 60 deg of latitude).
+
+            doppler_enabled : bool or `None`
+                If not `None`, replaces the flag ``doppler_enabled`` of the
+                construction, which switches the Doppler shift due to the motion
+                of the satellite. Must be `True`, `False` or `None`; `TypeError`
+                otherwise. Defaults to `None`.
 
             An atmospheric parameter that is passed without new topology
             tensors updates the gas and scintillation losses of the current
@@ -667,34 +744,42 @@ class SystemLevelScenario(Object):
                 parameters must be drawn again
         """
 
-        assert (ut_loc is not None) or (self._ut_loc is not None),\
-            "`ut_loc` is None and was not previously set"
+        # A scenario moved to another device or cast to another precision raises
+        # ValueError before it computes anything
+        self._check_device_and_precision()
 
-        assert (bs_loc is not None) or (self._bs_loc is not None),\
-            "`bs_loc` is None and was not previously set"
+        if not ((ut_loc is not None) or (self._ut_loc is not None)):
+            raise ValueError("`ut_loc` is None and was not previously set")
 
-        assert (in_state is not None) or (self._in_state is not None),\
-            "`in_state` is None and was not previously set"
+        if not ((bs_loc is not None) or (self._bs_loc is not None)):
+            raise ValueError("`bs_loc` is None and was not previously set")
 
-        assert (ut_orientations is not None)\
-            or (self._ut_orientations is not None),\
-            "`ut_orientations` is None and was not previously set"
+        if not ((in_state is not None) or (self._in_state is not None)):
+            raise ValueError("`in_state` is None and was not previously set")
 
-        assert (bs_orientations is not None)\
-            or (self._bs_orientations is not None),\
-            "`bs_orientations` is None and was not previously set"
+        if not ((ut_orientations is not None)
+                or (self._ut_orientations is not None)):
+            raise ValueError("`ut_orientations` is None and was not previously set")
 
-        assert (ut_velocities is not None)\
-            or (self._ut_velocities is not None),\
-            "`ut_velocities` is None and was not previously set"
+        if not ((bs_orientations is not None)
+                or (self._bs_orientations is not None)):
+            raise ValueError("`bs_orientations` is None and was not previously set")
 
-        # One satellite or aerial platform at one height per call, the latitude and
-        # the outdoor state of the UTs, checked before anything is stored
+        if not ((ut_velocities is not None)
+                or (self._ut_velocities is not None)):
+            raise ValueError("`ut_velocities` is None and was not previously set")
+
+        # One satellite or aerial platform at one height per call, the latitude, the
+        # Doppler flag and the outdoor state of the UTs, checked before anything is
+        # stored
         if bs_loc is not None:
             bs_loc = self._convert(bs_loc)
             _validate_platform(bs_loc)
         if latitude is not None and not abs(latitude) <= 90.0:
             raise ValueError(f"latitude {latitude} deg outside -90 deg to 90 deg")
+        if doppler_enabled is not None and not isinstance(doppler_enabled, bool):
+            raise TypeError(f"doppler_enabled must be True, False or None, not "
+                            f"{doppler_enabled!r}")
         # Outdoor UTs only, for satellites and aerial platforms: TR 38.811 V15.4.0
         # considers only outdoor UTs for satellites and indoor UTs as well for aerial
         # platforms (clause 6.1.2, Table 5.1-1), but the models have neither the
@@ -956,9 +1041,7 @@ class SystemLevelScenario(Object):
         distance_3d = h_term / (torch.sqrt(R_E**2 * sin_el**2 + h_term) + R_E*sin_el)
         #Expanding to correct shape. The 3D distance only depends on the elevation angle and the
         #satellite height, so it is identical across the batch and UT dimensions. It is broadcast
-        #to [batch size, number of BSs, number of UTs] (replaces the former eager-only
-        #tf.squeeze + tf.fill workaround, which assumed a single satellite and triggered an
-        #infinite GPU-memory allocation with the LMMSEEqualizer).
+        #to [batch size, number of BSs, number of UTs].
         distance_3d = distance_3d.reshape(1, self.num_bs, 1).expand(
             self.batch_size, self.num_bs, self.num_ut).contiguous()
         self._update_attr("_distance_3d", distance_3d.to(self.dtype))

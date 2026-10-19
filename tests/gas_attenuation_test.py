@@ -149,16 +149,20 @@ def _annex_2(f, elevation_angle, rho=WATER_VAPOUR_DENSITY, temperature=TEMPERATU
 
 
 def _stub(f_ghz, elevation_angle=90.0, rho=WATER_VAPOUR_DENSITY):
-    return types.SimpleNamespace(
+    stub = types.SimpleNamespace(
         _temperature=TEMPERATURE, _atmospheric_pressure=DRY_PRESSURE,
         _water_vapor_density=rho, _carrier_frequency=f_ghz * 1e9,
         _elevation_angle=elevation_angle, los=torch.ones(1, 1, 1, dtype=torch.bool),
         dtype=torch.float64)
+    # The loss functions store their results through the method _update_attr of the
+    # scenario, which writes them into its existing tensors; the stub assigns them
+    stub._update_attr = lambda name, value: setattr(stub, name, value)
+    return stub
 
 
 def _gas_loss(f_ghz, elevation_angle=90.0, rho=WATER_VAPOUR_DENSITY):
     stub = _stub(f_ghz, elevation_angle, rho)
-    utils.compute_pathloss_gas(stub)
+    utils._compute_pathloss_gas(stub)
     return float(stub._pl_g.flatten()[0])
 
 

@@ -14,6 +14,7 @@ addition the aperture and dlp radiation patterns.
 from typing import Optional, Tuple
 
 import math
+import numbers
 import numpy as np
 import torch
 
@@ -41,6 +42,15 @@ class AntennaElement(Object):
     device : `None` (default) | str
         Device for computation (e.g., ``"cpu"``, ``"cuda:0"``).
         If `None`, :attr:`~sionna.phy.config.Config.device` is used.
+
+    aperture_radius : float
+        Aperture radius a [multiples of wavelength], a = D f/(2c) for a diameter D [m],
+        the carrier frequency f [Hz] and the speed of light c. Used only by the pattern
+        "aperture" of TR 38.811, clause 6.4.1, where ka is the number of wavelengths on
+        the circumference of the aperture. Must be a positive finite number: `TypeError`
+        for a bool or a value that is not a real number, `ValueError` for one that is
+        not positive and finite. Defaults to 10, the radius of Figure 6.4.1-1 of
+        TR 38.811.
     """
 
     def __init__(self,
@@ -48,10 +58,21 @@ class AntennaElement(Object):
                  slant_angle=0.0,
                  precision=None,
                  device=None,
+                 aperture_radius=10.0,
                 ):
         super().__init__(precision=precision, device=device)
-        assert pattern in ["omni", "38.901", "aperture", "dlp"], \
-            "The radiation_pattern must be one of [\"omni\", \"38.901\", \"aperture\", \"dlp\"]."
+        if not (pattern in ["omni", "38.901", "aperture", "dlp"]):
+            raise ValueError("The radiation_pattern must be one of "
+                             "[\"omni\", \"38.901\", \"aperture\", \"dlp\"].")
+        if (isinstance(aperture_radius, bool)
+                or not isinstance(aperture_radius, numbers.Real)):
+            raise TypeError(f"aperture_radius must be a positive finite number of "
+                            f"wavelengths, not {aperture_radius!r}")
+        if not math.isfinite(aperture_radius) or aperture_radius <= 0:
+            raise ValueError(f"aperture_radius must be a positive finite number of "
+                             f"wavelengths, not {aperture_radius!r}")
+        # A Python float, so that ka is a constant of the pattern
+        self._aperture_radius = float(aperture_radius)
 
         self._pattern = pattern
         # Register as buffer for CUDAGraph compatibility
@@ -192,7 +213,7 @@ class AntennaElement(Object):
                               torch.tensor(a_max, dtype=self.dtype, device=self.device)) + g_e_max
         return 10 ** (a_db / 10)
 
-    def _radiation_pattern_circular_aperture(self, theta, phi, a=10):
+    def _radiation_pattern_circular_aperture(self, theta, phi, a=None):
         """
         Radiation pattern from TR38.811 (Section 6.4.1)
 
@@ -205,8 +226,11 @@ class AntennaElement(Object):
             Azimuth angle wrapped within (0,pi) [radian]
 
         a:
-            Radius of antennas circular aperture in wavelengths
+            Radius of antennas circular aperture in wavelengths. Defaults to `None`,
+            the aperture radius of the element.
         """
+        if a is None:
+            a = self._aperture_radius
 
         ka = a * 2 * math.pi
         r = torch.acos(torch.sin(theta) * torch.cos(phi))
@@ -221,7 +245,8 @@ class AntennaElement(Object):
         Radiation pattern co-phased - Dual Linear Polarization from R1-1802551, "UE antenna assumption and beam modelling for NTN", Nokia, 3GPP TSG RAN WG1 Meeting #92, Athens, Greece, February 20th - March 2nd, 2018.
         Downloadlink: https://www.3gpp.org/ftp/TSG_RAN/WG1_RL1/TSGR1_92/Docs/R1-1802551.zip
 
-        Radiation pattern Table 2 in the mentioned document
+        Radiation pattern Table 2 in the mentioned document, with its maximum directional
+        gain of an antenna element G_E,max = 5 dBi (Table 1: "Antenna element gain 5 dBi")
 
         Inputs
         -------
@@ -236,6 +261,9 @@ class AntennaElement(Object):
         SLAv = 25.0
         phi_3db = 90.0
         Am = 25.0
+        # Maximum directional gain of the element [dBi], added in dB as the pattern
+        # "38.901" adds its 8 dBi
+        g_e_max = 5.0
 
         theta_deg = theta * (180.0 / PI)
         phi_deg = phi * (180.0 / PI)
@@ -245,7 +273,7 @@ class AntennaElement(Object):
                               torch.tensor(Am, dtype=self.dtype, device=self.device))
 
         gain = -torch.minimum(-(A_EV + A_EH),
-                              torch.tensor(Am, dtype=self.dtype, device=self.device))
+                              torch.tensor(Am, dtype=self.dtype, device=self.device)) + g_e_max
         # Convert gain in linear
         gain = 10.0 ** (gain / 10.0)
 
@@ -321,8 +349,8 @@ class AntennaPanel(Object):
                  device=None):
 
         super().__init__(precision=precision, device=device)
-        assert polarization in ('single', 'dual'), \
-            "polarization must be either 'single' or 'dual'"
+        if not (polarization in ('single', 'dual')):
+            raise ValueError("polarization must be either 'single' or 'dual'")
 
         self._num_rows = num_rows
         self._num_cols = num_cols
@@ -372,8 +400,8 @@ class AntennaPanel(Object):
         return self._num_cols
 
     @property
-    def porlarization(self):
-        """Polarization ("single" or "dual")"""
+    def polarization(self):
+        """Polarization of the panel, "single" or "dual", as given to the constructor"""
         return self._polarization
 
     @property
@@ -383,7 +411,7 @@ class AntennaPanel(Object):
 
     @property
     def horizontal_spacing(self):
-        """Vertical spacing between elements [multiple of wavelength]"""
+        """Horizontal spacing between elements [multiple of wavelength]"""
         return self._horizontal_spacing
 
     def show(self):
@@ -409,7 +437,7 @@ class AntennaPanel(Object):
 
 class PanelArray(Object):
     # pylint: disable=line-too-long
-    r"""PanelArray(num_rows_per_panel, num_cols_per_panel, polarization, polarization_type, antenna_pattern, carrier_frequency, num_rows=1, num_cols=1, panel_vertical_spacing=None, panel_horizontal_spacing=None, element_vertical_spacing=None, element_horizontal_spacing=None, precision=None, device=None)
+    r"""PanelArray(num_rows_per_panel, num_cols_per_panel, polarization, polarization_type, antenna_pattern, carrier_frequency, num_rows=1, num_cols=1, panel_vertical_spacing=None, panel_horizontal_spacing=None, element_vertical_spacing=None, element_horizontal_spacing=None, precision=None, device=None, aperture_radius=10.0)
 
     Antenna panel array following the [TR38901] specification. Can be reused for the [TR38811] models.
 
@@ -486,6 +514,15 @@ class PanelArray(Object):
     device : `None` (default) | str
         Device for computation (e.g., ``"cpu"``, ``"cuda:0"``).
         If `None`, :attr:`~sionna.phy.config.Config.device` is used.
+
+    aperture_radius : float
+        Aperture radius a [multiples of wavelength], a = D f/(2c) for a diameter D [m],
+        the carrier frequency f [Hz] and the speed of light c, passed to the elements.
+        Used only by the pattern "aperture" of TR 38.811, clause 6.4.1, where ka is the
+        number of wavelengths on the circumference of the aperture. Must be a positive
+        finite number: `TypeError` for a bool or a value that is not a real number,
+        `ValueError` for one that is not positive and finite. Defaults to 10, the
+        radius of Figure 6.4.1-1 of TR 38.811.
     """
 
     def __init__(self,  num_rows_per_panel,
@@ -501,12 +538,13 @@ class PanelArray(Object):
                         element_vertical_spacing=None,
                         element_horizontal_spacing=None,
                         precision=None,
-                        device=None):
+                        device=None,
+                        aperture_radius=10.0):
 
         super().__init__(precision=precision, device=device)
 
-        assert polarization in ('single', 'dual'), \
-            "polarization must be either 'single' or 'dual'"
+        if not (polarization in ('single', 'dual')):
+            raise ValueError("polarization must be either 'single' or 'dual'")
 
         # Setting default values for antenna and panel spacings if not
         # specified by the user
@@ -524,12 +562,12 @@ class PanelArray(Object):
                 *element_horizontal_spacing+0.5
 
         # Check that panel spacing is larger than panel dimensions
-        assert panel_horizontal_spacing > (num_cols_per_panel-1)\
-            *element_horizontal_spacing,\
-                "Pannel horizontal spacing must be larger than the panel width"
-        assert panel_vertical_spacing > (num_rows_per_panel-1)\
-            *element_vertical_spacing,\
-            "Pannel vertical spacing must be larger than panel height"
+        if not (panel_horizontal_spacing > (num_cols_per_panel-1)
+                *element_horizontal_spacing):
+            raise ValueError("Pannel horizontal spacing must be larger than the panel width")
+        if not (panel_vertical_spacing > (num_rows_per_panel-1)
+                *element_vertical_spacing):
+            raise ValueError("Pannel vertical spacing must be larger than panel height")
 
         self._num_rows = num_rows
         self._num_cols = num_cols
@@ -562,20 +600,27 @@ class PanelArray(Object):
         # Create one antenna element for each polarization direction
         # polarization must be one of {"V", "H", "VH", "cross"}
         if polarization == 'single':
-            assert polarization_type in ["V", "H"],\
-                "For single polarization, polarization_type must be 'V' or 'H'"
+            if not (polarization_type in ["V", "H"]):
+                raise ValueError(
+                    "For single polarization, polarization_type must be 'V' or 'H'")
             slant_angle = 0 if polarization_type == "V" else PI/2
             self._ant_pol1 = AntennaElement(antenna_pattern, slant_angle,
-                precision=self.precision, device=self.device)
+                precision=self.precision, device=self.device,
+                aperture_radius=aperture_radius)
             self._ant_pol2 = None
         else:
-            assert polarization_type in ["VH", "cross"],\
-            "For dual polarization, polarization_type must be 'VH' or 'cross'"
-            slant_angle = 0 if polarization == "VH" else -PI/4
+            if not (polarization_type in ["VH", "cross"]):
+                raise ValueError(
+                    "For dual polarization, polarization_type must be 'VH' or 'cross'")
+            # "VH": a vertically and a horizontally polarized element, the slant angles
+            # 0 and 90 deg of TR 38.901 eqs. (7.3-4) and (7.3-5); "cross": -45 and 45 deg
+            slant_angle = 0 if polarization_type == "VH" else -PI/4
             self._ant_pol1 = AntennaElement(antenna_pattern, slant_angle,
-                precision=self.precision, device=self.device)
+                precision=self.precision, device=self.device,
+                aperture_radius=aperture_radius)
             self._ant_pol2 = AntennaElement(antenna_pattern, slant_angle+PI/2,
-                precision=self.precision, device=self.device)
+                precision=self.precision, device=self.device,
+                aperture_radius=aperture_radius)
 
         # Compose array from panels
         ant_pos = np.zeros([self._num_ant, 3])
@@ -703,8 +748,8 @@ class PanelArray(Object):
     def ant_pol2(self):
         """Field of an antenna element with the second polarization direction.
         Only defined with dual polarization."""
-        assert self._polarization == 'dual',\
-            "This property is not defined with single polarization"
+        if not (self._polarization == 'dual'):
+            raise ValueError("This property is not defined with single polarization")
         return self._ant_pol2
 
     @property
@@ -721,8 +766,8 @@ class PanelArray(Object):
     def ant_ind_pol2(self):
         """Indices of antenna elements with the second polarization direction.
         Only defined with dual polarization."""
-        assert self._polarization == 'dual',\
-            "This property is not defined with single polarization"
+        if not (self._polarization == 'dual'):
+            raise ValueError("This property is not defined with single polarization")
         return self._ant_ind_pol2
 
     @property
@@ -735,8 +780,8 @@ class PanelArray(Object):
     def ant_pos_pol2(self):
         """Positions of antenna elements with the second polarization direction.
         Only defined with dual polarization."""
-        assert self._polarization == 'dual',\
-            "This property is not defined with single polarization"
+        if not (self._polarization == 'dual'):
+            raise ValueError("This property is not defined with single polarization")
         return self._ant_pos_pol2
 
     def show(self):
@@ -782,11 +827,11 @@ class PanelArray(Object):
 
 class Antenna(PanelArray):
     # pylint: disable=line-too-long
-    r"""Antenna(polarization, polarization_type, antenna_pattern, carrier_frequency, precision=None, device=None)
+    r"""Antenna(polarization, polarization_type, antenna_pattern, carrier_frequency, precision=None, device=None, aperture_radius=10.0)
 
     Single antenna following the [TR38901] specification. Can be reused for [TR38811]
 
-    This class is a special case of :class:`~sionna.phy.channel.tr38811.PanelArray`,
+    This class is a special case of :class:`~openntn.PanelArray`,
     and can be used in lieu of it.
 
     Parameters
@@ -812,6 +857,15 @@ class Antenna(PanelArray):
     device : `None` (default) | str
         Device for computation (e.g., ``"cpu"``, ``"cuda:0"``).
         If `None`, :attr:`~sionna.phy.config.Config.device` is used.
+
+    aperture_radius : float
+        Aperture radius a [multiples of wavelength], a = D f/(2c) for a diameter D [m],
+        the carrier frequency f [Hz] and the speed of light c, passed to the elements.
+        Used only by the pattern "aperture" of TR 38.811, clause 6.4.1, where ka is the
+        number of wavelengths on the circumference of the aperture. Must be a positive
+        finite number: `TypeError` for a bool or a value that is not a real number,
+        `ValueError` for one that is not positive and finite. Defaults to 10, the
+        radius of Figure 6.4.1-1 of TR 38.811.
     """
 
     def __init__(self,  polarization,
@@ -819,7 +873,8 @@ class Antenna(PanelArray):
                         antenna_pattern,
                         carrier_frequency,
                         precision=None,
-                        device=None):
+                        device=None,
+                        aperture_radius=10.0):
 
         super().__init__(num_rows_per_panel=1,
                          num_cols_per_panel=1,
@@ -828,15 +883,16 @@ class Antenna(PanelArray):
                          antenna_pattern=antenna_pattern,
                          carrier_frequency=carrier_frequency,
                          precision=precision,
-                         device=device)
+                         device=device,
+                         aperture_radius=aperture_radius)
 
 class AntennaArray(PanelArray):
     # pylint: disable=line-too-long
-    r"""AntennaArray(num_rows, num_cols, polarization, polarization_type, antenna_pattern, carrier_frequency, vertical_spacing=None, horizontal_spacing=None, precision=None, device=None)
+    r"""AntennaArray(num_rows, num_cols, polarization, polarization_type, antenna_pattern, carrier_frequency, vertical_spacing=None, horizontal_spacing=None, precision=None, device=None, aperture_radius=10.0)
 
     Antenna array following the [TR38901] specification. Can be reused for [TR38811].
 
-    This class is a special case of :class:`~sionna.phy.channel.tr38811.PanelArray`,
+    This class is a special case of :class:`~openntn.PanelArray`,
     and can used in lieu of it.
 
     Parameters
@@ -876,6 +932,15 @@ class AntennaArray(PanelArray):
     device : `None` (default) | str
         Device for computation (e.g., ``"cpu"``, ``"cuda:0"``).
         If `None`, :attr:`~sionna.phy.config.Config.device` is used.
+
+    aperture_radius : float
+        Aperture radius a [multiples of wavelength], a = D f/(2c) for a diameter D [m],
+        the carrier frequency f [Hz] and the speed of light c, passed to the elements.
+        Used only by the pattern "aperture" of TR 38.811, clause 6.4.1, where ka is the
+        number of wavelengths on the circumference of the aperture. Must be a positive
+        finite number: `TypeError` for a bool or a value that is not a real number,
+        `ValueError` for one that is not positive and finite. Defaults to 10, the
+        radius of Figure 6.4.1-1 of TR 38.811.
     """
 
     def __init__(self,  num_rows,
@@ -887,7 +952,8 @@ class AntennaArray(PanelArray):
                         vertical_spacing=None,
                         horizontal_spacing=None,
                         precision=None,
-                        device=None):
+                        device=None,
+                        aperture_radius=10.0):
 
         super().__init__(num_rows_per_panel=num_rows,
                          num_cols_per_panel=num_cols,
@@ -898,4 +964,5 @@ class AntennaArray(PanelArray):
                          element_vertical_spacing=vertical_spacing,
                          element_horizontal_spacing=horizontal_spacing,
                          precision=precision,
-                         device=device)
+                         device=device,
+                         aperture_radius=aperture_radius)

@@ -60,7 +60,7 @@ OpenNTN 2 is a pre-release until 2.0.0, and its interfaces can still change. pip
 installs a pre-release only if no final release of openntn is available; otherwise
 `--pre` is needed (`python -m pip install --pre openntn`). The changes of this version
 are listed in the
-[changelog](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0a3/CHANGELOG.md).
+[changelog](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0a4/CHANGELOG.md).
 
 > **Note:** openntn 2.x requires Sionna 2.x. Installing it into an environment with
 > Sionna 1.x upgrades Sionna to 2.x. For Sionna 1.x and Sionna 0.19, use the
@@ -108,8 +108,7 @@ A channel model runs on the device given by its argument `device`, for example
 the model; create the antennas on the same device, with their argument `device`, which
 has the same default. A model stays on its device and in its precision: build it with
 the device and precision it is to use instead of moving it with `.to()` or casting it.
-Moved or cast after the last `set_topology`, its call raises `ValueError`; a move or
-cast at another point fails with an error from PyTorch.
+Moved or cast, it raises `ValueError` in its next `set_topology` or call.
 
 ## Citation
 
@@ -138,11 +137,11 @@ https://doi.org/10.1109/WSA65299.2025.11202820
 OpenNTN is distributed under the licence expression `MIT AND Apache-2.0`:
 
 - Files derived from NVIDIA Sionna are licensed under the Apache License 2.0
-  ([LICENSE-APACHE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0a3/LICENSE-APACHE)).
+  ([LICENSE-APACHE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0a4/LICENSE-APACHE)).
   Their headers keep NVIDIA's copyright notice and, for modified files, state that
   they were modified at the University of Bremen.
 - All other files are licensed under the MIT License
-  ([LICENSE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0a3/LICENSE)).
+  ([LICENSE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0a4/LICENSE)).
 
 Data files cannot carry a header. `TDL-A30.json`, `TDL-B100.json` and `TDL-C300.json`
 in `openntn/models` are unchanged copies of Sionna's files and therefore under

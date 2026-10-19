@@ -16,11 +16,15 @@ with TR38.811 serving mainly as an extension.
 import numpy as np
 import torch
 
-from . import LSPGenerator
+from . import LSP, LSPGenerator
 from . import RaysGenerator
 from . import Topology, ChannelCoefficientsGenerator
 from sionna.phy.channel import ChannelModel
 from sionna.phy.channel.utils import deg_2_rad
+
+# The large scale parameters that set_topology draws and holds, in the order of the
+# arguments of LSP
+_LSP_NAMES = ("ds", "asd", "asa", "sf", "k_factor", "zsa", "zsd")
 
 class SystemLevelChannel(ChannelModel):
     # pylint: disable=line-too-long
@@ -36,7 +40,7 @@ class SystemLevelChannel(ChannelModel):
         If `True`, new large scale parameters (LSPs) are generated for every
         new generation of channel impulse responses. Otherwise, always reuse
         the same LSPs, except if the topology is changed. Defaults to
-        `False`.
+        `False`. Must be `True` or `False`; `TypeError` otherwise.
 
     Input
     -----
@@ -61,6 +65,11 @@ class SystemLevelChannel(ChannelModel):
     """
 
     def __init__(self, scenario, always_generate_lsp=False, precision=None):
+        # A flag, checked so that a call of a model that passes an average street width
+        # by position after enable_shadow_fading raises instead of taking it as the flag
+        if not isinstance(always_generate_lsp, bool):
+            raise TypeError(f"always_generate_lsp must be True or False, not "
+                            f"{always_generate_lsp!r}")
         super().__init__(precision=scenario.precision, device=scenario.device)
         self._scenario = scenario
         self._lsp_sampler = LSPGenerator(scenario)
@@ -97,6 +106,15 @@ class SystemLevelChannel(ChannelModel):
         When calling this function, not specifying a parameter leads to the
         reuse of the previously given value. Not specifying a value that was not
         set at a former call rises an error.
+
+        The tensors that the model derives from the topology, such as the path
+        loss terms and the means of the large scale parameters of the scenario
+        and the large scale parameters drawn with the topology, are written into
+        the existing tensors when their shapes stay the same and no gradients
+        are involved, as the topology itself is, so that their addresses stay
+        the same, as CUDA graphs need. A tensor taken from the model after
+        ``set_topology`` is therefore overwritten by the next ``set_topology``
+        of the same shapes; clone it to keep its values.
 
         Input
         ------
@@ -143,9 +161,14 @@ class SystemLevelChannel(ChannelModel):
                 Atmospheric parameters, passed to the ``set_topology`` method
                 of the scenario, which documents them. A parameter that is not
                 passed keeps its previous value. ``latitude``, relative to the
-                magnetic equator, decides the scintillation loss below 6 GHz;
-                the other three decide the gas loss.
+                magnetic equator, decides the scintillation loss of satellites
+                below 6 GHz (aerial platforms get none below 6 GHz); the other
+                three decide the gas loss.
         """
+
+        # A model moved to another device or cast to another precision raises ValueError
+        # before it computes anything, as the call does after the last set_topology
+        self._scenario._check_device_and_precision(self)
 
         # Update the scenario topology
         need_for_update = self._scenario.set_topology(  ut_loc,
@@ -169,10 +192,41 @@ class SystemLevelChannel(ChannelModel):
 
             # Sample LSPs if no need to generate them everytime
             if not self._always_generate_lsp:
-                self._lsp = self._lsp_sampler()
+                # Held as buffers and written in place, as the tensors of the scenario
+                # are, so that their addresses stay the same across topologies of the
+                # same shapes, as CUDA graphs need
+                lsp = self._lsp_sampler()
+                for name in _LSP_NAMES:
+                    self._update_buffer("_lsp_" + name, getattr(lsp, name))
+                self._lsp = LSP(*(getattr(self, "_lsp_" + name) for name in _LSP_NAMES))
 
         if not self._set_topology_called:
             self._set_topology_called = True
+
+    def _update_buffer(self, name: str, value: torch.Tensor) -> None:
+        r"""Stores a large scale parameter drawn with the topology as the buffer ``name``
+
+        The value is copied into the existing buffer when its shape stays the same and
+        neither of the two requires gradients, so that the address of the buffer stays
+        the same across topologies of the same shapes, as CUDA graphs need; otherwise it
+        is registered anew, since copying into a buffer that carries the graph of an
+        earlier call would chain the graphs of the two calls. The rule of
+        ``LSPGenerator._update_buffer`` and ``SystemLevelScenario._update_attr``.
+
+        :param name: Name of the buffer
+
+        :param value: Value to store
+
+        :output: `None`
+        """
+        existing = getattr(self, name, None)
+        if (existing is not None and name in self._buffers and existing.shape == value.shape
+                and not value.requires_grad and not existing.requires_grad):
+            existing.copy_(value)
+        else:
+            if hasattr(self, name) and name not in self._buffers:
+                delattr(self, name)
+            self.register_buffer(name, value)
 
     def __call__(self, num_time_samples, sampling_frequency, foo=None):
 

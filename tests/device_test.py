@@ -23,13 +23,14 @@ CARRIER_FREQUENCY = 2.0e9
 ELEVATION_ANGLE = 50.0
 
 
-def _arrays(device):
+def _arrays(device, precision=None):
     ut_array = Antenna(polarization="single", polarization_type="V",
                        antenna_pattern="38.901", carrier_frequency=CARRIER_FREQUENCY,
-                       device=device)
+                       precision=precision, device=device)
     bs_array = AntennaArray(num_rows=1, num_cols=4, polarization="dual",
                             polarization_type="VH", antenna_pattern="38.901",
-                            carrier_frequency=CARRIER_FREQUENCY, device=device)
+                            carrier_frequency=CARRIER_FREQUENCY, precision=precision,
+                            device=device)
     return {"ut_array": ut_array, "bs_array": bs_array}
 
 
@@ -67,25 +68,69 @@ def test_array_on_another_device(scenario, key, array):
                  elevation_angle=ELEVATION_ANGLE, **arrays)
 
 
-@pytest.mark.parametrize("move", ["meta", "float64"])
-@pytest.mark.parametrize("scenario,key", SCENARIOS)
-def test_moved_model(scenario, key, move):
-    # A model stays on the device and in the precision of its construction. A
-    # single-precision model moved to another device after set_topology (the device meta
-    # stands in for a GPU) or cast to double precision raises ValueError when called:
-    # .to() moves or casts its registered tensors, but not its device and its precision
+# A move to the device meta (it stands in for a GPU) or a cast, with the precision of the
+# model and the dtype and the device of its tensors after the move or the cast
+MOVES = (("single", "meta", r"torch\.float32 on meta"),
+         ("single", torch.float64, r"torch\.float64 on cpu"),
+         ("double", torch.float32, r"torch\.float32 on cpu"))
+
+
+def _model_and_topology(scenario, key, precision):
     config.device = "cpu"
     model = scenario(carrier_frequency=CARRIER_FREQUENCY, direction="downlink",
-                     elevation_angle=ELEVATION_ANGLE, precision="single", **_arrays("cpu"))
-    model.set_topology(*gen_single_sector_topology(
+                     elevation_angle=ELEVATION_ANGLE, precision=precision,
+                     **_arrays("cpu", precision))
+    topology = gen_single_sector_topology(
         batch_size=4, num_ut=3, scenario=key, elevation_angle=ELEVATION_ANGLE,
-        bs_height=600e3, precision="single"))
+        bs_height=600e3, precision=precision)
+    return model, topology
+
+
+def _move(model, move):
     with warnings.catch_warnings():
-        # The cast to float64 also casts the complex buffers to real, which PyTorch warns
-        # about
+        # A cast to another floating point dtype also casts the complex buffers to real,
+        # which PyTorch warns about
         warnings.simplefilter("ignore")
-        model.to("meta" if move == "meta" else torch.float64)
-    with pytest.raises(ValueError, match=r"was built on device 'cpu' in single precision, "
-                                         r"but its tensors are torch\.float(32 on meta|64 "
-                                         r"on cpu)"):
-        model(14, 30e3)
+        model.to(move)
+
+
+@pytest.mark.parametrize("order", ["before", "between", "after"])
+@pytest.mark.parametrize("precision,move,tensors", MOVES,
+                         ids=["single-meta", "single-float64", "double-float32"])
+@pytest.mark.parametrize("scenario,key", SCENARIOS)
+def test_moved_model(scenario, key, precision, move, tensors, order):
+    # A model stays on the device and in the precision of its construction: .to() moves
+    # or casts its registered tensors, but not its device and its precision. Moved or
+    # cast, it raises ValueError in every order: in set_topology when moved or cast
+    # before its first set_topology ("before") or between two ("between"), and when
+    # called when moved or cast after its last set_topology ("after")
+    model, topology = _model_and_topology(scenario, key, precision)
+    message = (rf"was built on device 'cpu' in {precision} precision, but its tensors "
+               rf"are {tensors}")
+    if order == "before":
+        _move(model, move)
+        with pytest.raises(ValueError, match=message):
+            model.set_topology(*topology)
+    elif order == "between":
+        model.set_topology(*topology)
+        _move(model, move)
+        with pytest.raises(ValueError, match=message):
+            model.set_topology(*topology)
+    else:
+        model.set_topology(*topology)
+        _move(model, move)
+        with pytest.raises(ValueError, match=message):
+            model(14, 30e3)
+
+
+@pytest.mark.parametrize("scenario,key", SCENARIOS)
+def test_moved_scenario(scenario, key):
+    # The scenario of a moved model raises ValueError as well when its own set_topology
+    # is called
+    model, topology = _model_and_topology(scenario, key, "single")
+    model.set_topology(*topology)
+    _move(model, "meta")
+    with pytest.raises(ValueError, match=rf"{scenario.__name__}Scenario was built on "
+                                         rf"device 'cpu' in single precision, but its "
+                                         rf"tensors are torch\.float32 on meta"):
+        model._scenario.set_topology(*topology)

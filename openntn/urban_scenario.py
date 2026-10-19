@@ -23,13 +23,12 @@ class UrbanScenario(SystemLevelScenario):
     carrier_frequency : float
         Carrier frequency [Hz]
 
-    rx_array : PanelArray
-        Panel array used by the receivers. All receivers share the same
-        antenna array configuration.
+    ut_array : PanelArray
+        Panel array used by the UTs. All UTs share the same antenna array
+        configuration.
 
-    tx_array : PanelArray
-        Panel array used by the transmitters. All transmitters share the
-        same antenna array configuration.
+    bs_array : PanelArray
+        Panel array used by the BS, the satellite or aerial platform.
 
     direction : str
         Link direction. Either "uplink" or "downlink".
@@ -44,17 +43,12 @@ class UrbanScenario(SystemLevelScenario):
         If `True`, apply shadow fading. Otherwise doesn't.
         Defaults to `True`.
 
-    average_street_width : float
-        Average street width [m]. Defaults to 5m.
-
-    average_street_width : float
-        Average building height [m]. Defaults to 20m.
-
-    always_generate_lsp : bool
-        If `True`, new large scale parameters (LSPs) are generated for every
-        new generation of channel impulse responses. Otherwise, always reuse
-        the same LSPs, except if the topology is changed. Defaults to
-        `False`.
+    doppler_enabled : bool
+        If `True`, the channel contains the Doppler shift due to the motion of
+        the satellite (sections 6.7.1 and 6.8.1 of 38.811 specification); if
+        `False`, it does not. The Doppler shift due to the motion of the UTs is
+        applied in either case. Defaults to `True`. Must be `True` or `False`;
+        `TypeError` otherwise.
 
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
@@ -70,23 +64,11 @@ class UrbanScenario(SystemLevelScenario):
 
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True,
-        average_street_width=20.0, average_building_height=5.0, doppler_enabled = True,
-        precision=None, device=None):
+        doppler_enabled=True, precision=None, device=None):
 
         super().__init__(carrier_frequency, ut_array, bs_array,
             direction, elevation_angle, enable_pathloss, enable_shadow_fading, doppler_enabled, precision,
             device)
-
-        # Average street width [m]
-        # Register as buffers for CUDAGraph compatibility
-        self.register_buffer("_average_street_width",
-            torch.tensor(average_street_width, dtype=self.dtype,
-                device=self.device))
-
-        # Average building height [m]
-        self.register_buffer("_average_building_height",
-            torch.tensor(average_building_height, dtype=self.dtype,
-                device=self.device))
 
     #########################################
     # Public methods and properties
@@ -118,16 +100,6 @@ class UrbanScenario(SystemLevelScenario):
         return torch.tensor(10.0, dtype=self.dtype, device=self.device)
 
     @property
-    def average_street_width(self):
-        r"""Average street width [m]"""
-        return self._average_street_width
-
-    @property
-    def average_building_height(self):
-        r"""Average building height [m]"""
-        return self._average_building_height
-
-    @property
     def los_probability(self):
         r"""Probability of each UT to be LoS. Used to generate LoS
         status of outdoor UTs.
@@ -152,12 +124,12 @@ class UrbanScenario(SystemLevelScenario):
         r""" Path of the configuration file for LoS scenario"""
         assert (self.carrier_frequency >= 19e9 and self.carrier_frequency <= 40e9 or self.carrier_frequency >= 1.9e9 and self.carrier_frequency <= 4e9)
         if self.direction == "uplink":
-            if self.carrier_frequency >= 1.5e9 and self.carrier_frequency <= 4e9:
+            if self.carrier_frequency >= 1.9e9 and self.carrier_frequency <= 4e9:
                 return 'Urban_LOS_S_band_UL.json'
             else:
                 return 'Urban_LOS_Ka_band_UL.json'
         else:
-            if self.carrier_frequency >= 1.5e9 and self.carrier_frequency <= 4e9:
+            if self.carrier_frequency >= 1.9e9 and self.carrier_frequency <= 4e9:
                 return 'Urban_LOS_S_band_DL.json'
             else:
                 return 'Urban_LOS_Ka_band_DL.json'
@@ -168,12 +140,12 @@ class UrbanScenario(SystemLevelScenario):
         r""" Path of the configuration file for NLoS scenario"""
         assert (self.carrier_frequency >= 19e9 and self.carrier_frequency <= 40e9 or self.carrier_frequency >= 1.9e9 and self.carrier_frequency <= 4e9)
         if self.direction == "uplink":
-            if self.carrier_frequency >= 1.5e9 and self.carrier_frequency <= 4e9:
+            if self.carrier_frequency >= 1.9e9 and self.carrier_frequency <= 4e9:
                 return 'Urban_NLOS_S_band_UL.json'
             else:
                 return 'Urban_NLOS_Ka_band_UL.json'
         else:
-            if self.carrier_frequency >= 1.5e9 and self.carrier_frequency <= 4e9:
+            if self.carrier_frequency >= 1.9e9 and self.carrier_frequency <= 4e9:
                 return 'Urban_NLOS_S_band_DL.json'
             else:
                 return 'Urban_NLOS_Ka_band_DL.json'
@@ -258,22 +230,22 @@ class UrbanScenario(SystemLevelScenario):
                                log_std_zsa,
                                log_std_zsd], dim=3)
 
-        self._lsp_log_mean = lsp_log_mean
-        self._lsp_log_std = lsp_log_std
+        self._update_attr("_lsp_log_mean", lsp_log_mean)
+        self._update_attr("_lsp_log_std", lsp_log_std)
 
         # ZOD offset mu_offset,ZOD of TR 38.901 V16.1.0, eq. (7.5-19). TR 38.811
         # V15.4.0, clause 6.7.2, replaces the parameter tables of TR 38.901 with its
         # own tables, which have no offset row, so the offset is 0 for every link.
-        self._zod_offset = torch.zeros_like(distance_2d)
+        self._update_attr("_zod_offset", torch.zeros_like(distance_2d))
 
     def _compute_pathloss_gas(self):
-        utils.compute_pathloss_gas(self)
+        utils._compute_pathloss_gas(self)
 
     def _compute_pathloss_scintillation(self):
-        utils.compute_pathloss_scintilation(self)
+        utils._compute_pathloss_scintillation(self)
 
     def _compute_pathloss_entry(self):
-        utils.compute_pathloss_entry(self)
+        utils._compute_pathloss_entry(self)
 
     def _compute_pathloss_basic(self):
-        utils.compute_pathloss_basic(self)
+        utils._compute_pathloss_basic(self)

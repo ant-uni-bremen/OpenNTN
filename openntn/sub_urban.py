@@ -13,13 +13,13 @@ from . import SubUrbanScenario
 
 class SubUrban(SystemLevelChannel):
     # pylint: disable=line-too-long
-    r"""SubUrban(carrier_frequency, ut_array, bs_array, direction, enable_pathloss=True, enable_shadow_fading=True, always_generate_lsp=False, precision=None, device=None)
+    r"""SubUrban(carrier_frequency, ut_array, bs_array, direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True, always_generate_lsp=False, doppler_enabled=True, precision=None, device=None)
 
     SubUrban channel model from 3GPP [TR38811]_ specification.
 
     Setting up a SubUrban model requires configuring the network topology, i.e., the
     UTs and BSs locations, UTs velocities, etc. This is achieved using the
-    :meth:`~sionna.phy.channel.tr38811.SubUrban.set_topology` method. Setting a different
+    :meth:`~openntn.SubUrban.set_topology` method. Setting a different
     topology for each batch example is possible. The batch size used when setting up the network topology
     is used for the link simulations.
 
@@ -43,7 +43,8 @@ class SubUrban(SystemLevelChannel):
     >>> channel_model = SubUrban(carrier_frequency = 3.5e9,
     ...                     ut_array = ut_array,
     ...                     bs_array = bs_array,
-    ...                     direction = 'uplink')
+    ...                     direction = 'uplink',
+    ...                     elevation_angle = 30.0)
     >>> # Setting up network topology
     >>> # ut_loc: UTs locations
     >>> # bs_loc: BSs locations
@@ -60,7 +61,7 @@ class SubUrban(SystemLevelChannel):
     >>> channel = OFDMChannel(channel_model = channel_model,
     ...                       resource_grid = rg)
 
-    where ``rg`` is an instance of :class:`~sionna.ofdm.ResourceGrid`.
+    where ``rg`` is an instance of :class:`~sionna.phy.ofdm.ResourceGrid`.
 
     Parameters
     -----------
@@ -68,13 +69,12 @@ class SubUrban(SystemLevelChannel):
     carrier_frequency : float
         Carrier frequency [Hz]
 
-    rx_array : PanelArray
-        Panel array used by the receivers. All receivers share the same
-        antenna array configuration.
+    ut_array : PanelArray
+        Panel array used by the UTs. All UTs share the same antenna array
+        configuration.
 
-    tx_array : PanelArray
-        Panel array used by the transmitters. All transmitters share the
-        same antenna array configuration.
+    bs_array : PanelArray
+        Panel array used by the BS, the satellite or aerial platform.
 
     direction : str
         Link direction. Either "uplink" or "downlink".
@@ -93,17 +93,18 @@ class SubUrban(SystemLevelChannel):
         If `True`, apply shadow fading. Otherwise doesn't.
         Defaults to `True`.
 
-    average_street_width : float
-        Average street width [m]. Defaults to 5m.
-
-    average_building_height : float
-        Average building height [m]. Defaults to 20m.
-
     always_generate_lsp : bool
         If `True`, new large scale parameters (LSPs) are generated for every
         new generation of channel impulse responses. Otherwise, always reuse
         the same LSPs, except if the topology is changed. Defaults to
-        `False`.
+        `False`. Must be `True` or `False`; `TypeError` otherwise.
+
+    doppler_enabled : bool
+        If `True`, the channel contains the Doppler shift due to the motion of
+        the satellite (sections 6.7.1 and 6.8.1 of 38.811 specification); if
+        `False`, it does not. The Doppler shift due to the motion of the UTs is
+        applied in either case. Defaults to `True`. Must be `True` or `False`;
+        `TypeError` otherwise.
 
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
@@ -116,22 +117,20 @@ class SubUrban(SystemLevelChannel):
         construction is used. ``ut_array`` and ``bs_array`` must be built on
         this device (their argument ``device``); `ValueError` otherwise. The
         model stays on this device and in its precision: moved with ``.to()``
-        or cast after the last ``set_topology``, it raises `ValueError` when
-        called; a move or cast at another point fails with an error from
-        PyTorch.
+        or cast, it raises `ValueError` in its next ``set_topology`` or call.
 
     Input
     -----
 
-    num_time_steps : int
-        Number of time steps
+    num_time_samples : int
+        Number of time samples
 
     sampling_frequency : float
         Sampling frequency [Hz]
 
     Output
     -------
-        a : [batch size, num_rx, num_rx_ant, num_tx, num_tx_ant, num_paths, num_time_steps], torch.complex
+        a : [batch size, num_rx, num_rx_ant, num_tx, num_tx_ant, num_paths, num_time_samples], torch.complex
             Path coefficients
 
         tau : [batch size, num_rx, num_tx, num_paths], torch.float
@@ -144,13 +143,11 @@ class SubUrban(SystemLevelChannel):
 
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True,
-        average_street_width=20.0, average_building_height=5.0,
         always_generate_lsp=False, doppler_enabled=True, precision=None, device=None):
 
         # Suburban urban scenario
         scenario = SubUrbanScenario(carrier_frequency, ut_array, bs_array,
             direction, elevation_angle, enable_pathloss, enable_shadow_fading,
-            average_street_width, average_building_height, doppler_enabled, precision=precision,
-            device=device)
+            doppler_enabled, precision=precision, device=device)
 
         super().__init__(scenario, always_generate_lsp)

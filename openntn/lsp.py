@@ -130,7 +130,7 @@ class LSPGenerator(Object):
 
     Parameters
     ----------
-    scenario : :class:`~sionna.phy.channel.tr38811.SystemLevelScenario``
+    scenario : :class:`~openntn.SystemLevelScenario`
         Scenario used to generate LSPs
 
     Input
@@ -513,12 +513,10 @@ class LSPGenerator(Object):
         self._update_buffer("_spatial_lsp_correlation_matrix_sqrt", chol)
 
 
-    """
-    This function is currently not in use, as 3GPP TR38.811 does not allow for the
-    defintion of indoor users. However, to keep the system flexible for future updates
-    that include this state, we left the function here, as it is found in the 38.901
-    implementation.
-    """
+    # Not used: the models accept outdoor UTs only, so the building entry loss of
+    # TR 38.811, clause 6.6.3, is 0. The O2I loss of TR 38.901, as Sionna computes it, is
+    # kept for an O2I model of aerial platforms, for which TR 38.811 considers indoor UTs
+    # as well (clause 6.1.2)
     def _o2i_low_loss(self):
         """
         Compute for each BS-UT link the pathloss due to the O2I penetration loss
@@ -577,12 +575,7 @@ class LSPGenerator(Object):
 
         return pl_tw + pl_in + pl_rnd
 
-    """
-    This function is currently not in use, as 3GPP TR38.811 does not allow for the
-    defintion of indoor users. However, to keep the system flexible for future updates
-    that include this state, we left the function here, as it is found in the 38.901
-    implementation.
-    """
+    # Not used and kept, as _o2i_low_loss
     def _o2i_high_loss(self):
         """
         Compute for each BS-UT link the pathloss due to the O2I penetration loss

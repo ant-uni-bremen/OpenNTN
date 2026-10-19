@@ -173,7 +173,9 @@ def test_large_scale_parameter_gradients(scenario):
     def large_scale_parameters(location):
         config.seed = seed
         model.set_topology(location, *topology[1:], los=True)
-        return {name: getattr(model._lsp, name).flatten() for name in LSPS}
+        # Without gradients set_topology writes the large scale parameters into the same
+        # tensors, so the values are cloned to keep them across the next evaluation
+        return {name: getattr(model._lsp, name).flatten().clone() for name in LSPS}
 
     # The derivative of every link value, [entry, link]; a sum over the links could mix
     # values limited to 104 deg or 52 deg with derivatives orders of magnitude smaller

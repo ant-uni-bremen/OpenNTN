@@ -50,7 +50,8 @@ DIRECTIONS = ["downlink", "uplink"]
 P_FLUC_4GHZ = 1.1
 
 
-def _model(scenario, direction, carrier_frequency, elevation_angle, latitude=None):
+def _model(scenario, direction, carrier_frequency, elevation_angle, latitude=None,
+           bs_height=600e3):
     config.precision = "double"
     antenna = Antenna(polarization="single", polarization_type="V",
                       antenna_pattern="38.901", carrier_frequency=carrier_frequency)
@@ -60,14 +61,15 @@ def _model(scenario, direction, carrier_frequency, elevation_angle, latitude=Non
     model.set_topology(*gen_single_sector_topology(batch_size=2, num_ut=3,
                                                    scenario=scenario,
                                                    elevation_angle=elevation_angle,
-                                                   bs_height=600e3),
+                                                   bs_height=bs_height),
                        latitude=latitude)
     return model
 
 
 def _scintillation_loss(scenario, direction, carrier_frequency, elevation_angle,
-                        latitude=None):
-    model = _model(scenario, direction, carrier_frequency, elevation_angle, latitude)
+                        latitude=None, bs_height=600e3):
+    model = _model(scenario, direction, carrier_frequency, elevation_angle, latitude,
+                   bs_height)
     return model._scenario.scintillation_pathloss.cpu().numpy()
 
 
@@ -139,6 +141,45 @@ def test_ionospheric_scintillation(scenario, direction, carrier_frequency, latit
         assert np.all(loss == 0.0), (
             f"{scenario} {direction} {carrier_frequency / 1e9:g} GHz, latitude "
             f"{latitude} deg: {np.unique(loss)} dB, clause 6.6.6.1.4 gives 0 dB")
+
+
+# Aerial platforms (8 km to 50 km) and satellites (from 160 km) that the models accept
+AERIAL_HEIGHTS = [8e3, 20e3, 50e3]
+SATELLITE_HEIGHTS = [160e3, 600e3, 35786e3]
+
+
+@pytest.mark.parametrize("bs_height", AERIAL_HEIGHTS + SATELLITE_HEIGHTS)
+@pytest.mark.parametrize("direction", DIRECTIONS)
+@pytest.mark.parametrize("carrier_frequency", [1.995e9, 2e9, 2.185e9])
+@pytest.mark.parametrize("latitude", [0.0, 20.0, -20.0, 21.0, 47.0])
+def test_ionospheric_scintillation_by_platform(bs_height, direction, carrier_frequency,
+                                               latitude):
+    # Table 6.10.1-1 gives the scintillation as negligible for the deployment of UAS
+    # including HAPS below 6 GHz: links to an aerial platform stay below the ionosphere
+    # and get no ionospheric scintillation loss at any latitude. Links to a satellite get
+    # A_IS within 20 degrees of the magnetic equator, and 0 at higher latitudes.
+    loss = _scintillation_loss("urb", direction, carrier_frequency, 30.0, latitude,
+                               bs_height)
+    label = (f"{bs_height / 1e3:g} km, {direction}, {carrier_frequency / 1e9:g} GHz, "
+             f"latitude {latitude} deg: {np.unique(loss)} dB")
+    if bs_height in SATELLITE_HEIGHTS and abs(latitude) <= 20.0:
+        expected = _ionospheric_loss(carrier_frequency)
+        assert np.all(np.abs(loss - expected) <= 1e-12 * expected), (
+            f"{label}, clause 6.6.6.1.4 gives {expected} dB")
+    else:
+        assert np.all(loss == 0.0), f"{label}, expected 0 dB"
+
+
+@pytest.mark.parametrize("bs_height", AERIAL_HEIGHTS)
+@pytest.mark.parametrize("direction,carrier_frequency", KA_BAND)
+def test_tropospheric_scintillation_of_aerial_platforms(bs_height, direction,
+                                                        carrier_frequency):
+    # From 6 GHz on, aerial platforms get the tropospheric scintillation of Table
+    # 6.6.6.2.1-1 as satellites do, at every latitude
+    for latitude in (0.0, 47.0):
+        loss = _scintillation_loss("urb", direction, carrier_frequency, 30.0, latitude,
+                                   bs_height)
+        assert np.all(loss == TABLE[30]), (bs_height, latitude, np.unique(loss))
 
 
 @pytest.mark.parametrize("latitude", [91.0, -91.0, 180.0, float("nan")])

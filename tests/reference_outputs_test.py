@@ -39,7 +39,14 @@
 # in a 180 dB path loss, or of 0.001 % in a delay, exceeds RTOL. The absolute term only
 # matters for entries that are close to zero, such as the powers of unused clusters;
 # for the normalized time correlations, which are bounded by 1, it is ATOL_SCALE
-# itself. LoS states must be equal.
+# itself. The delays tau hold placeholders for the paths of the clusters that a link
+# state does not have: the generation of the rays sets the delay of such a cluster to
+# 1 s before the normalization, scales it by 1/C_tau of TR 38.901, eq. (7.5-3), on LOS
+# links, and gives the cluster no power. In the stored references the placeholders
+# reach 12.65 s and the other delays 2.4e-6 s, so an absolute term taken from the
+# largest delay would let a delay of a path with power change by its own size. The
+# delays above PLACEHOLDER_DELAY are therefore compared on their own, and the absolute
+# term of the other delays comes from the largest of them. LoS states must be equal.
 import json
 import os
 import platform
@@ -60,6 +67,9 @@ ENVIRONMENT_FILE = os.path.join(REFERENCE_DIR, "environment.json")
 
 RTOL = 1e-5
 ATOL_SCALE = 1e-6
+# Delays above this [s] are the placeholders of the paths without power (see
+# "Tolerance" above); the other delays are of the order of microseconds
+PLACEHOLDER_DELAY = 0.1
 # See "Precision" above.
 PRECISION = "double"
 
@@ -310,6 +320,22 @@ class ReferenceOutputs(unittest.TestCase):
                 self.assertEqual(act.shape, ref.shape)
                 if ref.dtype == bool:
                     np.testing.assert_array_equal(act, ref)
+                    continue
+                if key.endswith("__tau"):
+                    # The placeholders of the paths without power and the other delays,
+                    # each with the absolute term of its own largest value (see
+                    # "Tolerance" above)
+                    placeholder = ref > PLACEHOLDER_DELAY
+                    for part in (~placeholder, placeholder):
+                        if not part.any():
+                            continue
+                        finite = np.abs(ref[part][np.isfinite(ref[part])])
+                        atol = ATOL_SCALE * (finite.max() if finite.size else 0.0)
+                        np.testing.assert_allclose(
+                            act[part], ref[part], rtol=RTOL, atol=atol, equal_nan=True,
+                            err_msg=(f"{scenario}/{key} differs from the reference "
+                                     f"(produced with {produced_with}; now "
+                                     f"{_describe(environment())})"))
                     continue
                 if key.endswith(("_re", "_im")):
                     # Normalized correlations are bounded by 1, which sets their scale.

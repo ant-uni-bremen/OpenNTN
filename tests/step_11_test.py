@@ -643,13 +643,21 @@ class Step_11(unittest.TestCase):
                 # Compute the phase matrix
         H_phase = self.step_11_phase_matrix_ref(phi, kappa)
 
-        # Add Faraday phase rotation for high BS height (e.g., satellites)
+        # Add Faraday phase rotation for high BS height (e.g., satellites). TR 38.811
+        # V15.4.0, eqs. (6.8-1a) and (6.8-1b), post-multiply it for the downlink, where
+        # the satellite transmits; in the uplink (moving_end "tx", the UT transmits) it
+        # is pre-multiplied, between the scatterers and the satellite, so that the
+        # polarization rotates in the same direction on both links as seen from the earth
+        # station (ITU-R P.618-13, section 4)
         if topology.bs_height >= 600000.0:
             rays_shape = aoa.shape
             faraday_phase_rotation = self.ccg._step_11_faraday_rotation(
                 carrier_frequency=self.CARRIER_FREQUENCY, aod_shape=rays_shape
             ).cpu().numpy()
-            H_phase = np.matmul(H_phase, faraday_phase_rotation)
+            if topology.moving_end == "tx":
+                H_phase = np.matmul(faraday_phase_rotation, H_phase)
+            else:
+                H_phase = np.matmul(H_phase, faraday_phase_rotation)
 
         # Compute other components
         H_field = self.step_11_field_matrix_ref(topology, aoa, aod, zoa, zod, H_phase)
@@ -801,10 +809,15 @@ class Step_11(unittest.TestCase):
                                        [0.,-1.]],
                                       dtype=np.complex64),
                                       [1,1,1,1,1,2,2])
+        # The Faraday rotation as for the NLOS paths: pre-multiplied in the uplink
+        # (ITU-R P.618-13, section 4)
         if (topology.bs_height >= 600000.0):
             rays_shape = los_aoa.shape
             faraday_phase_rotation = self.ccg._step_11_faraday_rotation(carrier_frequency=carrier_frequency, aod_shape=rays_shape).cpu().numpy()
-            H_phase = np.matmul(H_phase,faraday_phase_rotation)
+            if topology.moving_end == "tx":
+                H_phase = np.matmul(faraday_phase_rotation, H_phase)
+            else:
+                H_phase = np.matmul(H_phase,faraday_phase_rotation)
         H_field = self.step_11_field_matrix_ref(topology, los_aoa, los_aod,
                                                     los_zoa, los_zod, H_phase)
 

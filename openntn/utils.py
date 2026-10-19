@@ -372,7 +372,7 @@ def time_to_ofdm_channel(h_t, rg, l_min):
     h_t : [...num_time_steps,l_max-l_min+1], torch.complex
         Tensor of discrete complex-baseband channel impulse responses
 
-    resource_grid : :class:`~sionna.ofdm.ResourceGrid`
+    rg : :class:`~sionna.phy.ofdm.ResourceGrid`
         Resource grid
 
     l_min : int
@@ -606,7 +606,9 @@ def drop_uts_in_sector(batch_size, num_ut, bs_height, elevation_angle, isd,
     y_base = torch.sqrt(torch.square(actual_bs_ut_distance)
                         - torch.square(bs_height) - torch.square(x_base))
 
-    # Randomly assign the UTs to one of the two half of the sector
+    # side is not used. It is kept because it takes random numbers from the generator of
+    # the draws after it (config.torch_rng), so that the drops under a seed stay as they
+    # are: without it, every later draw would change
     side = sample_bernoulli([batch_size, num_ut],
                             torch.as_tensor(0.5, dtype=rdtype, device=device),
                             precision=precision, device=device)
@@ -647,9 +649,6 @@ def set_3gpp_scenario_parameters(   scenario,
     scenario : str
         System level model scenario. Must be one of "sur", "urb", or "dur".
 
-    min_bs_ut_dist : None or torch.float
-        Minimum BS-UT distance [m]
-
     isd : None or torch.float
         Inter-site distance [m]
 
@@ -685,9 +684,6 @@ def set_3gpp_scenario_parameters(   scenario,
         :py:attr:`~sionna.phy.config.precision` is used.
     Output
     --------
-    min_bs_ut_dist : torch.float
-        Minimum BS-UT distance [m]
-
     isd : torch.float
         Inter-site distance [m]
 
@@ -714,8 +710,8 @@ def set_3gpp_scenario_parameters(   scenario,
         Maximim UT velocity [m/s]
     """
 
-    assert scenario in ('urb', 'dur', 'sur'),\
-        "`scenario` must be one of 'urb', 'dur', 'sur'"
+    if not (scenario in ('urb', 'dur', 'sur')):
+        raise ValueError("`scenario` must be one of 'urb', 'dur', 'sur'")
 
     if precision is None:
         rdtype = config.dtype
@@ -881,6 +877,12 @@ def generate_uts_topology(  batch_size,
     r"""
     Sample UTs location from a sector or a cell
 
+    Each UT faces a BS at (0, 0, ``bs_height``): its bearing is atan2(y, x), the
+    azimuth of its location (x, y), and its downtilt the elevation angle + 180 deg,
+    which together turn the boresight of the UT (the x-axis of its local coordinate
+    system, TR 38.901, eq. (7.1-4)) horizontally toward the origin and upward at the
+    elevation angle. Its slant is the elevation angle + 90 deg.
+
     Input
     --------
     batch_size : int
@@ -941,7 +943,8 @@ def generate_uts_topology(  batch_size,
         UTs locations
 
     ut_orientations : [batch_size, num_ut, 3], torch.float
-        UTs orientations [radian]
+        UTs orientations [radian]: bearing, downtilt and slant, each UT facing the
+        BS
 
     ut_velocities : [batch_size, num_ut, 3], torch.float
         UTs velocities [m/s]
@@ -951,8 +954,8 @@ def generate_uts_topology(  batch_size,
         outdoor. Always `False`: the models accept outdoor UTs only.
     """
 
-    assert drop_area in ('sector', 'cell'),\
-        "Drop area must be either 'sector' or 'cell'"
+    if not (drop_area in ('sector', 'cell')):
+        raise ValueError("Drop area must be either 'sector' or 'cell'")
 
     if precision is None:
         rdtype = config.dtype
@@ -1024,8 +1027,12 @@ def generate_uts_topology(  batch_size,
         + deg_2_rad(elevation_angle + 180.0)
     ut_slant = torch.zeros([batch_size, num_ut], dtype=rdtype, device=device) \
         + deg_2_rad(elevation_angle + 90.0)
-    #Always point at the BS, which is at [0,0,bs_height]
-    ut_bearing = torch.atan(ut_loc_xy[:, :, 1] / ut_loc_xy[:, :, 0])
+    # Each UT faces the BS at (0, 0, bs_height): the bearing atan2(y, x), the azimuth of
+    # the UT's location, with the downtilt of the elevation angle + 180 deg turns the
+    # boresight of TR 38.901 eq. (7.1-4) horizontally toward the origin and upward at
+    # the elevation angle. atan(y/x) would lose the half plane: it differs from that
+    # bearing by 180 deg for the UTs at x < 0. The slant is the elevation angle + 90 deg.
+    ut_bearing = torch.atan2(ut_loc_xy[:, :, 1], ut_loc_xy[:, :, 0])
     ut_orientations = torch.stack([ut_bearing, ut_downtilt, ut_slant], dim=-1)
 
     return ut_loc, ut_orientations, ut_velocities, in_state
@@ -1054,8 +1061,13 @@ def gen_single_sector_topology( batch_size,
         :align: center
         :scale: 30%
 
-    UTs orientations are randomly and uniformly set, whereas the BS orientation
-    is set such that the it is oriented towards the center of the sector.
+    The BS is placed at (0, 0, ``bs_height``) and faces the nadir: its orientation
+    is (0, 90 deg, 0), the bearing 0, the downtilt 90 deg and the slant 0. Each UT
+    faces the BS: its bearing is atan2(y, x), the azimuth of its location (x, y),
+    and its downtilt the elevation angle + 180 deg, which together turn the
+    boresight of the UT (the x-axis of its local coordinate system, TR 38.901,
+    eq. (7.1-4)) horizontally toward the origin and upward at the elevation angle.
+    Its slant is the elevation angle + 90 deg.
 
     The drop configuration can be controlled through the optional parameters.
     Parameters set to `None` are set to valid values according to the chosen
@@ -1063,8 +1075,8 @@ def gen_single_sector_topology( batch_size,
 
     The returned batch of topologies can be used as-is with the
     :meth:`set_topology` method of the system level models, i.e.
-    :class:`~sionna.phy.channel.tr38811.DenseUrban`, :class:`~sionna.phy.channel.tr38811.Urban`,
-    and :class:`~sionna.phy.channel.tr38811.SubUrban`.
+    :class:`~openntn.DenseUrban`, :class:`~openntn.Urban`,
+    and :class:`~openntn.SubUrban`.
 
     Example
     --------
@@ -1084,14 +1096,15 @@ def gen_single_sector_topology( batch_size,
     ...                       carrier_frequency = 3.5e9)
     >>> # Create channel model
     >>> channel_model = Urban(carrier_frequency = 3.5e9,
-    ...                     o2i_model = 'low',
     ...                     ut_array = ut_array,
     ...                     bs_array = bs_array,
-    ...                     direction = 'uplink')
+    ...                     direction = 'uplink',
+    ...                     elevation_angle = 80.0)
     >>> # Generate the topology
     >>> topology = gen_single_sector_topology(batch_size = 100,
     ...                                       num_ut = 4,
-    ...                                       scenario = 'urb')
+    ...                                       scenario = 'urb',
+    ...                                       elevation_angle = 80.0)
     >>> # Set the topology
     >>> ut_loc, bs_loc, ut_orientations, bs_orientations, ut_velocities, in_state = topology
     >>> channel_model.set_topology(ut_loc,
@@ -1114,9 +1127,6 @@ def gen_single_sector_topology( batch_size,
 
     scenario : str
         System leven model scenario. Must be one of "dur", "urb", or "sur".
-
-    min_bs_ut_dist : None or torch.float
-        Minimum BS-UT distance [m]
 
     isd : None or torch.float
         Inter-site distance [m]
@@ -1167,10 +1177,11 @@ def gen_single_sector_topology( batch_size,
         BS location. Set to (0, 0, ``bs_height``) for all batch examples.
 
     ut_orientations : [batch_size, num_ut, 3], torch.float
-        UTs orientations [radian]
+        UTs orientations [radian]: bearing, downtilt and slant, each UT facing the
+        BS
 
     bs_orientations : [batch_size, 1, 3], torch.float
-        BS orientations [radian]. Oriented towards the center of the sector.
+        BS orientations [radian]: (0, pi/2, 0), facing the nadir
 
     ut_velocities : [batch_size, num_ut, 3], torch.float
         UTs velocities [m/s]
@@ -1194,14 +1205,6 @@ def gen_single_sector_topology( batch_size,
     isd, bs_height, elevation_angle, min_ut_height, max_ut_height,\
             indoor_probability, min_ut_velocity, max_ut_velocity = params
 
-    # TODO here used ot be a check doing two things. First, height in int would be cast fo float, as they should both be acceptable and
-    # improve the user interfce. Second, detecting insufficient base station height wuold throw an error. However, both of these things would
-    # mess up eager executions. A future version will incorporate both functionalities again without loosing eager execution compatability
-    #Cast height to float
-    #disabled this here temporarily to not messup XLA
-    #if isinstance(bs_height, int):
-    #    bs_height = float(bs_height)
-
     # The height is validated by set_topology of the models: a satellite from 160 km to
     # 35 786 km or an aerial platform from 8 km to 50 km
 
@@ -1222,7 +1225,7 @@ def gen_single_sector_topology( batch_size,
                                         device=device),
                             bs_height.expand(batch_size, 1)], dim=-1)
 
-    # BS always faces exactly down in simulations
+    # The BS faces the nadir: bearing 0, downtilt 90 deg, slant 0
     bs_yaw = torch.tensor(0.0, dtype=rdtype, device=device)
     bs_downtilt = torch.tensor(0.5 * PI, dtype=rdtype, device=device)
     #bs_downtilt = PI
@@ -1314,13 +1317,19 @@ def exp_corr_mat(a, n, precision=None, device=None):
     n : int
         Number of dimensions of the output correlation matrices.
 
-    dtype : torch.complex64, torch.complex128
-        The dtype of the output.
+    precision : `None` (default) | "single" | "double"
+        Precision of the output, `torch.complex64` for "single" and
+        `torch.complex128` for "double". If set to `None`,
+        :attr:`~sionna.phy.config.Config.precision` is used.
+
+    device : `None` (default) | str
+        Device of the output (e.g., ``"cpu"``, ``"cuda:0"``). If `None`,
+        :attr:`~sionna.phy.config.Config.device` is used.
 
     Output
     ------
     R : [n_0, ..., n_k, n, n], torch.complex
-        A tensor of the same dtype as the input tensor :math:`\mathbf{a}`.
+        A tensor of the complex dtype of ``precision``.
     """
     if precision is None:
         cdtype = config.cdtype
@@ -1567,7 +1576,7 @@ def _p676_10_water_vapour_height(f: float, rp: float) -> float:
                  + 1.58*sigma_w/((f - 325.1)**2 + 2.89*sigma_w))               # (26a)
 
 
-def compute_pathloss_gas(self):
+def _compute_pathloss_gas(self):
 
         r"""Calculates the pathloss of a scenario based on 3GPP TR38.811 6.6.4
 
@@ -1625,7 +1634,7 @@ def compute_pathloss_gas(self):
 
         pl_g = torch.zeros_like(self.los, dtype=self.dtype) + GasAtt
 
-        self._pl_g = pl_g
+        self._update_attr("_pl_g", pl_g)
 
 
 # TR 38.811 V15.4.0, Table 6.6.6.2.1-1: tropospheric attenuation [dB] with 99 %
@@ -1634,7 +1643,7 @@ _TROPOSPHERIC_SCINTILLATION = {10: 1.08, 20: 0.48, 30: 0.30, 40: 0.22, 50: 0.17,
                                70: 0.12, 80: 0.12, 90: 0.12}
 
 
-def compute_pathloss_scintilation(self):
+def _compute_pathloss_scintillation(self):
         r"""Calculates the scintillation loss :math:`PL_S` of a scenario based on 3GPP
         TR38.811 6.6.6
 
@@ -1656,9 +1665,12 @@ def compute_pathloss_scintilation(self):
         20 and 60 deg, and above 60 deg, where the model does not apply). The latitude is
         that of the scenario, the latitude of the UTs relative to the magnetic equator,
         around which the clause places the region of the model; it applies to every
-        link. :math:`A_{IS} = P_{fluc}/\sqrt{2}`, with :math:`P_{fluc}` = 1.1 dB at
-        4 GHz, the value of the example of the clause at 2 GHz, multiplied by
-        :math:`(f/4)^{-1.5}`, f in GHz.
+        link to a satellite. :math:`A_{IS} = P_{fluc}/\sqrt{2}`, with :math:`P_{fluc}` =
+        1.1 dB at 4 GHz, the value of the example of the clause at 2 GHz, multiplied by
+        :math:`(f/4)^{-1.5}`, f in GHz. Links to an aerial platform (8 km to 50 km) get
+        PL_S = 0 below 6 GHz at every latitude: Table 6.10.1-1 gives the scintillation as
+        negligible for the deployment of UAS including HAPS below 6 GHz, whose links stay
+        below the ionosphere.
 
         """
 
@@ -1669,7 +1681,7 @@ def compute_pathloss_scintilation(self):
             reference_angle = _reference_elevation(self._elevation_angle)
             pl_s = torch.zeros_like(self.los, dtype=self.dtype) \
                 + _TROPOSPHERIC_SCINTILLATION[reference_angle]
-            self._pl_s = pl_s
+            self._update_attr("_pl_s", pl_s)
 
         #For carrier frequencies below 6GHz we only consider Ionospheric scintillation
         elif abs(self._latitude) <= 20.0:
@@ -1681,22 +1693,27 @@ def compute_pathloss_scintilation(self):
             AIs = Pluc_4GHz * (f/4)**(n)
             #Get final loss by dividing by sqrt(2) according to 3GPP TR38.811 6.6-13
             pl_s = torch.zeros_like(self.los, dtype=self.dtype) + (AIs/math.sqrt(2.0))
-            self._pl_s = pl_s
+            # TR 38.811 V15.4.0, Table 6.10.1-1: the scintillation of the deployment of
+            # UAS including HAPS below 6 GHz is negligible, their links stay below the
+            # ionosphere; one platform per call, a satellite keeps A_IS
+            satellite = _is_satellite(self.h_bs).unsqueeze(2)
+            pl_s = torch.where(satellite, pl_s, torch.zeros_like(pl_s))
+            self._update_attr("_pl_s", pl_s)
         else:
             # Outside +-20 deg of the magnetic equator PL_S = 0 (TR 38.811 clause
             # 6.6.6.1.4)
-            self._pl_s = torch.zeros_like(self.los, dtype=self.dtype)
+            self._update_attr("_pl_s", torch.zeros_like(self.los, dtype=self.dtype))
 
 
 
-def compute_pathloss_entry(self):
+def _compute_pathloss_entry(self):
         # The building entry loss of TR38.811 6.6.3 is 0 for every link: the models
         # accept outdoor UTs only (set_topology rejects indoor UTs)
         pl_e = torch.zeros_like(self.los, dtype=self.dtype)
-        self._pl_e = pl_e
+        self._update_attr("_pl_e", pl_e)
         #ntnu.compute_pathloss_gas(self)
 
-def compute_pathloss_basic(self):
+def _compute_pathloss_basic(self):
         r"""Computes the basic path loss PL_b in dB of TR38.811 6.6.2 without its shadow
         fading: PL_b = FSPL + CL, with the free space path loss of eq. (6.6-2) and, for
         NLOS links, the clutter loss CL of Tables 6.6.2-1 to 6.6.2-3 (0 dB for LOS
@@ -1709,12 +1726,12 @@ def compute_pathloss_basic(self):
         angle_str = str(_reference_elevation(self._elevation_angle))
 
         fspl = 32.45 + 20*math.log10(fc) + 20*torch.log10(distance_3d)
-        self._fspl = fspl
+        self._update_attr("_fspl", fspl)
         cl = self._params_nlos["CL" + '_' + angle_str]
 
         pl_b = torch.where(self.los, fspl, fspl + cl)
 
-        self._pl_b = pl_b
+        self._update_attr("_pl_b", pl_b)
 
 # Heights of the platforms that the channel models accept [m]. TR 38.811 V15.4.0,
 # clause 3.1, places aerial platforms "typically at an altitude between 8 to 50 km" and
