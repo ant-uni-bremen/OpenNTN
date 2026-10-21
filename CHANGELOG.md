@@ -2,6 +2,297 @@
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0rc1] - 2026-10-21
+
+Release candidate of OpenNTN 2.0.0 for Sionna 2.x, whose channel models give the results
+of 2.0.0a4: it adds a description of the models (`docs/model.md`), a migration guide for
+the users of the versions for Sionna 1.x and 0.19 (`docs/migration.md`) and the citation
+metadata (`CITATION.cff`), ports the three example notebooks to Sionna 2.x and PyTorch,
+takes the parameters of `set_topology` after `latitude` by keyword only, and accepts
+only `True` or `False` for `enable_pathloss` and `enable_shadow_fading`.
+
+The entries of this section also complete the sections of 2.0.0a1 to 2.0.0a4: an entry
+that names a pre-release, such as "since 2.0.0a1", describes a change that this
+pre-release brought and its section does not list.
+
+### Changes that affect simulation results
+
+- Random numbers: since 2.0.0a1 the package draws every random number with PyTorch,
+  from the generators of Sionna 2.x, instead of with TensorFlow, so the same seed gives
+  other realizations of every random quantity: the UT drops of the topology generators,
+  the LOS states, the large scale parameters, the cluster delays, powers and angles, the
+  ray coupling, the cross-polarization ratios, the initial phases and the direction of
+  the orbit. The move to PyTorch changed neither the number nor the order nor the
+  distributions of the draws; the corrections listed in the sections of the
+  pre-releases change some of them. The realizations also depend on where they are
+  drawn: the same seed gives other realizations on the CPU than on a GPU, and a call
+  compiled with `torch.compile` draws other random numbers than an eager call, unless
+  `torch._inductor.config.fallback_random` is set. In single precision, some
+  intermediate quantities are rounded differently, because they are now computed in
+  double precision before the cast or by the kernels of PyTorch, for example the cosine
+  of the elevation angle in the satellite speed, the Faraday rotation angle, the
+  constant of the free space path loss, the Bessel function of the pattern `"aperture"`
+  and the antenna positions, so results in single precision can differ within rounding
+  (the size of these differences was not measured). None of these differences changes
+  the statistics of the results. With the versions for Sionna 0.19 and 1.x, the seed of
+  Sionna alone did not fix the random numbers (see "Fixed"). Affected earlier versions:
+  the versions for Sionna 0.19 and 1.x.
+
+### Added
+
+- `example/BER_sims_results.npz` and `example/ML_based_SIMO_receiver_results.npz`, the
+  results of the full runs of `BER_sims.ipynb` and `ML_based_SIMO_receiver.ipynb` with
+  their metadata (the seed, the versions, the date, the device, the precision, the
+  parameters and the run times), as NumPy arrays read with
+  `numpy.load(..., allow_pickle=False)`.
+- The argument `device` of `AntennaElement`, `AntennaPanel`, `PanelArray`, `Antenna`,
+  `AntennaArray` and `ChannelCoefficientsGenerator`, and of the functions
+  `subcarrier_frequencies`, `time_frequency_vector`, `sample_bernoulli`,
+  `drop_uts_in_sector`, `set_3gpp_scenario_parameters`, `generate_uts_topology`,
+  `gen_single_sector_topology`, `exp_corr_mat` and `one_ring_corr_mat` of
+  `openntn.utils`: the device on which they create their tensors, by default
+  `sionna.phy.config.device`. The antenna arrays of a model must be built on the device
+  of the model (see 2.0.0a3). Since 2.0.0a1; the versions for Sionna 0.19 and 1.x have
+  no such argument, as TensorFlow places the tensors itself.
+- `openntn.__version__`, the version of the installed distribution, read from its
+  metadata; in a source tree that is not installed it is `"0+unknown"`. Since 2.0.0a1;
+  the versions for Sionna 0.19 and 1.x have no `__version__`.
+- The optional dependencies `test`, installed with `pip install openntn[test]`: what
+  the test suite of the source distribution needs, pytest since 2.0.0a1 and mpmath
+  since 2.0.0a2.
+- `docs/model.md`, the scope, the conventions and the limits of the channel models: what
+  they implement of TR 38.811 and TR 38.901, where they take a side and what they leave
+  out, with their calibration against TR 38.821 V16.2.0 and their speed on a GPU.
+- `docs/migration.md`, a guide for the users of the versions for Sionna 1.x and 0.19:
+  the package and its import, the installation, PyTorch tensors, precision, device and
+  random numbers, the removed and renamed names, the arguments by keyword and the checks
+  of the inputs, the results that change and why, and the example notebooks.
+- `CITATION.cff`, the citation metadata of the software in the Citation File Format
+  1.2.0, with the paper that presents the framework among its references.
+
+### Changed
+
+- The package is built on PyTorch and Sionna 2.x: since 2.0.0a1 its classes and
+  functions take and return PyTorch tensors (`torch.Tensor`) instead of TensorFlow
+  tensors, with the same shapes, for example the topology tensors of `set_topology` and
+  the path coefficients and delays of a call of `DenseUrban`, `Urban` and `SubUrban`,
+  so the code around them has to use PyTorch and Sionna 2.x as well. Its objects are
+  objects of Sionna 2.x: the real data type is the attribute `dtype` instead of
+  `rdtype`, the complex one is `cdtype` as before, and the attribute `device` is new;
+  an invalid precision raises the error of Sionna 2.x ("Invalid precision") instead of
+  "'precision' must be 'single' or 'double'". Affected earlier versions: the versions
+  for Sionna 0.19 and 1.x, which are built on TensorFlow (for the version for Sionna
+  0.19, see also the entry for its users below).
+- Graph execution: `torch.compile` takes the place of TensorFlow's `tf.function`.
+  `set_topology` runs eagerly, outside the compiled function, and the call of
+  `DenseUrban`, `Urban` and `SubUrban` can be compiled, without graph breaks since
+  2.0.0a3 and with CUDA graphs across topologies of the same shapes since 2.0.0a4 (see
+  "Fixed" in these versions). The versions for Sionna 0.19 and 1.x could run
+  `set_topology` inside a function traced by `tf.function`, as the earlier
+  `BER_sims.ipynb` did; such code has to call `set_topology` before the compiled
+  function. Affected earlier versions: the versions for Sionna 0.19 and 1.x.
+- For users of the version for Sionna 0.19: the classes take the argument `precision`,
+  `"single"` or `"double"`, instead of a TensorFlow `dtype`, as in the version for
+  Sionna 1.x: `AntennaElement`, `AntennaPanel`, `PanelArray`, `Antenna`, `AntennaArray`,
+  `ChannelCoefficientsGenerator`, `DenseUrban`, `Urban`, `SubUrban`, their scenarios and
+  `SystemLevelScenario`, and so do the functions `subcarrier_frequencies`,
+  `time_frequency_vector`, `drop_uts_in_sector`, `set_3gpp_scenario_parameters`,
+  `generate_uts_topology`, `gen_single_sector_topology`, `exp_corr_mat` and
+  `one_ring_corr_mat` of `openntn.utils`; a call with `dtype` raises `TypeError`.
+  Without `precision`, they take `sionna.phy.config.precision`, which sets the
+  precision of every object at once. The property `dtype` of the scenarios is the real
+  data type (`torch.float32` or `torch.float64`) instead of the complex TensorFlow
+  dtype, which is now `cdtype`. `AntennaElement`, `AntennaPanel`, `PanelArray` (and with
+  it `Antenna` and `AntennaArray`), `ChannelCoefficientsGenerator`, `LSPGenerator`,
+  `RaysGenerator` and `SystemLevelScenario` are objects of Sionna 2.x, PyTorch modules
+  with a precision and a device, instead of plain classes (an abstract base class in
+  the case of `SystemLevelScenario`, see the entry on its abstract methods). Since
+  2.0.0a1. Affected earlier version: the version for Sionna 0.19; the version for
+  Sionna 1.x took `precision` already.
+- The parameters of `set_topology` after `latitude` are taken by keyword only:
+  `atmospheric_pressure`, `temperature` and `water_vapor_density` of `DenseUrban`,
+  `Urban`, `SubUrban` and their scenarios, and `doppler_enabled` of the scenarios. A
+  call that passes them by position raises `TypeError`; `latitude` stays the eighth
+  parameter, its position in the scenarios of all earlier versions. In the versions for
+  Sionna 0.19 and 1.x and in 2.0.0a1, the `set_topology` method of the scenarios took
+  `lwc` and `rain_rate` by position after `latitude`. Since their removal in 2.0.0a2, a
+  call written for that order gave their values to `atmospheric_pressure` and
+  `temperature`, which are not checked: with a liquid water content of 0.5 g/m³ and a
+  rain rate of 100 mm/h, for example, the gas loss was computed for 0.5 hPa and 100 K,
+  2.1180 dB instead of 0.5156 dB at 20 GHz and 30° (dense urban, downlink, 600 km), and
+  a rain rate of 10 mm/h made `set_topology` fail with an `OverflowError` in the gas
+  loss (computed with the code of 2.0.0a4). Such a call now raises `TypeError`, and so
+  does a call that passes the atmospheric parameters by position in the order of
+  2.0.0a2 to 2.0.0a4, which has to name them. Affected earlier versions: the versions
+  for Sionna 0.19 and 1.x and 2.0.0a1, whose scenarios take these parameters by position
+  in the earlier order, and 2.0.0a2 to 2.0.0a4, whose scenarios and models take them by
+  position.
+- `enable_pathloss` and `enable_shadow_fading` of `DenseUrban`, `Urban`, `SubUrban` and
+  their scenarios must be `True` or `False`; other values raise `TypeError`. Before, any
+  value was accepted and taken by its truth value. Affected earlier versions: the
+  versions for Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a4, which accept any value.
+- Counts are Python ints instead of TensorFlow integer tensors: the properties
+  `num_rows` and `num_cols` of `AntennaPanel` and `PanelArray`, `num_rows_per_panel`,
+  `num_cols_per_panel`, `num_panels`, `num_panels_ant` and `num_ant` of `PanelArray`
+  (and of `Antenna` and `AntennaArray`), and `batch_size`, `num_ut`, `num_bs`,
+  `num_clusters_los`, `num_clusters_nlos` and `num_clusters_max` of the scenarios. The
+  antenna indices `ant_ind_pol1` and `ant_ind_pol2` of `PanelArray` are `torch.int64`
+  instead of `tf.int32`. Since 2.0.0a1. Affected earlier versions: the versions for
+  Sionna 0.19 and 1.x.
+- `Topology`, `LSP` and `Rays` are plain classes, without the attributes of Sionna's
+  `Object`, from which the version for Sionna 1.x derived them. The abstract methods of
+  `SystemLevelScenario` are no longer enforced, as it derives from Sionna's `Object`, a
+  PyTorch module, instead of an abstract base class: a subclass that lacks one is built
+  without an error and fails when the method is used. Since 2.0.0a1. Affected earlier
+  versions: the version for Sionna 1.x (the three classes) and the versions for Sionna
+  0.19 and 1.x (the abstract methods).
+- The modules `openntn.channel_coefficients`, `openntn.lsp` and `openntn.rays` define
+  `__all__`, so a star import binds only their two classes, for example `LSP` and
+  `LSPGenerator` from `openntn.lsp`; it also bound the names that the module imported,
+  such as `tf`. Since 2.0.0a1. Affected earlier versions: the versions for Sionna 0.19
+  and 1.x.
+- Accepted inputs and edge cases: `set_topology` converts the topology tensors to the
+  precision and device of the model and accepts NumPy arrays; `AntennaElement.field`
+  takes PyTorch tensors of any floating precision and device, but no Python numbers or
+  NumPy arrays; `deg_2_rad`, `rad_2_deg` and `wrap_angle_0_360` accept Python numbers
+  and tensors of any precision; `drop_uts_in_sector` and `gen_single_sector_topology`
+  accept integer heights; `sample_bernoulli` no longer takes a TensorFlow dtype as its
+  precision; `exp_corr_mat` raises `ValueError` for a coefficient of magnitude 1 or
+  more instead of an error of TensorFlow, and no longer rejects a NaN coefficient;
+  `time_lag_discrete_time_channel` returns Python ints and computes its ceiling in
+  double precision (one sample more where the product lies just above an integer);
+  with `normalize=True`, `cir_to_ofdm_channel` and `cir_to_time_channel` leave a link
+  whose energy is NaN unnormalized, where the division made every coefficient of such
+  a link NaN, and the first takes its frequencies only as a PyTorch tensor, cast to the
+  precision and device of the delays; `time_to_ofdm_channel` returns a response with
+  more taps than the FFT size instead of an error. Since 2.0.0a1. Affected earlier
+  versions: the versions for Sionna 0.19 and 1.x.
+- Installation: `pip install openntn` installs the package with its dependencies and
+  changes no file of Sionna (since 2.0.0a1). The installation scripts of the versions
+  for Sionna 0.19 and 1.x linked their package into Sionna, as `sionna.channel.tr38811`
+  or `sionna.phy.channel.tr38811`, and added the line `from . import tr38811` to the
+  `__init__.py` of Sionna's channel package; `openntn` neither needs nor removes this
+  link and this line, which remain in an environment with such an installation (the
+  line until Sionna is reinstalled). The distribution declares PyTorch, NumPy and
+  Matplotlib as dependencies besides Sionna 2.x, with the lower bounds of Sionna 2.0.1;
+  it needs neither TensorFlow nor `importlib_resources`, which the earlier versions
+  imported without declaring it. Affected earlier versions: the versions for Sionna
+  0.19 and 1.x.
+- The source distribution contains `CHANGELOG.md`. The metadata of the distribution
+  names the changelog among the project URLs, has keywords and the development status
+  "4 - Beta", and lists Louis Lagona and Tim Düe as authors, in this order.
+- The three notebooks of `example/`, `channel_response.ipynb`, `BER_sims.ipynb` and
+  `ML_based_SIMO_receiver.ipynb`, run with Sionna 2.x and PyTorch, with the channel
+  models, the antennas and the topology generator of `openntn`, instead of TensorFlow
+  and `sionna.phy.channel.tr38811`. The environment variable `OPENNTN_NOTEBOOK_MODE`,
+  read in their first code cell, sets what they compute: unset, `BER_sims.ipynb` and
+  `ML_based_SIMO_receiver.ipynb` load their stored results and `channel_response.ipynb`
+  runs with its own batch sizes; `full`, the full runs, which for
+  `ML_based_SIMO_receiver.ipynb` include the training of the receiver and need a GPU;
+  `reduced`, short runs with small batches that write no file.
+- `BER_sims.ipynb` computes the noise variance with `ebnodb2no` for the Eb/N0 per
+  information bit, without the factor of the bits per symbol by which the earlier
+  notebook multiplied it: the noise variance at an Eb/N0 of x dB is that of the earlier
+  notebook at x + 3.01 dB, so that by this change its curves lie 3.01 dB to the left of
+  those of the earlier notebook (its BER at x is the earlier BER at x + 3.01 dB).
+- `ML_based_SIMO_receiver.ipynb` trains the receiver on Eb/N0 drawn from [-5, 0.5) dB,
+  as before, and evaluates it from -10 to 0 dB in steps of 0.5 dB; the earlier notebook
+  evaluated it from -5 to 0 dB.
+- Seven changes of the notebooks. `BER_sims.ipynb` points the antenna of the satellite
+  at the UT instead of the nadir: with the topology at 50°, the nadir would put the UT
+  40° off the boresight of the pattern `"aperture"`, at -44.64 dB (in the earlier
+  notebook, whose UTs lay at 80°, 10° off, at -30.54 dB); the channel is normalized, so
+  this changes the BER only through the polarization. It generates the topology at the
+  elevation angle of the model, 50°, where the earlier notebook took the default of the
+  generator, 80°, and it decodes log-likelihood ratios in the single transmission of
+  its cell 7, where the earlier notebook fed the decoder hard decisions and printed a
+  coded BER of 0.478 (0.0776 with the version for Sionna 0.19); its BER simulations stay
+  uncoded, with hard decisions. `ML_based_SIMO_receiver.ipynb` evaluates the receiver
+  beside the two baselines with perfect CSI and with LS channel estimation, and writes
+  the weights once, after the training, as float32 arrays with `numpy.savez`, where the
+  earlier notebooks pickled them. `channel_response.ipynb` generates the topologies at
+  the elevation angles of the models, where the earlier notebook took 90° or the
+  default of the generator, 80°, beside models at other angles, and places the
+  geostationary satellite at 35 786 km, the altitude of TR 38.811 V15.4.0, Table 4.5-1,
+  instead of 36 000 km, which the models reject since 2.0.0a2.
+- Other changes of the notebooks: their first code cell sets the device, single
+  precision and the seed 42, so that runs on one device repeat their results, apart from
+  a training of the receiver on a GPU (the earlier notebooks set no seed);
+  `BER_sims.ipynb` simulates each point with a batch size of 16, at most 1000
+  iterations and at most 1000 block errors, as the notebook for Sionna 1.x did, where
+  the notebook for Sionna 0.19 took 128, 1 000 000 and 10 000; `channel_response.ipynb`
+  no longer sweeps the condition number over the Doppler shift (it took one time
+  sample, at t = 0, where the Doppler shift has no effect, so its figure showed random
+  variation only), leaves the paths without power out of its figures, shows the
+  condition numbers as empirical distribution functions with their medians and plots
+  every time sample; and the texts of the three notebooks describe what the code
+  computes and what its results show.
+
+### Removed
+
+- `example/Example_NTN_sim.pkl`, the pickled results of the earlier `BER_sims.ipynb`,
+  replaced by `example/BER_sims_results.npz`.
+
+### Fixed
+
+- The seed of Sionna alone now fixes every random number of a simulation on one device:
+  since 2.0.0a1 the package draws all of them from the generators of Sionna 2.x, which
+  `sionna.phy.config.seed` seeds (see "Changes that affect simulation results"). The
+  seed of Sionna 1.x (`sionna.phy.config.seed`) and that of Sionna 0.19
+  (`sionna.config.seed`) seed Sionna's own generators, but not TensorFlow's global
+  generator. The version for Sionna 1.x drew only the large scale parameters and its
+  Bernoulli draws, such as the LOS states, from Sionna's generator, the version for
+  Sionna 0.19 only the LOS states, and both drew every other random number from
+  TensorFlow's global generator: the UT drops, the cluster delays, powers, signs and
+  angles, the ray coupling, the cross-polarization ratios, the initial phases, the
+  direction of the orbit and the shadow fading of the basic path loss. Their results
+  therefore changed from run to run under the same seed of Sionna; a run of these
+  versions repeats its random numbers only when `tf.random.set_seed` is set as well
+  (read from the code of these versions and of Sionna 0.19.2, 1.0.1 and 1.2.1).
+  Affected earlier versions: the versions for Sionna 0.19 and 1.x.
+- Double precision: `precision="double"` works throughout (since 2.0.0a1), as the
+  reference outputs of the test suite, computed in double precision, show. In the
+  version for Sionna 1.x several functions combined float32 tensors with float64 ones,
+  among them `gen_single_sector_topology` and `set_topology`, which therefore raised an
+  error of TensorFlow in double precision (computed with Sionna 1.2.1 and TensorFlow
+  2.19.0), so that simulations ran in single precision, its default, only. Affected
+  earlier version: the version for Sionna 1.x; the version for Sionna 0.19, which takes
+  a TensorFlow dtype, was not checked.
+- The distribution installs only the package `openntn` (since 2.0.0a1); the tests are
+  part of the source distribution only. The `setup.py` of the versions for Sionna 0.19
+  and 1.x took its packages from `find_packages()`, which also lists the folder of their
+  tests as a top-level package `test`, a name that Python's standard library uses for
+  its own tests. Affected earlier versions: the versions for Sionna 0.19 and 1.x (by
+  their `setup.py`; they were not built).
+- Documentation: the docstring of `SystemLevelChannel` describes its argument
+  `precision`, which the model does not use, as in Sionna, since it takes the precision
+  and the device of its scenario; the docstrings of the argument `precision` of
+  `DenseUrban`, `Urban`, `SubUrban`, their scenarios and `SystemLevelScenario` say that
+  the antenna arrays must be built in that precision; the docstring of
+  `SystemLevelScenario.los_zoa` gives the zenith angle of arrival of the LOS path, 180°
+  minus its zenith angle of departure, where it said "considered 90 degrees"; those of
+  `los_probability` of the scenarios give its shape [batch size, number of BSs, number
+  of UTs]; that of `drop_uts_in_sector` describes its drop, within ± `isd`/2 in x and in
+  y around one point at the elevation angle of the BS, where it described the sector
+  drop of Sionna and `isd` as the distance between two adjacent BSs, and its arguments
+  `elevation_angle` and `device`; the module `openntn` no longer calls itself a
+  sub-package of Sionna; the docstrings of `PanelArray`, `time_to_ofdm_channel`,
+  `drop_uts_in_sector`, `relocate_uts`, `generate_uts_topology` and
+  `gen_single_sector_topology` no longer refer to figures of Sionna's documentation,
+  which the package does not have; that of `relocate_uts` describes the indexing of the
+  sectors in words; the entries `panel_vertical_spacing` and `panel_horizontal_spacing`
+  of `PanelArray` compare the spacings with the height and the width of a panel, as its
+  checks do, where they had height and width swapped; and the summary of
+  `gen_single_sector_topology` places its BS above the origin and its UTs around one
+  point, where it said that the UTs are dropped uniformly in a cell sector. No result
+  changes. Affected earlier versions: 2.0.0a1 to 2.0.0a4; the versions for Sionna 0.19
+  and 1.x have the same texts, apart from the argument `precision`, which the version
+  for Sionna 0.19 does not take (it takes a TensorFlow `dtype`), and the argument
+  `device`, which neither takes.
+- The messages of the checks of the panel spacings of `PanelArray` spell "Panel" where
+  they said "Pannel". Affected earlier versions: the versions for Sionna 0.19 and 1.x,
+  and 2.0.0a1 to 2.0.0a4.
+
 ## [2.0.0a4] - 2026-10-19
 
 Fourth pre-release of OpenNTN for Sionna 2.x: its corrections change simulation results

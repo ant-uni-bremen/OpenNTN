@@ -52,10 +52,10 @@ import os
 import platform
 import sys
 import unittest
+from importlib import metadata
 
 import numpy as np
 import pytest
-import sionna
 import torch
 from sionna.phy import config
 
@@ -268,12 +268,22 @@ def _cpu_model():
     return platform.processor() or platform.machine()
 
 
+def _sionna_version():
+    # From the metadata of the distribution: sionna-rt ships a sionna/__init__.py of its
+    # own without __version__, and which of the two files an installation keeps depends
+    # on the installer
+    try:
+        return metadata.version("sionna")
+    except metadata.PackageNotFoundError:
+        return metadata.version("sionna-no-rt")
+
+
 def environment():
     """The software and hardware that determine the reference outputs."""
     return {
         "python": platform.python_version(),
         "torch": torch.__version__,
-        "sionna": sionna.__version__,
+        "sionna": _sionna_version(),
         "numpy": np.__version__,
         "cpu": _cpu_model(),
         "machine": platform.machine(),

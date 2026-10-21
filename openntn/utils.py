@@ -427,8 +427,6 @@ def time_to_ofdm_channel(h_t, rg, l_min):
         plt.xlabel("Subcarrier index")
         plt.ylabel(r"Channel frequency response")
         plt.legend(["OFDM Channel (real)", "OFDM Channel from time (real)", "OFDM Channel (imag)", "OFDM Channel from time (imag)"])
-
-    .. image:: ../figures/time_to_ofdm_channel.png
     """
     # Totla length of an OFDM symbol including cyclic prefix
     ofdm_length = rg.fft_size + rg.cyclic_prefix_length
@@ -544,15 +542,14 @@ def sample_bernoulli(shape, p, precision=None, device=None):
 def drop_uts_in_sector(batch_size, num_ut, bs_height, elevation_angle, isd,
                        precision=None, device=None):
     r"""
-    Uniformly sample UT locations from a sector.
+    Sample UT locations around one point at the elevation angle of the BS.
 
-    The sector from which UTs are sampled is shown in the following figure.
-    The BS is assumed to be located at the origin (0,0) of the coordinate
-    system.
-
-    .. figure:: ../figures/drop_uts_in_sector.png
-        :align: center
-        :scale: 30%
+    The BS is assumed to be located above the origin (0,0) of the coordinate
+    system, at the height ``bs_height``. The UTs are dropped uniformly within
+    +/- ``isd``/2 in x and in y around one point, drawn once for all batch
+    examples, at the horizontal distance ``bs_height``/tan(``elevation_angle``)
+    from the origin, so that the BS appears at about the elevation angle from
+    the UTs.
 
     Input
     --------
@@ -565,13 +562,21 @@ def drop_uts_in_sector(batch_size, num_ut, bs_height, elevation_angle, isd,
     bs_height : torch.float
         Height of the BS (satellite or aerial platform) [m]
 
+    elevation_angle : float
+        Elevation angle of the BS as seen from the UTs [deg]
+
     isd : torch.float
-        Inter-site distance, i.e., the distance between two adjacent BSs [m]
+        Inter-site distance [m]. The UTs are dropped within +/- ``isd``/2 in x
+        and in y around the drop point.
 
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
         :attr:`~sionna.phy.config.Config.precision` is used.
+
+    device : `None` (default) | str
+        Device on which the UT locations are created, for example ``"cuda:0"``.
+        If `None`, :attr:`~sionna.phy.config.Config.device` is used.
 
     Output
     ------
@@ -790,14 +795,8 @@ def relocate_uts(ut_loc, sector_id, cell_loc):
     and transposing them to the cell centered on ``cell_loc``.
 
     ``sector_id`` gives the index of the sector to which the UTs are
-    rotated to. The picture below shows how the three sectors of a cell are
-    indexed.
-
-    .. figure:: ../figures/panel_array_sector_id.png
-        :align: center
-        :scale: 30%
-
-        Indexing of sectors
+    rotated to. Sector ``k`` is sector 0 rotated by ``k`` x 120 degrees about
+    the center of the cell, from the x-axis toward the y-axis.
 
     If ``sector_id`` is a scalar, then all UTs are relocated to the same
     sector indexed by ``sector_id``.
@@ -893,13 +892,9 @@ def generate_uts_topology(  batch_size,
 
     drop_area : str
         'sector' or 'cell'. If set to 'sector', UTs are sampled from the
-        sector with index 0 in the figure below
-
-        .. figure:: ../figures/panel_array_sector_id.png
-            :align: center
-            :scale: 30%
-
-    Indexing of sectors
+        sector with index 0; if set to 'cell', each UT is rotated into a sector
+        of the cell drawn uniformly from the three (see
+        :meth:`~openntn.utils.relocate_uts`, which indexes the sectors)
 
     cell_loc_xy : Tensor broadcastable with[batch_size, num_ut, 3], torch.float
         Center of the cell(s)
@@ -1052,14 +1047,10 @@ def gen_single_sector_topology( batch_size,
                                 device=None):
     # pylint: disable=line-too-long
     r"""
-    Generate a batch of topologies consisting of a single BS located at the
-    origin and ``num_ut`` UTs randomly and uniformly dropped in a cell sector.
+    Generate a batch of topologies consisting of a single BS above the origin and
+    ``num_ut`` UTs dropped around one point at the elevation angle of the BS.
 
-    The following picture shows the sector from which UTs are sampled.
-
-    .. figure:: ../figures/drop_uts_in_sector.png
-        :align: center
-        :scale: 30%
+    The UTs are dropped as :meth:`~openntn.utils.drop_uts_in_sector` describes.
 
     The BS is placed at (0, 0, ``bs_height``) and faces the nadir: its orientation
     is (0, 90 deg, 0), the bearing 0, the downtilt 90 deg and the slant 0. Each UT
@@ -1114,8 +1105,6 @@ def gen_single_sector_topology( batch_size,
     ...                            ut_velocities,
     ...                            in_state)
     >>> channel_model.show_topology()
-
-    .. image:: ../figures/drop_uts_in_sector_topology.png
 
     Input
     --------
@@ -1687,7 +1676,7 @@ def _compute_pathloss_scintillation(self):
         elif abs(self._latitude) <= 20.0:
             #Pathloss at 4GHz
             Pluc_4GHz = 1.1
-            #Exponent to scale the frequeny loss below 6GHz TODO: check the applied frequencies
+            #Exponent to scale the frequency loss below 6GHz
             n = -1.5
             #Scale P_fluc at 4GHz to the carrier frequency, step 2 of 3GPP TR38.811 6.6.6.1.4
             AIs = Pluc_4GHz * (f/4)**(n)
@@ -1711,7 +1700,6 @@ def _compute_pathloss_entry(self):
         # accept outdoor UTs only (set_topology rejects indoor UTs)
         pl_e = torch.zeros_like(self.los, dtype=self.dtype)
         self._update_attr("_pl_e", pl_e)
-        #ntnu.compute_pathloss_gas(self)
 
 def _compute_pathloss_basic(self):
         r"""Computes the basic path loss PL_b in dB of TR38.811 6.6.2 without its shadow

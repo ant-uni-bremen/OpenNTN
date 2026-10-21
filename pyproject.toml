@@ -4,22 +4,30 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openntn"
-version = "2.0.0a4"
-description = "An extension of the Sionna framework with 3GPP TR38.811 non-terrestrial-network channel models"
+version = "2.0.0rc1"
+description = "An extension of the Sionna framework with 3GPP TR 38.811 non-terrestrial network channel models"
 readme = "README.md"
 requires-python = ">=3.11"
+keywords = [
+    "3GPP TR 38.811",
+    "non-terrestrial networks",
+    "channel models",
+    "satellite communications",
+    "Sionna",
+    "PyTorch",
+]
 # Files derived from Sionna are Apache-2.0, the others MIT (README.md, section Licence).
 license = "MIT AND Apache-2.0"
 license-files = ["LICENSE", "LICENSE-APACHE"]
 authors = [
-    { name = "Tim Düe" },
     { name = "Louis Lagona" },
+    { name = "Tim Düe" },
 ]
 maintainers = [
     { name = "Louis Lagona", email = "lagona@ant.uni-bremen.de" },
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Telecommunications Industry",
     "Operating System :: OS Independent",
@@ -48,6 +56,7 @@ test = ["pytest>=9.0", "mpmath>=1.3"]
 Homepage = "https://github.com/ant-uni-bremen/OpenNTN"
 Source = "https://github.com/ant-uni-bremen/OpenNTN"
 Issues = "https://github.com/ant-uni-bremen/OpenNTN/issues"
+Changelog = "https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["openntn*"]

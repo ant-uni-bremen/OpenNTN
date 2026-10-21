@@ -1,4 +1,4 @@
-<p align="center"><img alt="OpenNTN" src="https://raw.githubusercontent.com/ant-uni-bremen/OpenNTN/v2.0.0a1/docs/images/openntn-logo.png" width="400"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ant-uni-bremen/OpenNTN/v2.0.0rc1/docs/images/openntn-logo-dark.png"><img alt="OpenNTN" src="https://raw.githubusercontent.com/ant-uni-bremen/OpenNTN/v2.0.0a1/docs/images/openntn-logo.png" width="400"></picture></p>
 
 <p align="center">3GPP TR 38.811 non-terrestrial network channel models for Sionna</p>
 
@@ -12,16 +12,19 @@
 ## Overview
 
 OpenNTN is an open-source extension of [Sionna](https://nvlabs.github.io/sionna/) that
-implements the non-terrestrial network (NTN) channel models of 3GPP TR 38.811 for
-satellite links. Its channel models follow the interface of Sionna's TR 38.901 models,
-so they can be used in Sionna's link-level and system-level simulations. OpenNTN 2 is
-built on Sionna 2, which uses PyTorch.
+implements the non-terrestrial network (NTN) channel models of 3GPP TR 38.811 for the
+links between user terminals and a satellite or an aerial platform. Its channel models
+follow the interface of Sionna's TR 38.901 models, so they can be used in Sionna's
+link-level and system-level simulations. OpenNTN 2 is built on Sionna 2, which uses
+PyTorch.
 
 ## Key features
 
 - **Scenarios:** dense urban (`DenseUrban`), urban (`Urban`) and suburban (`SubUrban`),
   with the parameter tables of TR 38.811 clause 6.7.2 and the fast-fading process of
   TR 38.901 clause 7.5.
+- **Platforms:** one satellite, from 160 km to 35 786 km, or one aerial platform, from
+  8 km to 50 km, per call, at the same height in every batch example.
 - **Bands and links:** S band (1.9 GHz to 4 GHz) and Ka band (19 GHz to 40 GHz), uplink
   and downlink, elevation angles from 10 to 90 degrees.
 - **Propagation (TR 38.811 clause 6.6):** line-of-sight probability, free-space path
@@ -34,10 +37,11 @@ built on Sionna 2, which uses PyTorch.
 - **Satellite Doppler:** the Doppler shift of the satellite's orbital motion, in
   addition to the motion of the user terminals; it can be switched off.
 - **Antennas:** Sionna-style antenna elements, panels and arrays with the TR 38.901
-  element pattern, an omnidirectional pattern, a circular-aperture pattern and the
-  co-phased dual-linear-polarization pattern of 3GPP R1-1802551.
-- **Topology:** a generator for one satellite and the user terminals of a single sector
-  at a given elevation angle and satellite height.
+  element pattern, an omnidirectional pattern, a circular-aperture pattern with an
+  adjustable aperture radius and the co-phased dual-linear-polarization pattern of
+  3GPP R1-1802551.
+- **Topology:** a generator for one satellite or aerial platform and the user terminals
+  of a single sector at a given elevation angle and height.
 - **Sionna integration:** the models are Sionna channel models. They return path
   coefficients and delays in Sionna's format and work with Sionna's channel functions
   and blocks, such as `cir_to_ofdm_channel` and `OFDMChannel`.
@@ -56,16 +60,59 @@ with it.
    python -m pip install openntn
    ```
 
+On a machine with an NVIDIA GPU, the PyTorch build has to match the driver: the default
+build of PyTorch 2.14.1 on PyPI, for example, uses CUDA 13.0 and needs an NVIDIA driver
+of version 580 or later. With an older driver, first install a build for an older CUDA
+version from the PyTorch index, then OpenNTN; the build for CUDA 12.6 runs with driver
+535:
+
+```sh
+python -m pip install torch --index-url https://download.pytorch.org/whl/cu126
+```
+
 OpenNTN 2 is a pre-release until 2.0.0, and its interfaces can still change. pip
 installs a pre-release only if no final release of openntn is available; otherwise
 `--pre` is needed (`python -m pip install --pre openntn`). The changes of this version
 are listed in the
-[changelog](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0a4/CHANGELOG.md).
+[changelog](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/CHANGELOG.md).
 
 > **Note:** openntn 2.x requires Sionna 2.x. Installing it into an environment with
 > Sionna 1.x upgrades Sionna to 2.x. For Sionna 1.x and Sionna 0.19, use the
 > corresponding versions of OpenNTN from the repository at
 > https://github.com/ant-uni-bremen/OpenNTN.
+
+Sionna is also published as `sionna-no-rt`, without the ray tracer, which OpenNTN does
+not use. openntn depends on the distribution `sionna`; to use `sionna-no-rt` instead,
+install it first and then OpenNTN without its dependencies, which `sionna-no-rt`
+already brings (PyTorch, NumPy and matplotlib, with the same lower bounds):
+
+```sh
+python -m pip install "sionna-no-rt>=2.0.1,<3.0"
+python -m pip install --no-deps openntn
+```
+
+An environment that holds an earlier version of OpenNTN, installed by its installation
+script as the distribution `OpenNTN` 0.1.0, keeps it when `python -m pip install
+openntn` runs, as pip takes it for the same project. Use a new environment, or uninstall
+the earlier version first:
+
+```sh
+python -m pip uninstall OpenNTN
+```
+
+## Versions for Sionna 2, 1.x and 0.19
+
+| OpenNTN | Sionna | Framework | Installation | Import |
+|---|---|---|---|---|
+| 2.x, this version | 2.x, from 2.0.1 | PyTorch | `python -m pip install openntn`, from PyPI | `import openntn` |
+| the version for Sionna 1.x | 1.x | TensorFlow | its installation script, from the repository (Linux) | `sionna.phy.channel.tr38811` |
+| the version for Sionna 0.19 | 0.19 | TensorFlow | its installation script, from the repository (Linux) | `sionna.channel.tr38811` |
+
+The versions for Sionna 1.x and 0.19 are in the repository at
+https://github.com/ant-uni-bremen/OpenNTN and not on PyPI; the TensorFlow versions of
+the example notebooks belong to them. The
+[migration guide](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/docs/migration.md)
+describes what changes for their users.
 
 ## Quickstart
 
@@ -105,14 +152,80 @@ print(h_freq.shape)  # [batch, rx, rx antennas, tx, tx antennas, time steps, sub
 
 A channel model runs on the device given by its argument `device`, for example
 `device="cuda:0"`, which defaults to `sionna.phy.config.device` at the construction of
-the model; create the antennas on the same device, with their argument `device`, which
-has the same default. A model stays on its device and in its precision: build it with
-the device and precision it is to use instead of moving it with `.to()` or casting it.
-Moved or cast, it raises `ValueError` in its next `set_topology` or call.
+the model, and in the precision given by its argument `precision`, `"single"` or
+`"double"`, which defaults to `sionna.phy.config.precision`. Create the antennas on the
+same device and in the same precision, with their arguments `device` and `precision`,
+which have the same defaults; otherwise the model raises `ValueError`. A model stays on
+its device and in its precision: build it with the device and precision it is to use
+instead of moving it with `.to()` or casting it. Moved or cast, it raises `ValueError`
+in its next `set_topology` or call.
+
+## Example notebooks
+
+Three Jupyter notebooks show the models at work with Sionna 2 and PyTorch:
+
+- [channel_response.ipynb](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/example/channel_response.ipynb):
+  the topology, the path coefficients, the path delays and the frequency response of
+  the channels, and their condition numbers in the three scenarios and for different
+  heights, elevation angles, numbers of user terminals and carrier frequencies.
+- [BER_sims.ipynb](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/example/BER_sims.ipynb):
+  an OFDM downlink from a satellite at 600 km in the S band, with LDPC coding and LMMSE
+  equalization, and the uncoded bit error rate of the three scenarios over Eb/N0 with
+  perfect channel knowledge.
+- [ML_based_SIMO_receiver.ipynb](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/example/ML_based_SIMO_receiver.ipynb):
+  the neural receiver of Sionna's tutorial "Neural Receiver for OFDM SIMO Systems", in
+  PyTorch, trained on the channels of the dense urban scenario and evaluated beside the
+  receivers with perfect channel knowledge and with LS channel estimation.
+
+By default, `BER_sims.ipynb` and `ML_based_SIMO_receiver.ipynb` load the results of
+their full runs, which the repository stores beside them, and `channel_response.ipynb`
+runs with its own batch sizes. The environment variable `OPENNTN_NOTEBOOK_MODE` set to
+`full` computes the full runs (the training of the receiver needs a GPU), set to
+`reduced` it runs them with small batches and writes no file. The TensorFlow notebooks of
+the earlier versions belong to the versions for Sionna 1.x and 0.19.
+
+## Scope and conventions of the models
+
+- **Elevation angle and positions:** the elevation angle of a model sets the slant
+  range, the LOS probability, the parameter tables and the losses of every link, while
+  the LOS directions follow the positions; place the satellite or platform so that it
+  appears at that elevation from the user terminals, as `gen_single_sector_topology`
+  does.
+- **Reference elevation angles:** every table is taken at the reference elevation angle
+  of TR 38.811 nearest to the elevation angle (10 to 90 degrees in steps of 10 degrees),
+  an angle midway between two taking the higher one; no table is interpolated.
+- **Orientations:** the topology generators place the satellite or platform at
+  (0, 0, h) facing the nadir and turn each user terminal toward it. A directional
+  satellite element at the nadir sees the user terminals off its boresight, so set
+  `bs_orientations` and `ut_orientations` for beam pointing or a defined polarization.
+- **Delays:** paths without power, of clusters that a link does not have, carry
+  placeholder delays of seconds, as in Sionna's models, so read the delays `tau`
+  together with the path coefficients. The delays are relative to the first path; the
+  propagation delay of the link is not included.
+- **User terminals:** outdoors only; `set_topology` raises `ValueError` for indoor user
+  terminals.
+
+The [description of the models](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/docs/model.md)
+lists the scope, the conventions and the limits of the models in full, with their
+calibration against 3GPP TR 38.821 and their speed on a GPU.
+
+## Migrating from the versions for Sionna 1.x and 0.19
+
+OpenNTN 2 keeps the names of the models, the antennas and the topology generators, but
+it is a separate package, `openntn`, built on PyTorch: its inputs and outputs are
+PyTorch tensors, it is installed with pip, and corrections of the models change
+simulation results. The
+[migration guide](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/docs/migration.md)
+lists the changes by topic, with the changes of the API that existing code has to
+follow; the [changelog](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/CHANGELOG.md)
+describes every change and correction.
 
 ## Citation
 
-If you use OpenNTN in your research, please cite:
+If you use OpenNTN in your research, please cite the version of the software that you
+used, as the
+[citation file](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/CITATION.cff)
+of the repository describes it, and the paper that presents the framework:
 
 T. Düe, M. Vakilifard, C. Bockelmann, D. Wübben and A. Dekorsy, "OpenNTN: An
 Open-Source Framework for Non-Terrestrial Network Channel Simulations," 2025 28th
@@ -137,11 +250,11 @@ https://doi.org/10.1109/WSA65299.2025.11202820
 OpenNTN is distributed under the licence expression `MIT AND Apache-2.0`:
 
 - Files derived from NVIDIA Sionna are licensed under the Apache License 2.0
-  ([LICENSE-APACHE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0a4/LICENSE-APACHE)).
+  ([LICENSE-APACHE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/LICENSE-APACHE)).
   Their headers keep NVIDIA's copyright notice and, for modified files, state that
   they were modified at the University of Bremen.
 - All other files are licensed under the MIT License
-  ([LICENSE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0a4/LICENSE)).
+  ([LICENSE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/LICENSE)).
 
 Data files cannot carry a header. `TDL-A30.json`, `TDL-B100.json` and `TDL-C300.json`
 in `openntn/models` are unchanged copies of Sionna's files and therefore under

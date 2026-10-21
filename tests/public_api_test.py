@@ -7,9 +7,10 @@
 # classes defined in openntn.utils, and the names, modules, properties, parameters and
 # arguments that the package must not have; a call that passes such a parameter or
 # argument raises TypeError. The tests also check the name of the property
-# AntennaPanel.polarization and that the flags always_generate_lsp and doppler_enabled
-# accept True and False only. A change of the public API changes these lists in the
-# same commit and is described in CHANGELOG.md.
+# AntennaPanel.polarization, that the flags always_generate_lsp, doppler_enabled,
+# enable_pathloss and enable_shadow_fading accept True and False only, and that
+# set_topology takes the parameters after latitude by keyword only. A change of the
+# public API changes these lists in the same commit and is described in CHANGELOG.md.
 import importlib
 import importlib.util
 import inspect
@@ -135,10 +136,33 @@ def test_old_positional_order(cls):
 
 @pytest.mark.parametrize("value", [1, 0.0])
 @pytest.mark.parametrize("cls,flag", [(cls, "always_generate_lsp") for cls in MODELS]
-                         + [(cls, "doppler_enabled") for cls in MODELS + SCENARIOS])
+                         + [(cls, flag) for flag in ("doppler_enabled", "enable_pathloss",
+                                                     "enable_shadow_fading")
+                            for cls in MODELS + SCENARIOS])
 def test_flags_are_bool(cls, flag, value):
     with pytest.raises(TypeError, match=flag):
         getattr(openntn, cls)(**_arguments(), **{flag: value})
+
+
+@pytest.mark.parametrize("target", ["model", "scenario"])
+def test_atmospheric_parameters_by_keyword(target):
+    # A call that passes two more values by position after los and latitude, here a
+    # liquid water content of 0.5 g/m^3 and a rain rate of 100 mm/h, would give them to
+    # atmospheric_pressure and temperature, which take any number: the parameters after
+    # latitude are taken by keyword only, and the same values pass by keyword
+    antenna = Antenna(polarization="single", polarization_type="V", antenna_pattern="omni",
+                      carrier_frequency=20e9)
+    model = DenseUrban(carrier_frequency=20e9, ut_array=antenna, bs_array=antenna,
+                       direction="downlink", elevation_angle=30.0)
+    topology = gen_single_sector_topology(batch_size=2, num_ut=2, scenario="dur",
+                                          elevation_angle=30.0, bs_height=600e3)
+    obj = model if target == "model" else model._scenario
+    with pytest.raises(TypeError, match="positional argument"):
+        obj.set_topology(*topology, None, 47.0, 0.5, 100.0)
+    obj.set_topology(*topology, None, 47.0, atmospheric_pressure=0.5, temperature=100.0)
+    scenario = model._scenario
+    assert (scenario.latitude, scenario.atmospheric_pressure,
+            scenario.temperature) == (47.0, 0.5, 100.0)
 
 
 @pytest.mark.parametrize("value", [1, 0.0])

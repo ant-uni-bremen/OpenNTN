@@ -592,7 +592,7 @@ class LSPGenerator(Object):
         -------
             Tensor with shape
             [batch size, number of BSs, number of UTs]
-            containing the O2I penetration low-loss in dB for each BS-UT link
+            containing the O2I penetration high-loss in dB for each BS-UT link
         """
 
         fc = self._scenario.carrier_frequency/1e9 # Carrier frequency (GHz)

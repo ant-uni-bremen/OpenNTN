@@ -7,7 +7,7 @@
 # in Sionna.
 #
 """
-Channel sub-package of the Sionna library implementing 3GPP TR38.811 models.
+Non-terrestrial network channel models of 3GPP TR 38.811 for Sionna.
 """
 # pylint: disable=line-too-long
 from importlib import metadata as _metadata

@@ -42,6 +42,11 @@ class SystemLevelChannel(ChannelModel):
         the same LSPs, except if the topology is changed. Defaults to
         `False`. Must be `True` or `False`; `TypeError` otherwise.
 
+    precision : `None` (default) | "single" | "double"
+        Not used: the model takes the precision and the device of ``scenario``.
+        The argument is kept as in Sionna's ``SystemLevelChannel``, which takes
+        it as well and also uses the precision and the device of its scenario.
+
     Input
     -----
 
@@ -92,9 +97,10 @@ class SystemLevelChannel(ChannelModel):
         # Are new LSPs needed
         self._always_generate_lsp = always_generate_lsp
 
+    # Keyword-only after latitude, as in the set_topology method of the scenario
     def set_topology(self, ut_loc=None, bs_loc=None, ut_orientations=None,
         bs_orientations=None, ut_velocities=None, in_state=None, los=None,
-        latitude=None, atmospheric_pressure=None, temperature=None,
+        latitude=None, *, atmospheric_pressure=None, temperature=None,
         water_vapor_density=None):
         r"""
         Set the network topology.
@@ -163,7 +169,8 @@ class SystemLevelChannel(ChannelModel):
                 passed keeps its previous value. ``latitude``, relative to the
                 magnetic equator, decides the scintillation loss of satellites
                 below 6 GHz (aerial platforms get none below 6 GHz); the other
-                three decide the gas loss.
+                three decide the gas loss and are taken by keyword only (passed
+                by position, they raise `TypeError`).
         """
 
         # A model moved to another device or cast to another precision raises ValueError
@@ -279,10 +286,6 @@ class SystemLevelChannel(ChannelModel):
             moving_end = 'tx'
             tx_orientations = self._scenario.ut_orientations
             rx_orientations = self._scenario.bs_orientations
-        # TODO Here it needs to be verified, that the angles and topology are intearcting correctly. The old
-        # implementation always chose the satellites plane, so that only one of the angles for either phi or
-        # theta was adapted and thus either azimuth or zenith was zero. This should still be the case here,
-        # however, a thourough verification is still to be done.
         topology = Topology(    velocities=self._scenario.ut_velocities,
                                 moving_end=moving_end,
                                 los_aoa=deg_2_rad(self._scenario.los_aoa),

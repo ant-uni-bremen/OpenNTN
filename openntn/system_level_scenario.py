@@ -81,10 +81,11 @@ class SystemLevelScenario(Object):
 
     enable_pathloss : bool
         If set to `True`, apply pathloss. Otherwise, does not. Defaults to True.
+        Must be `True` or `False`; `TypeError` otherwise.
 
     enable_shadow_fading : bool
         If set to `True`, apply shadow fading. Otherwise, does not.
-        Defaults to True.
+        Defaults to True. Must be `True` or `False`; `TypeError` otherwise.
 
     doppler_enabled : bool
         If `True`, the channel contains the Doppler shift due to the motion of the
@@ -95,7 +96,9 @@ class SystemLevelScenario(Object):
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
-        :attr:`~sionna.phy.config.Config.precision` is used.
+        :attr:`~sionna.phy.config.Config.precision` is used. ``ut_array`` and
+        ``bs_array`` must be built in this precision (their argument
+        ``precision``); `ValueError` otherwise.
 
     device : `None` (default) | str
         Device for computation (e.g., ``"cpu"``, ``"cuda:0"``).
@@ -107,6 +110,14 @@ class SystemLevelScenario(Object):
     def __init__(self, carrier_frequency, ut_array, bs_array,
         direction, elevation_angle, enable_pathloss=True, enable_shadow_fading=True, doppler_enabled=True,
         precision=None, device=None):
+        # Flags, checked as the other flags of the models are, so that a value other
+        # than True or False raises instead of being taken by its truth value
+        if not isinstance(enable_pathloss, bool):
+            raise TypeError(f"enable_pathloss must be True or False, not "
+                            f"{enable_pathloss!r}")
+        if not isinstance(enable_shadow_fading, bool):
+            raise TypeError(f"enable_shadow_fading must be True or False, not "
+                            f"{enable_shadow_fading!r}")
         # A flag, checked so that a call that passes an average street width by position
         # after enable_shadow_fading raises instead of taking it as the flag
         if not isinstance(doppler_enabled, bool):
@@ -123,12 +134,6 @@ class SystemLevelScenario(Object):
         if not (carrier_frequency >= 19e9 and carrier_frequency <= 40e9 or carrier_frequency >= 1.9e9 and carrier_frequency <= 4e9):
             raise ValueError(
                 "Carrier frequency must be either in S Band (1.9GHz-4GHz) or Ka Band (19GHz - 40GHz)")
-        #if direction == "downlink":
-        #    assert carrier_frequency >= 19e9 and carrier_frequency <= 40e9 or carrier_frequency >= 1.9e9 and carrier_frequency <= 4e9, \
-        #        "Carrier frequency in downlink must be either in S Band (1.9GHz-4GHz) or Ka Band (19GHz - 40GHz)"
-        #else:
-        #    assert carrier_frequency >= 29.5e9 and carrier_frequency <= 30.0e9 or carrier_frequency >= 1.98e9 and carrier_frequency <= 2.01e9, \
-        #        "Carrier frequency in downlink must be either in S Band (1.9GHz-4GHz) or Ka Band (19GHz - 40GHz)"
 
         # Carrier frequency (Hz) as a Python float, for the LOS phase: in single
         # precision the buffer below does not hold every frequency exactly (30 GHz)
@@ -178,9 +183,6 @@ class SystemLevelScenario(Object):
         if not (ut_array._lambda_0 == bs_array._lambda_0 == self._lambda_0):
             raise ValueError(
                 "The carrier frequencies of ut antenna, bs antenna and scenario must match")
-        # data type
-
-
 
         if not (elevation_angle >= 10.0 and elevation_angle <= 90.0):
             raise ValueError("elevation angle must be in range [10,90]")
@@ -373,11 +375,6 @@ class SystemLevelScenario(Object):
         [batch size, number of UTs, number of UTs]"""
         return self._matrix_ut_distance_2d
 
-    # TODO For all angles, we need to make sure that the topology and individual angles are correct.
-    # Old implementations sometimes only checked either azimuth or zenith, thus they might run into issues here.
-    # The angles between the user and the satellite specifically needs to be calcualated precisely. This seems
-    # to work as intended at the moment, however, an additional thourough check is still planned. This is to be
-    # done for aod, aoa, zod, and zoa
     @property
     def los_aod(self):
         r"""LoS azimuth angle of departure of each BS-UT link [deg].
@@ -400,7 +397,9 @@ class SystemLevelScenario(Object):
 
     @property
     def los_zoa(self):
-        r"""considered 90 degrees"""
+        r"""LoS zenith angle of arrival of each BS-UT link, 180 degrees minus the
+        LoS zenith angle of departure [deg].
+        [batch size, number of BSs, number of UTs]"""
         return self._los_zoa
 
     @property
@@ -414,7 +413,7 @@ class SystemLevelScenario(Object):
     @abstractmethod
     def los_probability(self):
         r"""Probability of each UT to be LoS. Used to randomly generate LoS
-        status of outdoor UTs. [batch size, number of UTs]"""
+        status of outdoor UTs. [batch size, number of BSs, number of UTs]"""
         pass
 
     @property
@@ -624,9 +623,12 @@ class SystemLevelScenario(Object):
                 f"{reference.device}; build the model with the device and precision it "
                 f"is to use instead of moving or casting it")
 
+    # The parameters after latitude are keyword-only: a call that passes more values by
+    # position after latitude, such as a liquid water content and a rain rate, would
+    # otherwise give them to atmospheric_pressure and temperature, which take any number
     def set_topology(self, ut_loc=None, bs_loc=None, ut_orientations=None,
         bs_orientations=None, ut_velocities=None, in_state=None, los=None, latitude=None,
-        atmospheric_pressure=None, temperature=None, water_vapor_density=None,
+        *, atmospheric_pressure=None, temperature=None, water_vapor_density=None,
         doppler_enabled=None):
         r"""
         Set the network topology.
@@ -735,7 +737,9 @@ class SystemLevelScenario(Object):
 
             An atmospheric parameter that is passed without new topology
             tensors updates the gas and scintillation losses of the current
-            topology; nothing is drawn again.
+            topology; nothing is drawn again. ``atmospheric_pressure``,
+            ``temperature``, ``water_vapor_density`` and ``doppler_enabled`` are
+            taken by keyword only; passed by position, they raise `TypeError`.
 
         Output
         -------

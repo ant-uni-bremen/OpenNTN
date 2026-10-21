@@ -88,10 +88,11 @@ class DenseUrban(SystemLevelChannel):
 
     enable_pathloss : bool
         If `True`, apply pathloss. Otherwise doesn't. Defaults to `True`.
+        Must be `True` or `False`; `TypeError` otherwise.
 
     enable_shadow_fading : bool
         If `True`, apply shadow fading. Otherwise doesn't.
-        Defaults to `True`.
+        Defaults to `True`. Must be `True` or `False`; `TypeError` otherwise.
 
     always_generate_lsp : bool
         If `True`, new large scale parameters (LSPs) are generated for every
@@ -109,7 +110,9 @@ class DenseUrban(SystemLevelChannel):
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
-        :attr:`~sionna.phy.config.Config.precision` is used.
+        :attr:`~sionna.phy.config.Config.precision` is used. ``ut_array`` and
+        ``bs_array`` must be built in this precision (their argument
+        ``precision``); `ValueError` otherwise.
 
     device : `None` (default) | str
         Device for computation (e.g., ``"cpu"``, ``"cuda:0"``).

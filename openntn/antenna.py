@@ -458,8 +458,6 @@ class PanelArray(Object):
     ...                    panel_horizontal_spacing = 3.)
     >>> array.show()
 
-    .. image:: ../figures/panel_array.png
-
     Parameters
     ----------
 
@@ -490,13 +488,13 @@ class PanelArray(Object):
 
     panel_vertical_spacing : `None` or float
         Vertical spacing of panels [multiples of wavelength].
-        Must be greater than the panel width.
-        If set to `None` (default value), it is set to the panel width + 0.5.
+        Must be greater than the panel height.
+        If set to `None` (default value), it is set to the panel height + 0.5.
 
     panel_horizontal_spacing : `None` or float
         Horizontal spacing of panels [in multiples of wavelength].
-        Must be greater than the panel height.
-        If set to `None` (default value), it is set to the panel height + 0.5.
+        Must be greater than the panel width.
+        If set to `None` (default value), it is set to the panel width + 0.5.
 
     element_vertical_spacing : `None` or float
         Element vertical spacing [multiple of wavelength].
@@ -564,10 +562,10 @@ class PanelArray(Object):
         # Check that panel spacing is larger than panel dimensions
         if not (panel_horizontal_spacing > (num_cols_per_panel-1)
                 *element_horizontal_spacing):
-            raise ValueError("Pannel horizontal spacing must be larger than the panel width")
+            raise ValueError("Panel horizontal spacing must be larger than the panel width")
         if not (panel_vertical_spacing > (num_rows_per_panel-1)
                 *element_vertical_spacing):
-            raise ValueError("Pannel vertical spacing must be larger than panel height")
+            raise ValueError("Panel vertical spacing must be larger than panel height")
 
         self._num_rows = num_rows
         self._num_cols = num_cols

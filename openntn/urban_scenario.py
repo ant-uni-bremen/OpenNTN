@@ -38,10 +38,11 @@ class UrbanScenario(SystemLevelScenario):
 
     enable_pathloss : bool
         If `True`, apply pathloss. Otherwise doesn't. Defaults to `True`.
+        Must be `True` or `False`; `TypeError` otherwise.
 
     enable_shadow_fading : bool
         If `True`, apply shadow fading. Otherwise doesn't.
-        Defaults to `True`.
+        Defaults to `True`. Must be `True` or `False`; `TypeError` otherwise.
 
     doppler_enabled : bool
         If `True`, the channel contains the Doppler shift due to the motion of
@@ -53,7 +54,9 @@ class UrbanScenario(SystemLevelScenario):
     precision : `None` (default) | "single" | "double"
         Precision used for internal calculations and outputs.
         If set to `None`,
-        :attr:`~sionna.phy.config.Config.precision` is used.
+        :attr:`~sionna.phy.config.Config.precision` is used. ``ut_array`` and
+        ``bs_array`` must be built in this precision (their argument
+        ``precision``); `ValueError` otherwise.
 
     device : `None` (default) | str
         Device for computation (e.g., ``"cpu"``, ``"cuda:0"``).
@@ -106,7 +109,7 @@ class UrbanScenario(SystemLevelScenario):
 
         Taken from table 6.6.1-1 in TR38.811
 
-        [batch size, num_ut]"""
+        [batch size, number of BSs, number of UTs]"""
         angle_str = str(utils._reference_elevation(self._elevation_angle))
         los_p = self._params_los["LoS_p" + '_' + angle_str]
         #self._distance_2d_out already has desired shape, this it is used here to keep the code shorter
@@ -160,10 +163,6 @@ class UrbanScenario(SystemLevelScenario):
         num_bs = self.num_bs
         num_ut = self.num_ut
         distance_2d = self.distance_2d
-        h_bs = self.h_bs
-        h_bs = h_bs.unsqueeze(2) # For broadcasting
-        h_ut = self.h_ut
-        h_ut = h_ut.unsqueeze(1) # For broadcasting
 
         ## Mean
         # DS
@@ -181,9 +180,8 @@ class UrbanScenario(SystemLevelScenario):
         log_mean_zsa = self.get_param("muZSA")
         # ZSD mean is of the form max(-1, A*d2D/1000 - 0.01*(hUT-1.5) + B)
         log_mean_zsd = (self.get_param("muZSD"))
-        # The ZSD might be -inf which the system cannot work with. Thus it is replaced by a large negative number
-        # TODO -100 is chose here just to be a large negative number. However, it is not yet tested if replacing it with larger
-        # numbers further improves the results.
+        # The mean ZSD is -inf for a satellite (NOTE 8, see get_param) and stays -inf;
+        # finite values are floored at -100, which no value of the tables reaches
         log_mean_max = torch.maximum(torch.tensor(-100.0, dtype=self.dtype,
             device=self.device), log_mean_zsd)
         log_mean_zsd = torch.where(log_mean_zsd != float("-inf"), log_mean_max, log_mean_zsd)
@@ -206,12 +204,8 @@ class UrbanScenario(SystemLevelScenario):
         # SF. Given in dB in the 3GPP tables, hence the division by 10
         # O2I and NLoS cases just require the use of a predefined value
         log_std_sf_o2i_nlos = self.get_param("sigmaSF")/10.0
-        # For LoS, two possible scenarion depending on the 2D location of the
-        # user
-        distance_breakpoint = (2.*PI*h_bs*h_ut*self.carrier_frequency/
-            SPEED_OF_LIGHT)
-        log_std_sf_los=torch.where(distance_2d < distance_breakpoint,
-            self.get_param("sigmaSF")/10.0, self.get_param("sigmaSF")/10.0)
+        # LoS as well: the tables of TR 38.811 give one value per elevation angle
+        log_std_sf_los = self.get_param("sigmaSF")/10.0
         # Use the correct SF STD according to the user scenario: NLoS/O2I, or
         # LoS
         log_std_sf = torch.where(self.los, log_std_sf_los, log_std_sf_o2i_nlos)

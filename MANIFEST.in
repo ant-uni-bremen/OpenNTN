@@ -1,5 +1,6 @@
-# The sdist carries the test suite with its reference data; the wheel contains only
-# the openntn package (see [tool.setuptools] in pyproject.toml).
+# The sdist carries the test suite with its reference data and the changelog; the wheel
+# contains only the openntn package (see [tool.setuptools] in pyproject.toml).
 recursive-include openntn/models *.json
 graft tests
+include CHANGELOG.md
 global-exclude __pycache__ *.py[cod]

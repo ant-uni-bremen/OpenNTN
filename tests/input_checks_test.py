@@ -68,11 +68,11 @@ CHECKS = {
     "panel_horizontal_spacing": (
         lambda: PanelArray(2, 2, "single", "V", "omni", CARRIER_FREQUENCY, num_cols=2,
                            panel_horizontal_spacing=0.4),
-        "Pannel horizontal spacing must be larger than the panel width"),
+        "Panel horizontal spacing must be larger than the panel width"),
     "panel_vertical_spacing": (
         lambda: PanelArray(2, 2, "single", "V", "omni", CARRIER_FREQUENCY, num_rows=2,
                            panel_vertical_spacing=0.4),
-        "Pannel vertical spacing must be larger than panel height"),
+        "Panel vertical spacing must be larger than panel height"),
     "single_polarization_type": (
         lambda: PanelArray(1, 1, "single", "VH", "omni", CARRIER_FREQUENCY),
         "For single polarization, polarization_type must be 'V' or 'H'"),
