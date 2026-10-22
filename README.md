@@ -1,6 +1,6 @@
-# PLEASE NOTE, UPDATE REGARDING THE NEW SIONNA VERSION!
+# PLEASE NOTE!
 
-On the 19th of March, Sionna released the new Version 2.0.0. OpenNTN has not yet been adapted for this new Sionna version. As of now, the main version of OpenNTN is compatible with all Sionna versions 1.x, and the legacy OpenNTN version is compatible with Sionna 0.x. We will do our best to add compatibility between OpenNTN and Sionna 2.x as soon as possible. Until then, we wish everyone ongoing success in their work using OpenNTN!
+This is OpenNTN 1.0.0, the version of OpenNTN for Sionna 1.x, which is built on TensorFlow. OpenNTN 2, for Sionna 2.x and PyTorch, is installed with <code>pip install openntn</code>. The legacy installation below installs OpenNTN 0.19.0 for Sionna 0.19.2.
 
 # Getting Started
 
@@ -32,17 +32,19 @@ Sionna™ is currently in its version 1.0+, but multiple older projects still re
 1. Install Sionna <br>
   <code>pip install sionna==1.2.2</code> <br>
 For more information on the different installation options we refer the reader to the [sionna documentation](https://nvlabs.github.io/sionna/installation.html). 
-2. Download the install.sh file found in this git 
-3. Execute the install.sh file <br>
+2. Download the install.sh file of the tag v1.0.0 of this git <br>
+   <code>curl -fLO https://raw.githubusercontent.com/ant-uni-bremen/OpenNTN/v1.0.0/install.sh</code>
+3. Execute the install.sh file, which installs OpenNTN 1.0.0 from that tag <br>
    <code>. install.sh</code>
 
 ## Legacy installation for Sionna™ 0.19.2
 
 1. Install Sionna <br>
-  <code>pip install sionna==0.19</code> <br>
+  <code>pip install sionna==0.19.2</code> <br>
 For more information on the different installation options we refer the reader to the [sionna documentation](https://nvlabs.github.io/sionna/installation.html).
-2. Download the install_legacy.sh file found in this git 
-3. Execute the install_legacy.sh file <br>
+2. Download the install_legacy.sh file of the tag v1.0.0 of this git <br>
+   <code>curl -fLO https://raw.githubusercontent.com/ant-uni-bremen/OpenNTN/v1.0.0/install_legacy.sh</code>
+3. Execute the install_legacy.sh file, which installs OpenNTN 0.19.0 from the tag v0.19.0 <br>
    <code>. install_legacy.sh</code>
 
 ## Possible installation issues

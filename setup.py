@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="OpenNTN",
-    version="0.1.0",
+    version="1.0.0",
     author="Tim Due",
     author_email="duee@ant.uni-bremen.de",
     description="An extension of the Sionna framework including channel models for NTN models",
