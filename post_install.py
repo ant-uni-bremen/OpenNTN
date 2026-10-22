@@ -2,14 +2,14 @@ import os
 import shutil
 import sys
 from pathlib import Path
-import pkg_resources
+from importlib.metadata import distribution
 #import sionna
 
 def modify_vanilla_sionna():
     """Modify the installed framework files as needed."""
     try:
         # Locate the framework installation path
-        framework_path = pkg_resources.get_distribution("sionna").location
+        framework_path = str(distribution("sionna").locate_file(""))
         #if "sionna" in sys.modules:
         #    framework_path = Path(sys.modules["sionna"].__file__).parent
         #    print(f"Sionna is installed at: {framework_path}")

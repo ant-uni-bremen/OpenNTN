@@ -1,9 +1,6 @@
 # PLEASE NOTE!
 
-Sionna has very recently published the 1.0 and **OpenNTN has not yet been adapted for Sionna 1.0+**! <br>
-We appreciate the ongoing development of Sionna to continously create an even better tool and are exited about all of the new features and future developments. Thus we will do our best to adapt OpenNTN for Sionna 1.0+ as soon as possible! However, for now we kindly ask all user of OpenNTN to stick to the **legacy version Sionna 0.19.2 for now**. You can still find the [documentation of the legacy version of Sionna here](https://jhoydis.github.io/sionna-0.19.2-doc/), including an [installation guide here](https://jhoydis.github.io/sionna-0.19.2-doc/installation.html). <br>
-
-We thank all users of OpenNTN for their patience and wish you continued success with your ongoing projects!
+This is OpenNTN 0.19.0, the version of OpenNTN for Sionna 0.19.2, which is built on TensorFlow. It is frozen. OpenNTN 1.0.0, for Sionna 1.x, is installed from the tag v1.0.0 of this git, and OpenNTN 2, for Sionna 2.x and PyTorch, with <code>pip install openntn</code>. You can still find the [documentation of the legacy version of Sionna here](https://jhoydis.github.io/sionna-0.19.2-doc/), including an [installation guide here](https://jhoydis.github.io/sionna-0.19.2-doc/installation.html). <br>
 
 # OpenNTN: An Open-Source Framework for Non-Terrestrial Network Channel Simulations
 This git provides an implementation of the channel models for dense urban, urban, and suburban scenarios according to the 3GPP TR38.811 standard. It is an extension to the existing Sionna™ framework and integrates into it as another module.
@@ -13,10 +10,11 @@ This git provides an implementation of the channel models for dense urban, urban
 As of very recently, Sionna has released version 1.0. This installation uses the legacy version 0.19.<br>
 
 1. Install Sionna <br>
-  <code>pip install sionna==0.19</code> <br>
+  <code>pip install sionna==0.19.2</code> <br>
 For more information on the different installation options we refer the reader to the [sionna documentation](https://nvlabs.github.io/sionna/installation.html).
-2. Download the install.sh file found in this git 
-3. Execute the install.sh file <br>
+2. Download the install.sh file of the tag v0.19.0 of this git <br>
+   <code>curl -fLO https://raw.githubusercontent.com/ant-uni-bremen/OpenNTN/v0.19.0/install.sh</code>
+3. Execute the install.sh file, which installs OpenNTN 0.19.0 from that tag <br>
    <code>. install.sh</code>
 
 ## Contents of OpenNTN
