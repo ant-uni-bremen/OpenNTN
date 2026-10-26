@@ -2,6 +2,417 @@
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0] - 2026-10-26
+
+First release of OpenNTN for Sionna 2.x, which is built on PyTorch: the package
+`openntn`, installed from PyPI with `pip install openntn`, whose channel models give the
+results of 2.0.0a4 and 2.0.0rc1. Against the versions for Sionna 1.x and 0.19, its
+classes and functions take and return PyTorch tensors, its corrections of the models
+change simulation results (the first section lists them), its three example notebooks
+run with Sionna 2.x and PyTorch, and it adds a description of the models
+(`docs/model.md`), a migration guide (`docs/migration.md`) and the citation metadata
+(`CITATION.cff`). Since 2.0.0rc1 the metadata of the distribution has the development
+status "5 - Production/Stable", and the tests of two test files that failed on a GPU are
+fixed; the package is unchanged.
+
+This entry collects the changes since the versions for Sionna 1.x and 0.19, which are
+OpenNTN 1.0.0 and 0.19.0 as to their models: each item ends with the pre-releases whose
+sections below describe it in full, with its measured effect and its conditions, apart
+from the fix of the tests, which is new in this version. A change that concerns only the
+pre-releases, such as a defect that one pre-release brought and a later one fixed, is
+described only in their sections.
+
+### Changes that affect simulation results
+
+- Random numbers: every random number is drawn with PyTorch from the generators of
+  Sionna 2.x instead of with TensorFlow, so the same seed gives other realizations,
+  which also differ between the CPU and a GPU and between eager and compiled calls, and
+  single precision rounds some quantities differently; the statistics of the results do
+  not change. Affected earlier versions: the versions for Sionna 0.19 and 1.x. See
+  2.0.0rc1.
+- Shadow fading applied once: on every link the shadow fading reaches the channel only
+  as the large scale parameter SF of TR 38.901 V16.1.0, clause 7.5, step 4, with σ_SF
+  and the correlations of TR 38.811 V15.4.0 (eq. (6.6-4), Tables 6.7.2-1a to 6.7.2-8b),
+  where a second draw in the basic path loss gave about √2 times σ_SF and remained with
+  `enable_shadow_fading=False`. Affected earlier versions: the versions for Sionna 0.19
+  and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Correlation of the large scale parameters: they are correlated first across the UTs
+  and then across the parameters of each link, in the Cholesky order of TR 38.901
+  V16.1.0, clause 7.5, step 4 (TR 38.811 V15.4.0, clause 6.7.2), where the reversed
+  order left links with UTs of the same link state within the correlation distances
+  without the cross-correlations of the tables. Affected earlier versions: the versions
+  for Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- UTs at the same location: UTs at one location in the horizontal plane, in one link
+  state and batch example, share their large scale parameters, as the correlation
+  exp(-d/d_corr) of TR 38.901 V16.1.0, clause 7.5, step 4, is 1 at d = 0; its singular
+  matrix gave the UTs after them too large a variance and NaN gradients (2.0.0a1), NaN
+  parameters (the version for Sionna 1.x) or a result that depends on TensorFlow (the
+  version for Sionna 0.19). Affected earlier versions: 2.0.0a1; the versions for Sionna
+  0.19 and 1.x build the same singular correlation for such UTs. See 2.0.0a2.
+- Elevation angles midway between two reference angles: at exactly 25°, 45°, 65° and 85°
+  every table takes the higher reference angle, where the rounding of ties to the even
+  number took the lower one; TR 38.811 V15.4.0, clauses 6.6.1 and 6.6.2, takes the
+  nearest reference angle and gives no rule for an angle midway between two. Affected
+  earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Ray offset angles: on every link ray 16 of every cluster lies at -1.1481 times the
+  intra-cluster angle spread, as in TR 38.901 V16.1.0, Table 7.5-3 (TR 38.811 V15.4.0,
+  clause 6.7.2), instead of -0.1481 times. Affected earlier versions: the versions for
+  Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Cluster elimination: on every link, clusters with less than -25 dB power compared with
+  the strongest cluster get zero power, as TR 38.901 V16.1.0, clause 7.5, step 6,
+  removes them (TR 38.811 V15.4.0, clause 6.7.2), where they were kept; the shapes of
+  the outputs stay, and the other powers are not renormalized. Affected earlier
+  versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Angular scaling factors: C_phi^NLOS and C_theta^NLOS follow the number of clusters at
+  the elevation angle, as in TR 38.811 V15.4.0, Tables 6.7.2-1aa and 6.7.2-1ab, where
+  each parameter file held one pair for all angles; this concerns urban LOS links at
+  10°, urban NLOS and sub-urban LOS links at 70° to 90° and sub-urban NLOS links at 60°
+  to 90°, and the files no longer have the keys `CPhiNLoS` and `CThetaNLoS`. Affected
+  earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Random signs and ray coupling per link: the signs X_n of the cluster angles and the
+  coupling of the rays (TR 38.901 V16.1.0, clause 7.5, steps 7 and 8; TR 38.811 V15.4.0,
+  clause 6.7.2) are drawn for each link, where all UTs of a satellite shared them, which
+  correlated their angles in simulations with more than one UT per satellite. Affected
+  earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Ray coupling in the two strongest clusters: on every link their rays are coupled
+  within the sub-clusters of TR 38.901 V16.1.0, Table 7.5-5, as clause 7.5, step 8,
+  requires (TR 38.811 V15.4.0, clause 6.7.2), where they were coupled across the whole
+  cluster; the cluster powers and delays and the mean power of a link do not change.
+  Affected earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1. See
+  2.0.0a2.
+- LOS arrival direction: the zenith angle of arrival of the LOS ray is 180° minus the
+  zenith angle of departure, as in TR 38.901 V16.1.0, clause 7.5, step 1c (TR 38.811
+  V15.4.0, eq. (6.8-1b)), where the zenith angle of departure plus 180° put the arrival
+  direction 180° minus twice the elevation angle off; this concerns every LOS link
+  through the antenna pattern, the array phases and the Doppler shift at the UT.
+  Affected earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1. See
+  2.0.0a2.
+- Sign of the LOS propagation phase: the LOS ray contains exp(-j2π d3D/λ0), as in
+  TR 38.901 V16.1.0, eq. (7.5-29), and TR 38.811 V15.4.0, eq. (6.8-1b), instead of
+  exp(+j2π d3D/λ0); single realizations of LOS links change, the statistics do not.
+  Affected earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1. See
+  2.0.0a2.
+- LOS propagation phase in single precision: the phase 2π d3D/λ0, with d3D of TR 38.811
+  V15.4.0, eq. (6.6-3), is computed in double precision and reduced modulo 2π before the
+  cast, where single precision made it random; this concerns the first-path and the
+  total power of single LOS links in single precision, not their distributions. Affected
+  earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1, in single
+  precision, their default precision. See 2.0.0a2.
+- Zenith angle of departure offset: mu_offset,ZOD of TR 38.901 V16.1.0, eq. (7.5-19), is
+  0, as the tables of TR 38.811 V15.4.0, clause 6.7.2, have no offset row, where NLOS
+  links took the expression of TR 38.901 Table 7.5-9 (rural macro cell), in radians
+  added to degrees; the cluster zenith angles of NLOS links at the satellite change
+  little. Affected earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1.
+  See 2.0.0a2.
+- Sub-urban NLOS, Ka band, uplink, 80°: the mean of lg ZSD is -3.20, as in TR 38.811
+  V15.4.0, Table 6.7.2-6b, instead of -3.30, which made the median ZSD and the zenith
+  spread of the rays within each cluster at the satellite or aerial platform too small;
+  as the departure spreads of a satellite are zero in both directions (the item on the
+  departure spreads at the satellite in the uplink), the corrected value acts on the
+  uplink of aerial platforms. Affected earlier versions: the versions for Sionna 0.19
+  and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Urban NLOS, Ka band: the cluster ASA at 30°, 40° and 50° is 16.4°, 17.86° and 19.74°,
+  as in TR 38.811 V15.4.0, Table 6.7.2-4b, instead of 18.14°, 16.04° and 17.86° in both
+  directions, which made the spread of the rays within each cluster on the UT side too
+  large at 30° and too small at 40° and 50°. Affected earlier versions: the versions for
+  Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Departure spreads at the satellite in the uplink: NOTE 8 of TR 38.811 V15.4.0, Tables
+  6.7.2-1a to 6.7.2-8b, by which the departure angle spreads of a satellite are zero,
+  applies in both directions, where only the downlink parameter files applied it; the
+  files hold the tables as printed, so aerial platforms take their spreads in both
+  directions, where the downlink files gave them zero. This concerns the uplink of
+  satellites and both directions of aerial platforms. Affected earlier versions: the
+  versions for Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Cluster azimuth spread at the satellite: every ray leaves a satellite in the azimuth
+  of its cluster, as NOTE 8 of TR 38.811 V15.4.0, Tables 6.7.2-1a to 6.7.2-8b, makes the
+  departure angle spreads of a satellite zero, where the rays of the urban scenario left
+  at the AOD of their cluster plus c_ASD α_m (TR 38.901 V16.1.0, eq. (7.5-13)); this
+  concerns the urban links of satellites, as the other tables print c_ASD = 0, and not
+  aerial platforms. Affected earlier versions: the versions for Sionna 0.19 and 1.x, and
+  2.0.0a1. See 2.0.0a2.
+- Satellite Doppler shift: the Doppler shift due to the motion of the satellite has the
+  factor R/(R+h) of TR 38.811 V15.4.0, clauses 6.7.1 and 6.9.2, without which it was
+  (R+h)/R times too large, and a geostationary satellite, which induced one, induces
+  none, as clause 5.3.2.3 states; this concerns the phase over time of every satellite
+  link with the Doppler shift enabled. Affected earlier versions: the versions for
+  Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Satellites from 160 km to below 600 km: the Doppler shift due to the motion of the
+  satellite applies to them, where it applied from 600 km on; the Faraday rotation of
+  TR 38.811 V15.4.0, clause 6.8.2, given for a spaceborne BS above the ionosphere, still
+  applies from 600 km, the lowest satellite altitude of TR 38.811. Affected earlier
+  versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Faraday rotation in the uplink: uplink paths to a satellite from 600 km are rotated in
+  the direction of the downlink, as seen from the earth station (ITU-R P.618-13,
+  section 4), between the scatterers and the satellite, where the field of the UT was
+  rotated before the scatterers and in the opposite direction (TR 38.811 V15.4.0,
+  eqs. (6.8-1a) and (6.8-1b), are written for the downlink); this changes the power
+  between single elements and, through scatterers, over two orthogonal elements at the
+  satellite. Affected earlier versions: the versions for Sionna 0.19 and 1.x, and
+  2.0.0a1 to 2.0.0a3. See 2.0.0a4.
+- Default atmosphere: the defaults of `temperature` and `atmospheric_pressure` are those
+  of the reference atmosphere of TR 38.811 V15.4.0, clause 6.6.4 (288.15 K and
+  1013.25 hPa), where they were 273 K and 1020 hPa, and the gas loss takes
+  t = T - 273.15 in degrees Celsius, where T - 273 was used; this concerns the gas loss
+  of every link. Affected earlier versions: the versions for Sionna 0.19 and 1.x, and
+  2.0.0a1. See 2.0.0a2.
+- Gas attenuation: the gas loss of every link follows Annex 2 of ITU-R P.676-10 as
+  printed (eqs. (22a) to (23d) and (25a) to (28); TR 38.811 V15.4.0, eq. (6.6-8)), with
+  the pressure of clause 6.6.4 as the dry air pressure, where it used curve fits up to
+  54 GHz, with two coefficients that no revision prints, followed no revision above
+  54 GHz and took the pressure as the total pressure. Affected earlier versions: the
+  versions for Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Atmospheric parameters of `set_topology`: a value of `latitude`,
+  `atmospheric_pressure`, `temperature` or `water_vapor_density` persists until it is
+  passed again and, passed without new topology tensors, recomputes the gas and
+  scintillation losses (TR 38.811 V15.4.0, clauses 6.6.4 and 6.6.6), where every call
+  reset the values that it did not pass and only a new topology recomputed the losses;
+  the `set_topology` method of the models takes them, where it raised `TypeError`.
+  Affected earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1. See
+  2.0.0a2.
+- Tropospheric scintillation: in the Ka band the loss is the value of TR 38.811 V15.4.0,
+  Table 6.6.6.2.1-1, at the nearest reference elevation angle, as clause 6.6.6.2.1
+  specifies above 6 GHz, where it was the fade depth of ITU-R P.618-13 exceeded 0.01 %
+  of the time instead of the 1 % of the table, computed from atmospheric and antenna
+  parameters; this concerns every link in the Ka band. Affected earlier versions: the
+  versions for Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Ionospheric scintillation: in the S band, satellite links get A_IS of TR 38.811
+  V15.4.0, clause 6.6.6.1.4, only for UTs within 20° of the magnetic equator, by
+  `latitude` of `set_topology` (by default 47°, which gives 0 dB), and links to aerial
+  platforms get none, as Table 6.10.1-1 gives the scintillation as negligible for UAS,
+  where A_IS applied at every latitude and to every platform. Affected earlier versions:
+  the versions for Sionna 0.19 and 1.x and 2.0.0a1, and for aerial platforms within 20°
+  of the magnetic equator 2.0.0a2 and 2.0.0a3. See 2.0.0a2 and 2.0.0a4.
+- Antenna element pattern `"dlp"`: it includes the maximum directional gain of 5 dBi of
+  R1-1802551, Table 2, which TR 38.811 V15.4.0, clause 6.4.2, uses, where its maximum
+  was 0 dBi; this concerns every channel with `"dlp"` elements, at either end. Affected
+  earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3. See
+  2.0.0a4.
+- Antenna arrays with `polarization="dual"` and `polarization_type="VH"`: the two
+  elements of each pair have the slant angles 0° and 90°, as in TR 38.901 V16.1.0,
+  clause 7.3.2, and R1-1802551, Table 1 (TR 38.811 V15.4.0, clause 6.4.2), where they
+  had the -45° and +45° of `"cross"`; this concerns every such array, at either end, but
+  not the power summed over a pair. Affected earlier versions: the versions for Sionna
+  0.19 and 1.x, and 2.0.0a1 to 2.0.0a3. See 2.0.0a4.
+- UT orientations of `generate_uts_topology` and `gen_single_sector_topology`: every UT
+  faces the satellite or aerial platform, as the generators intend and their docstrings
+  now state, where the UTs at negative x faced away from it (`atan` of y/x instead of
+  the angle of (x, y)); this concerns such UTs with a directional antenna element, about
+  a third of the UTs of `generate_uts_topology` with `drop_area="cell"`. Affected
+  earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3. See
+  2.0.0a4.
+
+### Added
+
+- The argument `device`, by default `sionna.phy.config.device`, of `DenseUrban`,
+  `Urban`, `SubUrban`, their scenarios and `SystemLevelScenario`, of the antenna classes
+  and `ChannelCoefficientsGenerator`, and of nine functions of `openntn.utils`; the
+  antenna arrays of a model must be built on its device. See 2.0.0a3 and 2.0.0rc1.
+- The argument `aperture_radius` of `AntennaElement`, `PanelArray`, `Antenna` and
+  `AntennaArray`, the radius of the pattern `"aperture"` of TR 38.811 V15.4.0, clause
+  6.4.1, in wavelengths, by default 10, the radius that the pattern used before. See
+  2.0.0a4.
+- The optional argument `strongest_cluster_indices` of `Rays`. See 2.0.0a2.
+- `openntn.__version__`, the version of the installed distribution. See 2.0.0rc1.
+- The optional dependencies `test`, what the test suite of the source distribution
+  needs. See 2.0.0rc1.
+- `docs/model.md`, the description of the channel models. See 2.0.0rc1.
+- `docs/migration.md`, a guide for the users of the versions for Sionna 1.x and 0.19.
+  See 2.0.0rc1.
+- `CITATION.cff`, the citation metadata of the software. See 2.0.0rc1.
+- `example/BER_sims_results.npz` and `example/ML_based_SIMO_receiver_results.npz`, the
+  results of the full runs of `BER_sims.ipynb` and `ML_based_SIMO_receiver.ipynb`. See
+  2.0.0rc1.
+
+### Changed
+
+- The package is built on PyTorch and Sionna 2.x: its classes and functions take and
+  return PyTorch tensors of the same shapes instead of TensorFlow tensors, and its
+  objects are objects of Sionna 2.x, with the attributes `dtype` (instead of `rdtype`),
+  `cdtype` and `device`. Affected earlier versions: the versions for Sionna 0.19 and
+  1.x. See 2.0.0rc1.
+- Import name `openntn`, instead of the module `tr38811` that the installation scripts
+  of the earlier versions linked into Sionna. See 2.0.0a1.
+- Installation: `pip install openntn` installs the package from PyPI with PyTorch, NumPy
+  and Matplotlib, for Sionna 2.x (`sionna>=2.0.1,<3.0`) and Python 3.11 or later,
+  without TensorFlow, and changes no file of Sionna; the link and the line
+  `from . import tr38811` that the earlier installation scripts added to Sionna remain
+  in such an environment, as `openntn` neither needs nor removes them. Affected earlier
+  versions: the versions for Sionna 0.19 and 1.x. See 2.0.0a1 and 2.0.0rc1.
+- The licence is declared as `MIT AND Apache-2.0`: the files derived from Sionna are
+  under the Apache License 2.0, all other files under the MIT License, and both licence
+  texts are included. See 2.0.0a1.
+- The source distribution contains `CHANGELOG.md`, and the metadata of the distribution
+  name the changelog, have keywords and the development status "5 - Production/Stable"
+  ("4 - Beta" in 2.0.0rc1) and list Louis Lagona and Tim Düe as authors. See 2.0.0rc1.
+- For users of the version for Sionna 0.19: the argument `precision`, `"single"` or
+  `"double"`, by default `sionna.phy.config.precision`, replaces the TensorFlow `dtype`,
+  and a call with `dtype` raises `TypeError`; the property `dtype` of the scenarios is
+  the real data type, and the antenna classes, `ChannelCoefficientsGenerator`,
+  `LSPGenerator`, `RaysGenerator` and `SystemLevelScenario` are objects of Sionna 2.x
+  instead of plain classes. Affected earlier version: the version for Sionna 0.19. See
+  2.0.0rc1.
+- Counts such as `num_ant`, `batch_size` and `num_ut` are Python ints instead of
+  TensorFlow integer tensors, and the antenna indices of `PanelArray` are `torch.int64`.
+  Affected earlier versions: the versions for Sionna 0.19 and 1.x. See 2.0.0rc1.
+- `Topology`, `LSP` and `Rays` are plain classes, and the abstract methods of
+  `SystemLevelScenario` are no longer enforced. Affected earlier versions: the version
+  for Sionna 1.x (the three classes) and the versions for Sionna 0.19 and 1.x (the
+  abstract methods). See 2.0.0rc1.
+- `openntn.channel_coefficients`, `openntn.lsp` and `openntn.rays` define `__all__`, so
+  a star import binds only their two classes. Affected earlier versions: the versions
+  for Sionna 0.19 and 1.x. See 2.0.0rc1.
+- Inputs and edge cases: `set_topology` converts the topology tensors to the precision
+  and device of the model and accepts NumPy arrays, `AntennaElement.field` takes only
+  PyTorch tensors, and several functions of `openntn.utils` treat edge cases otherwise.
+  Affected earlier versions: the versions for Sionna 0.19 and 1.x. See 2.0.0rc1.
+- Graph execution: `torch.compile` takes the place of `tf.function`; `set_topology` runs
+  eagerly, outside the compiled function, so code that traced it calls it before, and
+  the call of the models compiles without graph breaks and with CUDA graphs recorded
+  once per shape of the topology, as `set_topology` writes the tensors that it derives
+  from the topology in place: they are buffers of the model, and the next `set_topology`
+  of the same shapes overwrites a tensor taken from it, so clone it to keep its values.
+  Affected earlier versions: the versions for Sionna 0.19 and 1.x. See 2.0.0a3, 2.0.0a4
+  and 2.0.0rc1.
+- A model stays on the device and in the precision of its construction: moved or cast,
+  for example with `.to()`, `.cuda()` or `.double()`, it raises `ValueError` in its next
+  `set_topology` or call. Affected earlier versions: 2.0.0a3, whose call raised it only
+  after the last `set_topology`, and 2.0.0a1 and 2.0.0a2, which had no such check. See
+  2.0.0a3 and 2.0.0a4.
+- Antenna arrays built in another precision than the model raise a `ValueError` that
+  names both precisions. Affected earlier versions: 2.0.0a1 to 2.0.0a3; the versions for
+  Sionna 0.19 and 1.x raised an `InvalidArgumentError` of TensorFlow. See 2.0.0a4.
+- The parameters of `set_topology` after `latitude` are keyword-only, so a call in the
+  earlier order, with `lwc` and `rain_rate` after `latitude`, raises `TypeError`, where
+  2.0.0a2 to 2.0.0a4 gave their values to the unchecked `atmospheric_pressure` and
+  `temperature`. Affected earlier versions: the versions for Sionna 0.19 and 1.x and
+  2.0.0a1, whose scenarios take these parameters by position in the earlier order, and
+  2.0.0a2 to 2.0.0a4, whose scenarios and models take them by position. See 2.0.0rc1.
+- `enable_pathloss` and `enable_shadow_fading` must be `True` or `False`, otherwise
+  `TypeError`, where any value was taken by its truth value. Affected earlier versions:
+  the versions for Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a4. See 2.0.0rc1.
+- `always_generate_lsp` and `doppler_enabled` must be `True` or `False`
+  (`doppler_enabled` of `set_topology` also `None`), otherwise `TypeError`, also when a
+  call passes the average street width and building height of the earlier versions by
+  position. Affected earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1
+  to 2.0.0a3. See 2.0.0a4.
+- Invalid inputs, such as an elevation angle outside 10° to 90° or a carrier frequency
+  outside 1.9 GHz to 4 GHz and 19 GHz to 40 GHz, raise `ValueError` instead of
+  `AssertionError`, also under `python -O`, which removed the checks; a `ut_array` or
+  `bs_array` of another type raises `TypeError`. Affected earlier versions: the versions
+  for Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3. See 2.0.0a4.
+- `AntennaPanel.polarization` replaces the misspelt `AntennaPanel.porlarization`,
+  without an alias. Affected earlier versions: the versions for Sionna 0.19 and 1.x, and
+  2.0.0a1 to 2.0.0a3. See 2.0.0a4.
+- `Topology` takes the argument `los_phase`, which the scenarios provide; code that
+  builds a `Topology` itself has to pass it. See 2.0.0a2.
+- `set_topology` raises `ValueError` unless `bs_loc` holds one satellite (160 km to
+  35 786 km) or aerial platform (8 km to 50 km) at the same height in every batch
+  example; before, a second BS made the channel call fail, and with heights that
+  differed across the batch the 3D distance, the path loss and the switches of the
+  satellite took the height of the first batch example, as in the versions for Sionna
+  0.19 and 1.x and 2.0.0a1. See 2.0.0a2.
+- `set_topology` raises `ValueError` for a `latitude` outside -90° to 90°, the latitude
+  of the UTs relative to the magnetic equator, where any value was accepted and had no
+  effect. See 2.0.0a2.
+- `basic_pathloss` of the scenarios is the free space path loss plus the clutter loss of
+  NLOS links, without the shadow fading draw of its own that it had, as in the versions
+  for Sionna 0.19 and 1.x and 2.0.0a1. See 2.0.0a2.
+- `set_topology` raises `ValueError` for indoor UTs, as the models have neither the
+  building entry loss of TR 38.811 V15.4.0, clause 6.6.3, nor clusters for them, where
+  their channel coefficients were NaN. Affected earlier versions: 2.0.0a1, and the
+  versions for Sionna 0.19 and 1.x. See 2.0.0a2.
+- The three notebooks of `example/` run with Sionna 2.x, PyTorch and `openntn`; with
+  `OPENNTN_NOTEBOOK_MODE` unset, `BER_sims.ipynb` and `ML_based_SIMO_receiver.ipynb`
+  load their stored results, `full` computes the full runs and `reduced` runs short
+  ones. See 2.0.0rc1.
+- `BER_sims.ipynb` takes the noise variance of `ebnodb2no` without the factor of the
+  bits per symbol, so that its curves lie 3.01 dB to the left of those of the earlier
+  notebook. See 2.0.0rc1.
+- `ML_based_SIMO_receiver.ipynb` evaluates the receiver from -10 to 0 dB, where the
+  earlier notebook evaluated it from -5 to 0 dB. See 2.0.0rc1.
+- Seven changes of the notebooks: `BER_sims.ipynb` points the antenna of the satellite
+  at the UT, generates the topology at the elevation angle of the model and decodes
+  log-likelihood ratios in cell 7; `ML_based_SIMO_receiver.ipynb` evaluates the receiver
+  beside the baselines with perfect CSI and with LS channel estimation and writes its
+  weights with `numpy.savez`; `channel_response.ipynb` generates the topologies at the
+  elevation angles of the models and places the geostationary satellite at 35 786 km
+  instead of 36 000 km. See 2.0.0rc1.
+- Other changes of the notebooks: the device, single precision and the seed 42 in their
+  first code cell, in `BER_sims.ipynb` the batch size and the limits of the notebook for
+  Sionna 1.x, in `channel_response.ipynb` no Doppler sweep of the condition number and
+  other figures, and texts that describe what the code computes. See 2.0.0rc1.
+
+### Removed
+
+- `TDL` and `CDL`, with their modules; the link-level models NTN-TDL and NTN-CDL of
+  TR 38.811 V15.4.0, clause 6.9, are not implemented, and their parameter files stay in
+  `openntn/models`. See 2.0.0a2.
+- The rain and cloud attenuation of TR 38.811 V15.4.0, clause 6.6.5, which no model
+  computed: the scenario property `additional_pathloss` and
+  `utils.compute_pathloss_additional`. See 2.0.0a2.
+- The parameters `lwc` and `rain_rate` of `set_topology` and the scenario properties of
+  the same names, which had no effect. See 2.0.0a2.
+- The parameters `relative_humidity`, `diameter_earth_antenna` and `antenna_efficiency`
+  of `set_topology` and the scenario properties of the same names, which had no effect;
+  a call that passes one of the five removed parameters raises `TypeError`. See 2.0.0a2.
+- The arguments `average_street_width` and `average_building_height` of the models and
+  their scenarios and the scenario properties of the same names, which no computation
+  used. Affected earlier versions: the versions for Sionna 0.19 and 1.x, and 2.0.0a1 to
+  2.0.0a3. See 2.0.0a4.
+- `compute_pathloss_basic`, `compute_pathloss_entry`, `compute_pathloss_gas` and
+  `compute_pathloss_scintilation` of `openntn.utils` as public functions; the properties
+  of the scenarios give the path loss terms. Affected earlier versions: the versions for
+  Sionna 0.19 and 1.x, and 2.0.0a1 to 2.0.0a3. See 2.0.0a4.
+- `utils.compute_stallite_doppler`, which nothing used. See 2.0.0a2.
+- `utils.gen_single_sector_topology_interferers`, which failed in every scenario. See
+  2.0.0a2.
+- The unused model data files. See 2.0.0a1.
+- `example/Example_NTN_sim.pkl`, replaced by `example/BER_sims_results.npz`. See
+  2.0.0rc1.
+
+### Fixed
+
+- The seed of Sionna alone fixes every random number of a simulation on one device, as
+  all are drawn from the generators of Sionna 2.x, where the earlier versions drew most
+  of them from the global generator of TensorFlow, which that seed does not seed.
+  Affected earlier versions: the versions for Sionna 0.19 and 1.x. See 2.0.0rc1.
+- `precision="double"` works throughout, where `gen_single_sector_topology`,
+  `set_topology` and other functions of the version for Sionna 1.x raised an error of
+  TensorFlow. Affected earlier version: the version for Sionna 1.x; the version for
+  Sionna 0.19 was not checked. See 2.0.0rc1.
+- The distribution installs only the package `openntn`, where the `setup.py` of the
+  earlier versions also listed their tests as a top-level package `test`. Affected
+  earlier versions: the versions for Sionna 0.19 and 1.x (by their `setup.py`; they were
+  not built). See 2.0.0rc1.
+- The gradients of `matrix_ut_distance_2d` and of the large scale parameters with
+  respect to the UT locations are finite, where the square root of the zero distance of
+  a UT to itself made them NaN; no simulation result changes. Affected earlier versions:
+  2.0.0a1, and the versions for Sionna 0.19 and 1.x. See 2.0.0a2.
+- Documentation of the scenario properties: `doppler_enabled` describes the flag that
+  switches the Doppler shift due to the motion of the satellite, where it had the
+  description of the antenna efficiency, and `gas_pathloss`, `scintillation_pathloss`,
+  `entry_pathloss` and `free_space_pathloss` cite TR 38.811 V15.4.0, where they cited
+  TR 38.901, clause 7.4.1; no result changes. Affected earlier versions: the versions
+  for Sionna 0.19 and 1.x, and 2.0.0a1. See 2.0.0a2.
+- Documentation: the docstrings name `openntn`, the current paths of Sionna and the
+  arguments of the signatures; no result changes. Affected earlier versions: 2.0.0a1 to
+  2.0.0a3; the versions for Sionna 0.19 and 1.x have the same texts, apart from the
+  module paths. See 2.0.0a4.
+- Documentation: corrected docstrings, for example that of
+  `SystemLevelScenario.los_zoa`, which gives the zenith angle of arrival of the LOS path
+  as 180° minus its zenith angle of departure, where it said "considered 90 degrees"; no
+  result changes. Affected earlier versions: 2.0.0a1 to 2.0.0a4; the versions for Sionna
+  0.19 and 1.x have the same texts, apart from the arguments `precision` and `device`.
+  See 2.0.0rc1.
+- The messages of the checks of the panel spacings of `PanelArray` spell "Panel" where
+  they said "Pannel". Affected earlier versions: the versions for Sionna 0.19 and 1.x,
+  and 2.0.0a1 to 2.0.0a4. See 2.0.0rc1.
+- The tests in `tests/topology_orientations_test.py` and the test `test_dlp_pattern` in
+  `tests/antenna_pattern_test.py` failed on a GPU, where Sionna's default device is
+  `cuda:0`: they converted tensors on the GPU to NumPy arrays without moving them to
+  the CPU. The package is not affected. Affected earlier versions: 2.0.0a4 and
+  2.0.0rc1, whose source distributions contain these tests.
+
 ## [2.0.0rc1] - 2026-10-21
 
 Release candidate of OpenNTN 2.0.0 for Sionna 2.x, whose channel models give the results

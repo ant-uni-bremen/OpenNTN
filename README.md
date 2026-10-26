@@ -70,16 +70,14 @@ version from the PyTorch index, then OpenNTN; the build for CUDA 12.6 runs with 
 python -m pip install torch --index-url https://download.pytorch.org/whl/cu126
 ```
 
-OpenNTN 2 is a pre-release until 2.0.0, and its interfaces can still change. pip
-installs a pre-release only if no final release of openntn is available; otherwise
-`--pre` is needed (`python -m pip install --pre openntn`). The changes of this version
-are listed in the
-[changelog](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/CHANGELOG.md).
+The changes of this version are listed in the
+[changelog](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/CHANGELOG.md).
 
 > **Note:** openntn 2.x requires Sionna 2.x. Installing it into an environment with
-> Sionna 1.x upgrades Sionna to 2.x. For Sionna 1.x and Sionna 0.19, use the
-> corresponding versions of OpenNTN from the repository at
-> https://github.com/ant-uni-bremen/OpenNTN.
+> Sionna 1.x upgrades Sionna to 2.x. For Sionna 1.x and Sionna 0.19, use OpenNTN
+> 1.0.0 and 0.19.0, which their installation scripts install from the tags
+> [v1.0.0](https://github.com/ant-uni-bremen/OpenNTN/tree/v1.0.0) and
+> [v0.19.0](https://github.com/ant-uni-bremen/OpenNTN/tree/v0.19.0) of the repository.
 
 Sionna is also published as `sionna-no-rt`, without the ray tracer, which OpenNTN does
 not use. openntn depends on the distribution `sionna`; to use `sionna-no-rt` instead,
@@ -92,9 +90,9 @@ python -m pip install --no-deps openntn
 ```
 
 An environment that holds an earlier version of OpenNTN, installed by its installation
-script as the distribution `OpenNTN` 0.1.0, keeps it when `python -m pip install
-openntn` runs, as pip takes it for the same project. Use a new environment, or uninstall
-the earlier version first:
+script as the distribution `OpenNTN` (1.0.0 or 0.19.0 from the tags, 0.1.0 from the
+branches before them), keeps it when `python -m pip install openntn` runs, as pip takes
+it for the same project. Use a new environment, or uninstall the earlier version first:
 
 ```sh
 python -m pip uninstall OpenNTN
@@ -105,13 +103,13 @@ python -m pip uninstall OpenNTN
 | OpenNTN | Sionna | Framework | Installation | Import |
 |---|---|---|---|---|
 | 2.x, this version | 2.x, from 2.0.1 | PyTorch | `python -m pip install openntn`, from PyPI | `import openntn` |
-| the version for Sionna 1.x | 1.x | TensorFlow | its installation script, from the repository (Linux) | `sionna.phy.channel.tr38811` |
-| the version for Sionna 0.19 | 0.19 | TensorFlow | its installation script, from the repository (Linux) | `sionna.channel.tr38811` |
+| 1.0.0, for Sionna 1.x | 1.x | TensorFlow | its installation script at the tag [v1.0.0](https://github.com/ant-uni-bremen/OpenNTN/tree/v1.0.0) (Linux) | `sionna.phy.channel.tr38811` |
+| 0.19.0, for Sionna 0.19 | 0.19 (0.19.2) | TensorFlow | its installation script at the tag [v0.19.0](https://github.com/ant-uni-bremen/OpenNTN/tree/v0.19.0) (Linux) | `sionna.channel.tr38811` |
 
-The versions for Sionna 1.x and 0.19 are in the repository at
-https://github.com/ant-uni-bremen/OpenNTN and not on PyPI; the TensorFlow versions of
-the example notebooks belong to them. The
-[migration guide](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/docs/migration.md)
+The versions 1.0.0 and 0.19.0 are not on PyPI; their installation scripts install the
+version of their tag. The TensorFlow versions of the example notebooks belong to them.
+The
+[migration guide](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/docs/migration.md)
 describes what changes for their users.
 
 ## Quickstart
@@ -164,15 +162,15 @@ in its next `set_topology` or call.
 
 Three Jupyter notebooks show the models at work with Sionna 2 and PyTorch:
 
-- [channel_response.ipynb](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/example/channel_response.ipynb):
+- [channel_response.ipynb](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/example/channel_response.ipynb):
   the topology, the path coefficients, the path delays and the frequency response of
   the channels, and their condition numbers in the three scenarios and for different
   heights, elevation angles, numbers of user terminals and carrier frequencies.
-- [BER_sims.ipynb](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/example/BER_sims.ipynb):
+- [BER_sims.ipynb](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/example/BER_sims.ipynb):
   an OFDM downlink from a satellite at 600 km in the S band, with LDPC coding and LMMSE
   equalization, and the uncoded bit error rate of the three scenarios over Eb/N0 with
   perfect channel knowledge.
-- [ML_based_SIMO_receiver.ipynb](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/example/ML_based_SIMO_receiver.ipynb):
+- [ML_based_SIMO_receiver.ipynb](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/example/ML_based_SIMO_receiver.ipynb):
   the neural receiver of Sionna's tutorial "Neural Receiver for OFDM SIMO Systems", in
   PyTorch, trained on the channels of the dense urban scenario and evaluated beside the
   receivers with perfect channel knowledge and with LS channel estimation.
@@ -205,7 +203,7 @@ the earlier versions belong to the versions for Sionna 1.x and 0.19.
 - **User terminals:** outdoors only; `set_topology` raises `ValueError` for indoor user
   terminals.
 
-The [description of the models](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/docs/model.md)
+The [description of the models](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/docs/model.md)
 lists the scope, the conventions and the limits of the models in full, with their
 calibration against 3GPP TR 38.821 and their speed on a GPU.
 
@@ -215,16 +213,16 @@ OpenNTN 2 keeps the names of the models, the antennas and the topology generator
 it is a separate package, `openntn`, built on PyTorch: its inputs and outputs are
 PyTorch tensors, it is installed with pip, and corrections of the models change
 simulation results. The
-[migration guide](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/docs/migration.md)
+[migration guide](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/docs/migration.md)
 lists the changes by topic, with the changes of the API that existing code has to
-follow; the [changelog](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/CHANGELOG.md)
+follow; the [changelog](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/CHANGELOG.md)
 describes every change and correction.
 
 ## Citation
 
 If you use OpenNTN in your research, please cite the version of the software that you
 used, as the
-[citation file](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/CITATION.cff)
+[citation file](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/CITATION.cff)
 of the repository describes it, and the paper that presents the framework:
 
 T. Düe, M. Vakilifard, C. Bockelmann, D. Wübben and A. Dekorsy, "OpenNTN: An
@@ -250,11 +248,11 @@ https://doi.org/10.1109/WSA65299.2025.11202820
 OpenNTN is distributed under the licence expression `MIT AND Apache-2.0`:
 
 - Files derived from NVIDIA Sionna are licensed under the Apache License 2.0
-  ([LICENSE-APACHE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/LICENSE-APACHE)).
+  ([LICENSE-APACHE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/LICENSE-APACHE)).
   Their headers keep NVIDIA's copyright notice and, for modified files, state that
   they were modified at the University of Bremen.
 - All other files are licensed under the MIT License
-  ([LICENSE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0rc1/LICENSE)).
+  ([LICENSE](https://github.com/ant-uni-bremen/OpenNTN/blob/v2.0.0/LICENSE)).
 
 Data files cannot carry a header. `TDL-A30.json`, `TDL-B100.json` and `TDL-C300.json`
 in `openntn/models` are unchanged copies of Sionna's files and therefore under

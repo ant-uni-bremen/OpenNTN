@@ -189,7 +189,7 @@ def test_dlp_pattern():
     element = AntennaElement("dlp", precision="double")
     f_theta, f_phi = element.field(torch.tensor(np.radians(theta)),
                                    torch.tensor(np.radians(phi)))
-    pattern = 10.0 * np.log10((f_theta ** 2 + f_phi ** 2).numpy())
+    pattern = 10.0 * np.log10((f_theta ** 2 + f_phi ** 2).cpu().numpy())
     difference = np.abs(pattern - _table_2(theta, phi))
     assert difference.max() <= 1e-9, f"largest difference {difference.max():.3g} dB"
     boresight = _pattern(element, 0.0)

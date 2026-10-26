@@ -53,12 +53,12 @@ def test_uts_face_the_bs(elevation_angle):
         isd=torch.tensor(500.0, dtype=double), min_ut_height=1.5, max_ut_height=1.5,
         indoor_probability=0.0, min_ut_velocity=0.0, max_ut_velocity=0.0,
         precision="double")
-    loc = ut_loc.numpy()
+    loc = ut_loc.cpu().numpy()
     negative = loc[..., 0] < 0
     assert negative.any() and not negative.all()
     to_bs = np.array([0.0, 0.0, SATELLITE_HEIGHT]) - loc
     to_bs /= np.linalg.norm(to_bs, axis=-1, keepdims=True)
-    boresight = _rotation(ut_orientations.numpy())[..., :, 0]
+    boresight = _rotation(ut_orientations.cpu().numpy())[..., :, 0]
     angle = np.degrees(np.arccos(np.clip((boresight * to_bs).sum(axis=-1), -1.0, 1.0)))
     assert angle.max() <= MAX_ANGLE, (
         f"{elevation_angle:g} deg: boresights {angle[negative].min():.4f} to "
@@ -81,18 +81,18 @@ def test_single_sector_orientations(scenario, bs_height):
                                        bs_height=bs_height, precision="double")
         where = f"{scenario}, {bs_height / 1e3:g} km, {elevation_angle:g} deg"
         np.testing.assert_array_equal(
-            bs_loc.numpy(), np.broadcast_to([0.0, 0.0, bs_height], (batch_size, 1, 3)))
+            bs_loc.cpu().numpy(), np.broadcast_to([0.0, 0.0, bs_height], (batch_size, 1, 3)))
         np.testing.assert_allclose(
-            _rotation(bs_orientations.numpy())[..., :, 0],
+            _rotation(bs_orientations.cpu().numpy())[..., :, 0],
             np.broadcast_to([0.0, 0.0, -1.0], (batch_size, 1, 3)), rtol=0, atol=1e-15,
             err_msg=where)
 
-        boresight = _rotation(ut_orientations.numpy())[..., :, 0]
+        boresight = _rotation(ut_orientations.cpu().numpy())[..., :, 0]
         np.testing.assert_allclose(np.degrees(np.arcsin(boresight[..., 2])),
                                    elevation_angle, rtol=0, atol=1e-6, err_msg=where)
         # The horizontal part of the boresight against the direction from the UT to the
         # origin, where the boresight has a horizontal part (below 90 deg)
-        loc = ut_loc.numpy()
+        loc = ut_loc.cpu().numpy()
         horizontal = np.hypot(boresight[..., 0], boresight[..., 1])
         tilted = horizontal > 1e-9
         if elevation_angle < 90.0:
@@ -103,6 +103,6 @@ def test_single_sector_orientations(scenario, bs_height):
         assert azimuth_error.size == 0 or azimuth_error.max() <= 1e-9, (
             f"{where}: horizontal boresight up to {np.degrees(azimuth_error.max()):.4f} deg "
             f"off the direction to the origin")
-        np.testing.assert_allclose(ut_orientations.numpy()[..., 2],
+        np.testing.assert_allclose(ut_orientations.cpu().numpy()[..., 2],
                                    np.radians(elevation_angle + 90.0), rtol=0, atol=1e-12,
                                    err_msg=where)

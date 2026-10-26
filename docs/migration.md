@@ -40,10 +40,12 @@ of the earlier versions under the same names (`AntennaElement`, `AntennaPanel`,
   TensorFlow nor `importlib_resources`.
 - `python -m pip install "openntn[test]"` adds what the test suite of the source
   distribution needs.
-- The earlier versions were installed as the distribution `OpenNTN` 0.1.0, which pip
-  takes for the same project as `openntn`: in an environment that holds it,
-  `python -m pip install openntn` keeps the earlier version. Use a new environment, or
-  uninstall the earlier version first with `python -m pip uninstall OpenNTN`.
+- The earlier versions are installed as the distribution `OpenNTN`, 1.0.0 and 0.19.0
+  from the tags `v1.0.0` and `v0.19.0` and 0.1.0 from the branches before these tags,
+  which pip takes for the same project as `openntn`: in an environment that holds one
+  of them, `python -m pip install openntn` keeps the earlier version. Use a new
+  environment, or uninstall the earlier version first with
+  `python -m pip uninstall OpenNTN`.
 - The installation scripts of the earlier versions also linked their package into
   Sionna, as `sionna/phy/channel/tr38811` (Sionna 1.x) or `sionna/channel/tr38811`
   (Sionna 0.19), and added the line `from . import tr38811` to the `__init__.py` of

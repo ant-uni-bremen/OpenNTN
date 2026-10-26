@@ -5,6 +5,12 @@ on:
     branches: [sionna2-migration, main]
   pull_request:
     branches: [sionna2-migration, main]
+  # Every Monday, so that new releases of the dependencies are tested as well. GitHub
+  # starts scheduled runs from the default branch only; on this event the jobs run
+  # only in ant-uni-bremen/OpenNTN, not in forks or copies of the repository.
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,6 +36,7 @@ defaults:
 jobs:
   linux:
     name: Linux, Python ${{ matrix.python }}, Sionna ${{ matrix.sionna }}
+    if: github.event_name != 'schedule' || github.repository == 'ant-uni-bremen/OpenNTN'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
@@ -76,6 +83,7 @@ jobs:
 
   other-os:
     name: ${{ matrix.os }}, Python 3.14, latest Sionna, quick suite
+    if: github.event_name != 'schedule' || github.repository == 'ant-uni-bremen/OpenNTN'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
@@ -114,6 +122,7 @@ jobs:
     # reference outputs are compared only with the versions recorded in
     # tests/reference_outputs/environment.json.
     name: Reference outputs, Linux, Python 3.12, Sionna 2.0.1, torch 2.11.0
+    if: github.event_name != 'schedule' || github.repository == 'ant-uni-bremen/OpenNTN'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -164,6 +173,7 @@ jobs:
     # batches and few iterations), executed in memory: jupyter execute writes nothing back,
     # and the reduced mode writes no file. Each kernel runs in example/.
     name: Example notebooks, reduced, Linux, Python 3.12, latest Sionna
+    if: github.event_name != 'schedule' || github.repository == 'ant-uni-bremen/OpenNTN'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
