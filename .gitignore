@@ -164,3 +164,7 @@ slurm/
 
 # Tensorboard logs
 example/logs/
+
+# Weights of the neural receiver, written by the full mode of
+# example/ML_based_SIMO_receiver.ipynb
+example/ML_based_SIMO_receiver_weights.npz

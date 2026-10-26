@@ -1,0 +1,34 @@
+#
+# SPDX-FileCopyrightText: Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Modified by the Dept. of Communications Engineering of the University of Bremen.
+# The code is based on implementations provided by the NVIDIA CORPORATION & AFFILIATES
+# in Sionna.
+#
+"""
+Non-terrestrial network channel models of 3GPP TR 38.811 for Sionna.
+"""
+# pylint: disable=line-too-long
+from importlib import metadata as _metadata
+
+try:
+    __version__ = _metadata.version("openntn")
+except _metadata.PackageNotFoundError:
+    # A source tree that is not installed, for example a checkout running the tests
+    __version__ = "0+unknown"
+
+from .antenna import AntennaElement, AntennaPanel, PanelArray, Antenna, AntennaArray
+from .lsp import LSP, LSPGenerator
+from .rays import Rays, RaysGenerator
+from .system_level_scenario import SystemLevelScenario
+from .channel_coefficients import Topology, ChannelCoefficientsGenerator
+from .system_level_channel import SystemLevelChannel
+
+from .dense_urban_scenario import DenseUrbanScenario
+from .dense_urban import DenseUrban
+from .urban_scenario import UrbanScenario
+from .urban import Urban
+from .sub_urban_scenario import SubUrbanScenario
+from .sub_urban import SubUrban
+

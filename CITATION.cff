@@ -1,0 +1,63 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite the version that you used with the metadata
+  from this file, and the paper that presents the framework, which is listed under
+  references.
+type: software
+title: OpenNTN
+abstract: >-
+  An extension of the Sionna framework with the non-terrestrial network channel models
+  of 3GPP TR 38.811 for the links between user terminals and a satellite or an aerial
+  platform: dense urban, urban and suburban scenarios, S band and Ka band, uplink and
+  downlink.
+authors:
+  - given-names: Louis
+    family-names: Lagona
+    affiliation: "Department of Communications Engineering, University of Bremen"
+    orcid: "https://orcid.org/0009-0008-5015-096X"
+  - given-names: Tim
+    family-names: Düe
+    affiliation: "Department of Communications Engineering, University of Bremen"
+    orcid: "https://orcid.org/0000-0002-3072-3299"
+contact:
+  - given-names: Louis
+    family-names: Lagona
+    email: lagona@ant.uni-bremen.de
+version: 2.0.0
+date-released: "2026-10-26"
+repository-code: "https://github.com/ant-uni-bremen/OpenNTN"
+url: "https://pypi.org/project/openntn/"
+keywords:
+  - 3GPP TR 38.811
+  - non-terrestrial networks
+  - channel models
+  - satellite communications
+  - Sionna
+  - PyTorch
+# The licence is the expression MIT AND Apache-2.0 (README.md, section Licence); the
+# key license of this format reads a list of licences as alternatives, so it is not
+# given here.
+references:
+  - type: conference-paper
+    title: "OpenNTN: An Open-Source Framework for Non-Terrestrial Network Channel Simulations"
+    authors:
+      - given-names: T.
+        family-names: Düe
+      - given-names: M.
+        family-names: Vakilifard
+      - given-names: C.
+        family-names: Bockelmann
+      - given-names: D.
+        family-names: Wübben
+      - given-names: A.
+        family-names: Dekorsy
+    collection-title: "2025 28th International Workshop on Smart Antennas (WSA)"
+    conference:
+      name: "28th International Workshop on Smart Antennas (WSA)"
+      city: Erlangen
+      country: DE
+    year: 2025
+    month: 9
+    start: 1
+    end: 7
+    doi: 10.1109/WSA65299.2025.11202820
