@@ -8,8 +8,12 @@
 #
 """Utility functions for the channel module"""
 
+import json
 import math
+import numbers
 import warnings
+from importlib.resources import files
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
@@ -17,6 +21,8 @@ import torch
 from sionna.phy import PI, config, dtypes
 from sionna.phy.utils import expand_to_rank, randint
 from sionna.phy.utils.random import uniform
+
+from . import models
 
 
 def subcarrier_frequencies(num_subcarriers, subcarrier_spacing,
@@ -396,13 +402,16 @@ def time_to_ofdm_channel(h_t, rg, l_min):
     --------
     .. code-block:: Python
 
+        from openntn import TDL
+
         # Setup resource grid and channel model
         torch.manual_seed(4)
         sm = StreamManagement(np.array([[1]]), 1)
         rg = ResourceGrid(num_ofdm_symbols=1,
                           fft_size=1024,
                           subcarrier_spacing=15e3)
-        tdl = TDL("A", 100e-9, 3.5e9)
+        # NTN-TDL-A at 3.5 GHz, a satellite at 600 km seen at 50 degrees
+        tdl = TDL("A", 100e-9, 3.5e9, 50.0, 600e3)
 
         # Generate CIR
         cir = tdl(batch_size=1, num_time_steps=1, sampling_frequency=rg.bandwidth)
@@ -1809,6 +1818,127 @@ def _reference_elevation(elevation_angle: float) -> int:
     :output: `int`. The reference elevation angle [deg]
     """
     return 10*math.floor(elevation_angle/10.0 + 0.5)
+
+
+def link_level_parameters(scenario: str, carrier_frequency: float,
+                          elevation_angle: float, *, los: bool
+                          ) -> Tuple[float, Tuple[float, float], Optional[float]]:
+    r"""Suitable delay spread, angular spreads and K-factor for the link-level models
+
+    Clause 6.9.1 of TR 38.811 V15.4.0 :cite:p:`TR38811` determines suitable values of
+    the delay spread, the ASA, the ZSA and, for a LOS link, the Rician K-factor for the
+    band, the environment and the elevation angle of a link-level simulation from the
+    channel model parameters of clause 6.7.2. This function returns them from
+    Tables 6.7.2-1a to 6.7.2-6b, as the parameter files of the system-level models hold
+    them, for the arguments ``delay_spread``, ``angular_spreads`` and ``k_factor`` of
+    :class:`~openntn.TDL` and :class:`~openntn.CDL`: the medians
+    :math:`10^{\mu_\text{lgDS}}` of the delay spread [s], :math:`10^{\mu_\text{lgASA}}`
+    of the ASA [deg] and :math:`10^{\mu_\text{lgZSA}}` of the ZSA [deg], which are
+    log-normal, and the mean :math:`\mu_K` of the K-factor [dB]. The tables hold for
+    satellites and aerial platforms alike.
+
+    The values are those of the reference elevation angle of the tables nearest to the
+    elevation angle, from 10 to 90 degrees in steps of 10 degrees (clauses 6.6.1 and
+    6.6.2); an angle midway between two reference angles takes the higher one, as in the
+    system-level models, so 25 degrees takes the values of 30 degrees. The ASA and the
+    ZSA are the spreads at the user terminal, of its angles of arrival in the downlink,
+    which the angles of arrival of the NTN-CDL tables describe; ``angular_spreads`` of
+    `CDL` scales these angles in both directions. The NLOS tables give no K-factor:
+    ``k_factor`` is `None` for an NLOS link, the default of `TDL` and `CDL`, which keeps
+    the powers of the table of the model.
+
+    The median is one choice of a suitable value: TR 38.901 V16.1.0 :cite:p:`TR38901`,
+    clause 7.7.3, gives the median delay spreads of its system-level parameters as
+    examples in its Table 7.7.3-2, for LOS and NLOS links, and their 90th percentiles
+    for NLOS links. For a desired K-factor, TR 38.901 V16.1.0 :cite:p:`TR38901`,
+    clause 7.7.6, refers to the mean and the standard deviation of the K-factor of its
+    system-level parameters in Table 7.5-6 and allows other values, which is how the
+    function takes the mean K-factor of Tables 6.7.2-1a to 6.7.2-6b of TR 38.811.
+
+    A wrong value raises `ValueError` and a wrong type `TypeError`.
+
+    :param scenario: The scenario, ``"dur"`` (dense urban), ``"urb"`` (urban) or
+        ``"sur"`` (suburban), as in :func:`~openntn.utils.gen_single_sector_topology`
+    :param carrier_frequency: Carrier frequency [Hz], from 1.9 GHz to 4 GHz (S band) or
+        from 19 GHz to 40 GHz (Ka band)
+    :param elevation_angle: Elevation angle of the link [deg], from 10 to 90
+    :param los: `True` for a LOS link, `False` for an NLOS link
+
+    :output delay_spread: `float`.
+        Median RMS delay spread [s].
+
+    :output angular_spreads: `tuple` of two `float`.
+        Median ASA and ZSA [deg], in this order.
+
+    :output k_factor: `float` or `None`.
+        Mean K-factor [dB] of a LOS link; `None` for an NLOS link.
+
+    .. rubric:: Examples
+
+    .. code-block:: python
+
+        from openntn import CDL, Antenna, AntennaArray
+        from openntn.utils import link_level_parameters
+
+        # An urban LOS link at 2 GHz and 30 degrees: Table 6.7.2-3a at 30 degrees
+        delay_spread, angular_spreads, k_factor = link_level_parameters(
+            "urb", 2e9, 30.0, los=True)
+        asa, zsa = angular_spreads
+        print(f"{delay_spread:.4g} s, {asa:.4g} deg, {zsa:.4g} deg, {k_factor} dB")
+        # 6.166e-09 s, 2.57 deg, 3.467 deg, 10.49 dB
+        ut_array = Antenna("dual", "cross", "omni", 2e9)
+        bs_array = AntennaArray(2, 2, "dual", "VH", "38.901", 2e9)
+        cdl = CDL("C", delay_spread, 2e9, 30.0, 600e3, ut_array=ut_array,
+                  bs_array=bs_array, k_factor=k_factor, angular_spreads=angular_spreads,
+                  max_speed=3.0)
+        a, tau = cdl(batch_size=16, num_time_steps=14, sampling_frequency=30e3)
+        print(a.shape, tau.shape)
+        # torch.Size([16, 1, 2, 1, 8, 2, 14]) torch.Size([16, 1, 1, 2])
+    """
+    if not isinstance(scenario, str):
+        raise TypeError(f"scenario must be one of 'dur', 'urb' and 'sur', not "
+                        f"{scenario!r}")
+    # The scenarios in the names of their parameter files
+    names = {"dur": "Dense_Urban", "urb": "Urban", "sur": "Sub_Urban"}
+    if scenario not in names:
+        raise ValueError(f"scenario must be one of 'dur', 'urb' and 'sur', not "
+                         f"{scenario!r}")
+    if (isinstance(carrier_frequency, bool)
+            or not isinstance(carrier_frequency, numbers.Real)):
+        raise TypeError(f"carrier_frequency must be a real number, not "
+                        f"{carrier_frequency!r}")
+    carrier_frequency = float(carrier_frequency)
+    if 1.9e9 <= carrier_frequency <= 4e9:
+        band = "S"
+    elif 19e9 <= carrier_frequency <= 40e9:
+        band = "Ka"
+    else:
+        raise ValueError(f"carrier_frequency must be in the S band (1.9 GHz to "
+                         f"4 GHz) or in the Ka band (19 GHz to 40 GHz), not "
+                         f"{carrier_frequency!r} Hz")
+    if (isinstance(elevation_angle, bool)
+            or not isinstance(elevation_angle, numbers.Real)):
+        raise TypeError(f"elevation_angle must be a real number, not "
+                        f"{elevation_angle!r}")
+    elevation_angle = float(elevation_angle)
+    if not 10.0 <= elevation_angle <= 90.0:
+        raise ValueError(f"elevation_angle must be from 10 to 90 degrees, not "
+                         f"{elevation_angle!r}")
+    if not isinstance(los, bool):
+        raise TypeError(f"los must be True or False, not {los!r}")
+
+    # The downlink file, whose ASA and ZSA are the spreads at the UT
+    state = "LOS" if los else "NLOS"
+    source = files(models).joinpath(f"{names[scenario]}_{state}_{band}_band_DL.json")
+    with open(source, encoding="utf-8") as parameter_file:
+        params = json.load(parameter_file)
+    angle = _reference_elevation(elevation_angle)
+    delay_spread = 10.0 ** params[f"muDS_{angle}"]
+    angular_spreads = (10.0 ** params[f"muASA_{angle}"],
+                       10.0 ** params[f"muZSA_{angle}"])
+    # The NLOS tables give no K-factor, for which the files hold 0
+    k_factor = float(params[f"muK_{angle}"]) if los else None
+    return delay_spread, angular_spreads, k_factor
 
 
 #Function that computes the satellite speed as a function of its height.

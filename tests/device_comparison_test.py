@@ -38,15 +38,27 @@
 # last place. K * EPS = 2**-46, about 1.4e-14, so a quantity computed in single precision
 # on one of the devices, an error of about 6e-8 S, fails by far. The bound is not widened
 # to make a test pass.
+#
+# The tapped delay line model TDL is compared in the same way, with the same bound, in
+# double precision: its delays, its mean powers, the power of its specular path and its
+# K-factor, the square roots of its correlation matrices, and the phase factors of the
+# Doppler shift of the satellite at the samples of a call. The shift is computed once in
+# double precision on the CPU, its phase in double precision on the device of the model.
+#
+# So is the clustered delay line model CDL: the delays of a call, its delays, its mean
+# powers, the power of its specular path and its K-factor, the angles of its rays and of
+# its specular path in degrees, which it computes in double precision on the CPU, the
+# angles in radians in the precision of the model on its device, and the phase factors
+# of the Doppler shift of the satellite.
 import math
 
 import pytest
 import torch
 from sionna.phy import config
 
-from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
+from openntn import CDL, TDL, Antenna, AntennaArray, DenseUrban, SubUrban, Urban
 from openntn.antenna import AntennaElement
-from openntn.utils import gen_single_sector_topology
+from openntn.utils import exp_corr_mat, gen_single_sector_topology
 
 EPS = 2.0 ** -52
 K = 64
@@ -247,5 +259,150 @@ def test_cpu_against_gpu():
     # entry within the bound
     comparisons = list(_comparisons("cuda:0"))
     assert len(comparisons) == 96 + 12
+    found = _beyond_the_bound(comparisons)
+    assert not found, "\n".join(found)
+
+
+# The tapped delay line model: the four models; the S band and the Ka band; satellites
+# at 600 km and 1200 km, a geostationary one and an aerial platform at 20 km with a
+# given shift; desired K-factors; 2 x 2 antennas with receive and transmit correlation;
+# the phase factors of the shift at 2048 samples at 30.72 MHz
+TDL_CONFIGURATIONS = (
+    ("A", 100e-9, 2.0e9, 50.0, 600e3, {}),
+    ("B", 300e-9, 30.0e9, 30.0, 1200e3, {}),
+    ("C", 50e-9, 2.0e9, 70.0, 600e3, {"k_factor": 3.0}),
+    ("D", 30e-9, 20.0e9, 10.0, 35786e3, {"k_factor": 3.0}),
+    ("A", 100e-9, 30.0e9, 10.0, 600e3, {"num_rx_ant": 2, "num_tx_ant": 2,
+                                         "rx_corr_mat": 0.5, "tx_corr_mat": 0.3}),
+    ("D", 100e-9, 3.5e9, 40.0, 20e3, {"doppler_shift": -500.0}),
+)
+TDL_SAMPLES = 2048
+TDL_SAMPLING_FREQUENCY = 30.72e6
+
+
+def _tdl_quantities(tdl):
+    quantities = {"delays": tdl.delays, "mean_powers": tdl.mean_powers}
+    if tdl.los:
+        quantities["mean_power_los"] = tdl.mean_power_los
+        quantities["k_factor"] = tdl.k_factor
+    for name in ("_rx_corr_mat_sqrt", "_tx_corr_mat_sqrt"):
+        if getattr(tdl, name, None) is not None:
+            quantities[name + ".real"] = getattr(tdl, name).real
+            quantities[name + ".imag"] = getattr(tdl, name).imag
+    factor = tdl._doppler_shift_factor(TDL_SAMPLES, TDL_SAMPLING_FREQUENCY)
+    quantities["shift_factor.real"] = factor.real
+    quantities["shift_factor.imag"] = factor.imag
+    return quantities
+
+
+def _tdl_comparison(model, delay_spread, carrier_frequency, elevation_angle, height,
+                    options, device):
+    # The model built on the CPU and on the device, the correlation matrices of
+    # exp_corr_mat made on each
+    values = []
+    for model_device in ("cpu", device):
+        built = dict(options)
+        for name in ("rx_corr_mat", "tx_corr_mat"):
+            if name in built:
+                built[name] = exp_corr_mat(built[name], 2, precision="double",
+                                           device=model_device)
+        tdl = TDL(model, delay_spread, carrier_frequency, elevation_angle, height,
+                  precision="double", device=model_device, **built)
+        values.append(_tdl_quantities(tdl))
+    label = (f"TDL {model} {delay_spread * 1e9:g} ns {carrier_frequency / 1e9:g} GHz "
+             f"{elevation_angle:g} deg {height / 1e3:g} km {sorted(options)}")
+    return label, {name: (values[0][name], values[1][name]) for name in values[0]}
+
+
+def test_tdl_cpu_against_itself():
+    # The tapped delay line model built twice on the CPU: no entry beyond the bound
+    comparisons = [_tdl_comparison(*configuration, "cpu")
+                   for configuration in TDL_CONFIGURATIONS]
+    found = _beyond_the_bound(comparisons)
+    assert not found, "\n".join(found)
+
+
+@pytest.mark.gpu
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="No CUDA GPU available")
+def test_tdl_cpu_against_gpu():
+    # The tapped delay line model built on the CPU and on cuda:0: every entry within the
+    # bound
+    comparisons = [_tdl_comparison(*configuration, "cuda:0")
+                   for configuration in TDL_CONFIGURATIONS]
+    found = _beyond_the_bound(comparisons)
+    assert not found, "\n".join(found)
+
+
+# The clustered delay line model: the four models in both directions; the S band and the
+# Ka band; satellites at 600 km and 1200 km, a geostationary one and an aerial platform
+# at 20 km with a given shift; desired angular spreads and K-factors; a dual-polarized
+# UT antenna and a 1 x 2 dual-polarized array at the satellite; the phase factors of
+# the shift at the samples of the tapped delay line model
+CDL_CONFIGURATIONS = (
+    ("A", 100e-9, 2.0e9, 50.0, 600e3, "downlink", {}),
+    ("B", 300e-9, 30.0e9, 30.0, 1200e3, "uplink", {}),
+    ("C", 50e-9, 2.0e9, 70.0, 600e3, "downlink",
+     {"angular_spreads": (30.0, 10.0), "k_factor": 3.0}),
+    ("D", 30e-9, 20.0e9, 10.0, 35786e3, "uplink", {"k_factor": 3.0}),
+    ("A", 100e-9, 30.0e9, 10.0, 600e3, "uplink", {"angular_spreads": (45.0, 5.0)}),
+    ("D", 100e-9, 3.5e9, 40.0, 20e3, "downlink", {"doppler_shift": -500.0}),
+)
+CDL_ANGLES = ("aoa", "aod", "zoa", "zod")
+
+
+def _cdl_quantities(cdl):
+    config.seed = SEED
+    _, tau = cdl(2, 3, TDL_SAMPLING_FREQUENCY)
+    quantities = {"tau": tau, "delays": cdl.delays, "mean_powers": cdl.mean_powers}
+    if cdl.los:
+        quantities["mean_power_los"] = cdl.mean_power_los
+        quantities["k_factor"] = cdl.k_factor
+        for name in CDL_ANGLES:
+            quantities[f"los_{name}"] = torch.tensor(getattr(cdl, f"los_{name}"),
+                                                     dtype=torch.float64)
+            quantities[f"_los_{name}"] = getattr(cdl, f"_los_{name}")
+    for name in CDL_ANGLES:
+        quantities[name] = getattr(cdl, name)
+        quantities[f"_{name}"] = getattr(cdl, f"_{name}")
+    factor = cdl._doppler_shift_factor(TDL_SAMPLES, TDL_SAMPLING_FREQUENCY)
+    quantities["shift_factor.real"] = factor.real
+    quantities["shift_factor.imag"] = factor.imag
+    return quantities
+
+
+def _cdl_comparison(model, delay_spread, carrier_frequency, elevation_angle, height,
+                    direction, options, device):
+    # The model built on the CPU and on the device, with arrays built on each
+    values = []
+    for model_device in ("cpu", device):
+        ut_array = Antenna("dual", "cross", "omni", carrier_frequency,
+                           precision="double", device=model_device)
+        bs_array = AntennaArray(1, 2, "dual", "VH", "38.901", carrier_frequency,
+                                precision="double", device=model_device)
+        cdl = CDL(model, delay_spread, carrier_frequency, elevation_angle, height,
+                  ut_array=ut_array, bs_array=bs_array, direction=direction,
+                  precision="double", device=model_device, **options)
+        values.append(_cdl_quantities(cdl))
+    label = (f"CDL {model} {direction} {delay_spread * 1e9:g} ns "
+             f"{carrier_frequency / 1e9:g} GHz {elevation_angle:g} deg "
+             f"{height / 1e3:g} km {sorted(options)}")
+    return label, {name: (values[0][name], values[1][name]) for name in values[0]}
+
+
+def test_cdl_cpu_against_itself():
+    # The clustered delay line model built twice on the CPU: no entry beyond the bound
+    comparisons = [_cdl_comparison(*configuration, "cpu")
+                   for configuration in CDL_CONFIGURATIONS]
+    found = _beyond_the_bound(comparisons)
+    assert not found, "\n".join(found)
+
+
+@pytest.mark.gpu
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="No CUDA GPU available")
+def test_cdl_cpu_against_gpu():
+    # The clustered delay line model built on the CPU and on cuda:0: every entry within
+    # the bound
+    comparisons = [_cdl_comparison(*configuration, "cuda:0")
+                   for configuration in CDL_CONFIGURATIONS]
     found = _beyond_the_bound(comparisons)
     assert not found, "\n".join(found)

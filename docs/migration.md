@@ -26,8 +26,9 @@ of the earlier versions under the same names (`AntennaElement`, `AntennaPanel`,
 `PanelArray`, `Antenna`, `AntennaArray`, `LSP`, `LSPGenerator`, `Rays`,
 `RaysGenerator`, `SystemLevelScenario`, `Topology`, `ChannelCoefficientsGenerator`,
 `SystemLevelChannel`, `DenseUrbanScenario`, `DenseUrban`, `UrbanScenario`, `Urban`,
-`SubUrbanScenario` and `SubUrban`), but not `TDL` and `CDL` (section 5).
-`openntn.__version__` gives the installed version.
+`SubUrbanScenario` and `SubUrban`); `TDL` and `CDL` come back with another meaning,
+the NTN-TDL and NTN-CDL models of TR 38.811 (section 5). `openntn.__version__` gives the
+installed version.
 
 ## 2. The installation
 
@@ -109,7 +110,8 @@ of the earlier versions under the same names (`AntennaElement`, `AntennaPanel`,
 
 | Earlier versions | OpenNTN 2 |
 |---|---|
-| `TDL` and `CDL`, with their modules `tdl` and `cdl` | removed; the NTN-TDL and NTN-CDL models of TR 38.811 are not implemented, and their parameter files stay in `openntn/models` |
+| `TDL`, with its module `tdl` | `TDL` with another meaning: the NTN-TDL models A to D of TR 38.811 clause 6.9.2 with the Doppler shift of the satellite ([the description of the models](model.md)); `elevation_angle` and `satellite_height` are required, the arguments after them are taken by keyword only |
+| `CDL`, with its module `cdl` | `CDL` with another meaning: the NTN-CDL models A to D of TR 38.811 clause 6.9.1 with their angles at the elevation angle of the link and the Doppler shift and the Faraday rotation of the satellite ([the description of the models](model.md)); `elevation_angle`, `satellite_height`, `ut_array` and `bs_array` are required, the arguments after `satellite_height` are taken by keyword only |
 | `utils.compute_stallite_doppler` | removed; the channel applies the Doppler shift of the satellite |
 | `utils.gen_single_sector_topology_interferers` | removed; one satellite or aerial platform per call, `utils.gen_single_sector_topology` |
 | `utils.compute_pathloss_additional` and the scenario property `additional_pathloss` | removed; the models consider clear sky, as the baseline of TR 38.811 clause 6.6.5 |

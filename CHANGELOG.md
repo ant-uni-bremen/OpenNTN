@@ -2,6 +2,114 @@
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 
+## [2.1.0] - 2026-11-03
+
+Second release of OpenNTN for Sionna 2.x: it adds the link-level models of
+TR 38.811 V15.4.0, clause 6.9, `TDL` for NTN-TDL-A to NTN-TDL-D and `CDL` for NTN-CDL-A
+to NTN-CDL-D, with the Doppler shift of the satellite, the function
+`link_level_parameters` in `openntn.utils` for suitable values of their arguments, and a
+notebook on both models, `example/link_level_models.ipynb`. The system-level models are
+those of 2.0.0 and give its results.
+
+### Added
+
+- `TDL`, the tapped delay line models NTN-TDL-A to NTN-TDL-D of TR 38.811 V15.4.0,
+  clause 6.9.2, with the normalized delays and powers of Tables 6.9.2-1 to 6.9.2-4 and
+  the power delay profile normalized to a total power of one: NTN-TDL-A and NTN-TDL-B
+  for NLOS links, NTN-TDL-C and NTN-TDL-D for LOS links, whose first tap adds a specular
+  path to its Rayleigh fading. Its path coefficients and delays have the format of
+  Sionna's channel models, for `cir_to_ofdm_channel`, `OFDMChannel` and `TimeChannel`.
+  It applies the procedures of TR 38.901 V16.1.0, clause 7.7, to which clause 6.9.2
+  refers: the classical Doppler spectrum of each tap for a user terminal at a speed
+  from `min_speed` to `max_speed`, with the peak of the specular path at 0.7 times the
+  maximum Doppler frequency (clause 7.7.2), the scaling of the delays to the RMS delay
+  spread `delay_spread` (clause 7.7.3), and the spatial correlation of several antennas
+  by correlation matrices (clause 7.7.5.2). Its carrier frequency lies in the S band,
+  1.9 GHz to 4 GHz, or in the Ka band, 19 GHz to 40 GHz, its elevation angle from 10° to
+  90°, and the height of its satellite or aerial platform in the ranges of the other
+  models; other values raise `ValueError`.
+- `CDL`, the clustered delay line models NTN-CDL-A to NTN-CDL-D of TR 38.811 V15.4.0,
+  clause 6.9.1, with the normalized delays, the powers, the angles of the clusters,
+  their angular spreads and the cross polarization power ratio of Tables 6.9.1-1 to
+  6.9.1-4, which are given at the reference elevation angle of 50°: NTN-CDL-A and
+  NTN-CDL-B for NLOS links, NTN-CDL-C and NTN-CDL-D for LOS links, whose first cluster
+  adds a specular path. It takes the antenna arrays of the package, `ut_array` and
+  `bs_array`, and `direction`, "downlink" (the default) or "uplink", and its path
+  coefficients and delays have the format of Sionna's channel models. Its carrier
+  frequencies, elevation angles and heights are those of `TDL`, and the arguments after
+  `satellite_height` are taken by keyword only. It applies the procedures of TR 38.901
+  V16.1.0, clause 7.7, and the steps of clause 6.9.1 at the elevation angle of the link:
+  the rays of each cluster with the offset angles of Table 7.5-3 of TR 38.901, coupled
+  at random (clause 7.7.1); the zenith angles of departure 90° plus the elevation angle
+  (eq. (6.9-1)), so 140° at 50° as in the tables, where a sentence of the clause names
+  190°; the zenith angles of arrival shifted by 50° minus the elevation angle
+  (eq. (6.9-2), with the mean zenith angle of arrival of the model as the desired one),
+  so that with the angular spreads of the model the specular path arrives at 90° minus
+  the elevation angle, and brought into [0°, 180°] by the reflection of TR 38.901
+  clause 7.5, step 7, at every elevation angle, also at 50°, where four rays of
+  NTN-CDL-B lie above 180° in the table. With the argument `angular_spreads`
+  (ASA, ZSA) [deg] it scales the zenith angles of arrival of the rays and of the
+  specular path by eq. (6.9-2) and their azimuth angles of arrival by eq. (7.7-5) of
+  clause 7.7.5.1, the differences of the azimuth angles to their mean wrapped to
+  [-180°, 180°], with the angular spreads and the mean angles of the model of Annex A of
+  TR 38.901 over the rays of the table and the specular path, so that the specular path
+  then arrives near, not at, the direction of the satellite; the default `None` keeps
+  the spreads of the model. The delays are scaled to `delay_spread` (clause 7.7.3)
+  unless `normalize_delays` is `False`; the cross polarization power ratio of the table
+  is the same for all rays; a moving user terminal, with the velocity `ut_velocity` or a
+  speed from `min_speed` to `max_speed`, turns every ray by its Doppler; and the Faraday
+  rotation of TR 38.811 clause 6.8.2 applies to satellites from 600 km. By default both
+  antennas point along the line of sight: the satellite with the bearing 0 and a
+  downtilt of the elevation angle, the user terminal with the bearing 180° and an uptilt
+  of the elevation angle; `ut_orientation` and `bs_orientation` [rad] replace them.
+- The Doppler shift due to the motion of the satellite of TR 38.811 V15.4.0, clause
+  6.9.2, applied to all taps of `TDL` and to all clusters and rays of `CDL`, whose rays
+  all leave the satellite in one direction: by default the shift of the formula of the
+  clause at the elevation angle of the link, that of an approaching satellite seen from
+  a user terminal in its orbital plane, for example 29.63 kHz at 600 km, 50° and 2 GHz,
+  and 0 for a geostationary satellite and an aerial platform. The argument
+  `doppler_shift` [Hz] replaces it: 0 for a link whose terminal pre-compensates the
+  shift, a negative value for a receding satellite.
+- The argument `k_factor` of `TDL` and `CDL` [dB], a desired K-factor of NTN-TDL-C,
+  NTN-TDL-D, NTN-CDL-C and NTN-CDL-D by TR 38.901 V16.1.0, clause 7.7.6: it replaces the
+  K-factor of eq. (7.7.6-2), the power of the specular path over that of all Rayleigh
+  taps or Laplacian clusters (10.000 dB and 7.000 dB in the tables), and the delays are
+  renormalized to an RMS delay spread of one. The property `k_factor` gives the K-factor
+  of eq. (7.7.6-2) in linear scale.
+- `link_level_parameters` in `openntn.utils`, suitable values for the arguments
+  `delay_spread`, `angular_spreads` and `k_factor` of `TDL` and `CDL`, as TR 38.811
+  V15.4.0, clause 6.9.1, determines them from the parameters of clause 6.7.2: for the
+  scenario "dur", "urb" or "sur", the carrier frequency, in the S band or in the Ka
+  band, the elevation angle and the link state `los`, the medians of the delay
+  spread [s], the ASA and the ZSA [deg] and the mean K-factor [dB] of Tables 6.7.2-1a to
+  6.7.2-6b at the reference elevation angle nearest to the elevation angle, an angle
+  midway between two taking the higher one, as in the system-level models. The K-factor
+  of an NLOS link is `None`, as the NLOS tables give none.
+- The notebook `example/link_level_models.ipynb` on the link-level models `TDL` and
+  `CDL`, with the results of its full run in `example/link_level_models_results.npz`:
+  the power delay profiles of NTN-TDL-A to NTN-TDL-D and the values of
+  `link_level_parameters` over the elevation angle, the scenarios and the bands; the
+  Doppler shift of the satellite over the elevation angle, the height and the band; the
+  block error rate of an OFDM downlink with the 5G LDPC code over NTN-TDL-C with the
+  shift of the satellite applied and pre-compensated (`doppler_shift=0`), in the
+  frequency domain and in the time domain, which alone shows the inter-carrier
+  interference that the shift causes within an OFDM symbol; the block error rates over
+  NTN-TDL-A to NTN-TDL-D with perfect and with LS-estimated channels; and the singular
+  values of the 4 x 32 MIMO channel of `CDL`, two of which are not zero, as all rays
+  leave the satellite in one direction, beside the four of Sionna's TR 38.901 CDL. As
+  for the other notebooks, `OPENNTN_NOTEBOOK_MODE` unset loads the stored block error
+  rates, `full` computes them and writes the file, and `reduced` runs short and writes
+  no file.
+- The DOI of all versions of OpenNTN on Zenodo, 10.5281/zenodo.23659829, which resolves
+  to the latest version, as the key `doi` of `CITATION.cff` and in the README, as a
+  badge and in the section on the citation; the record of each version has its own DOI.
+
+### Removed
+
+- `TDL-A30.json`, `TDL-B100.json` and `TDL-C300.json` in `openntn/models`, Sionna's
+  test profiles of TS 38.101-4, which no model of the package read; Sionna's own TDL
+  provides them.
+
 ## [2.0.0] - 2026-10-26
 
 First release of OpenNTN for Sionna 2.x, which is built on PyTorch: the package

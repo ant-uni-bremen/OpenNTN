@@ -6,13 +6,17 @@
 # every implemented TR38.811 scenario, that the models built with device="cuda:0" while
 # config.device is cpu run on the GPU, that constant/topology tensors follow
 # .to()/.cuda(), and that a model moved with .cuda() after its construction raises
-# ValueError when it is called. It is skipped automatically when no CUDA GPU is visible.
+# ValueError when it is called. The tapped delay line model TDL is checked in the same
+# way: built with device="cuda:0", its outputs are on the GPU in the dtypes of its
+# precision, and moved with .cuda() after its construction on the CPU it raises
+# ValueError when it is called. So is the clustered delay line model CDL, built with its
+# antenna arrays on the GPU. It is skipped automatically when no CUDA GPU is visible.
 import unittest
 
 import pytest
 import torch
 from sionna.phy import Object, config
-from openntn import Antenna, AntennaArray, DenseUrban, Urban, SubUrban
+from openntn import CDL, TDL, Antenna, AntennaArray, DenseUrban, Urban, SubUrban
 from openntn import utils
 
 pytestmark = pytest.mark.gpu
@@ -155,6 +159,98 @@ class GPUDevice(unittest.TestCase):
 
     def test_sub_urban_moved_model(self):
         self._check_moved_model(SubUrban, "sur")
+
+    def _tdl(self, precision, device):
+        # NTN-TDL-C with a desired K-factor and the shift of the satellite, 2 x 2
+        # antennas with receive correlation
+        return TDL("C", 100e-9, GPUDevice.CARRIER_FREQUENCY, 50.0, GPUDevice.BS_HEIGHT,
+                   k_factor=7.0, max_speed=3.0, num_rx_ant=2, num_tx_ant=2,
+                   rx_corr_mat=utils.exp_corr_mat(0.5, 2, precision=precision,
+                                                  device=device),
+                   precision=precision, device=device)
+
+    def test_tdl_gpu(self):
+        # Built with device="cuda:0" while config.device is cpu: the outputs on cuda:0,
+        # in the dtypes of the precision, finite, with the shapes of a model built on
+        # the CPU
+        config.device = "cpu"
+        call = (GPUDevice.BATCH_SIZE, GPUDevice.NUM_TIME_STEPS,
+                GPUDevice.SAMPLING_FREQUENCY)
+        for precision, real, complex_ in (("single", torch.float32, torch.complex64),
+                                          ("double", torch.float64, torch.complex128)):
+            config.seed = GPUDevice.SEED
+            a, tau = self._tdl(precision, "cuda:0")(*call)
+            self.assertEqual(config.device, "cpu")
+            self.assertEqual(a.device, torch.device("cuda:0"))
+            self.assertEqual(tau.device, torch.device("cuda:0"))
+            self.assertEqual((a.dtype, tau.dtype), (complex_, real))
+            self.assertTrue(torch.isfinite(a).all())
+            self.assertTrue(torch.isfinite(tau).all())
+            a_cpu, tau_cpu = self._tdl(precision, "cpu")(*call)
+            self.assertEqual(a.shape, a_cpu.shape)
+            self.assertEqual(tau.shape, tau_cpu.shape)
+
+    def test_tdl_moved_model(self):
+        # A single-precision TDL built on the CPU and moved with .cuda() raises
+        # ValueError when it is called, since .cuda() moves its registered tensors but
+        # not its device
+        config.device = "cpu"
+        tdl = self._tdl("single", "cpu")
+        tdl.cuda()
+        with self.assertRaisesRegex(ValueError, r"was built on device 'cpu' in single "
+                                                r"precision, but its tensors are "
+                                                r"torch\.float32 on cuda:0"):
+            tdl(GPUDevice.BATCH_SIZE, GPUDevice.NUM_TIME_STEPS,
+                GPUDevice.SAMPLING_FREQUENCY)
+
+    def _cdl(self, precision, device, direction):
+        # NTN-CDL-D with desired angular spreads, a desired K-factor, the shift of the
+        # satellite and the Faraday rotation, a dual-polarized UT antenna and a 1 x 2
+        # dual-polarized array at the satellite, built on the device of the model
+        fc = GPUDevice.CARRIER_FREQUENCY
+        ut_array = Antenna("dual", "cross", "omni", fc, precision=precision,
+                           device=device)
+        bs_array = AntennaArray(1, 2, "dual", "VH", "38.901", fc, precision=precision,
+                                device=device)
+        return CDL("D", 100e-9, fc, 30.0, GPUDevice.BS_HEIGHT, ut_array=ut_array,
+                   bs_array=bs_array, direction=direction, k_factor=7.0,
+                   angular_spreads=(30.0, 10.0), max_speed=3.0, precision=precision,
+                   device=device)
+
+    def test_cdl_gpu(self):
+        # Built with device="cuda:0" while config.device is cpu: the outputs on cuda:0,
+        # in the dtypes of the precision, finite, with the shapes of a model built on
+        # the CPU, in both directions
+        config.device = "cpu"
+        call = (GPUDevice.BATCH_SIZE, GPUDevice.NUM_TIME_STEPS,
+                GPUDevice.SAMPLING_FREQUENCY)
+        for precision, real, complex_ in (("single", torch.float32, torch.complex64),
+                                          ("double", torch.float64, torch.complex128)):
+            for direction in ("downlink", "uplink"):
+                config.seed = GPUDevice.SEED
+                a, tau = self._cdl(precision, "cuda:0", direction)(*call)
+                self.assertEqual(config.device, "cpu")
+                self.assertEqual(a.device, torch.device("cuda:0"))
+                self.assertEqual(tau.device, torch.device("cuda:0"))
+                self.assertEqual((a.dtype, tau.dtype), (complex_, real))
+                self.assertTrue(torch.isfinite(a).all())
+                self.assertTrue(torch.isfinite(tau).all())
+                a_cpu, tau_cpu = self._cdl(precision, "cpu", direction)(*call)
+                self.assertEqual(a.shape, a_cpu.shape)
+                self.assertEqual(tau.shape, tau_cpu.shape)
+
+    def test_cdl_moved_model(self):
+        # A single-precision CDL built on the CPU and moved with .cuda() raises
+        # ValueError when it is called, since .cuda() moves its registered tensors but
+        # not its device
+        config.device = "cpu"
+        cdl = self._cdl("single", "cpu", "downlink")
+        cdl.cuda()
+        with self.assertRaisesRegex(ValueError, r"was built on device 'cpu' in single "
+                                                r"precision, but its tensors are "
+                                                r"torch\.float32 on cuda:0"):
+            cdl(GPUDevice.BATCH_SIZE, GPUDevice.NUM_TIME_STEPS,
+                GPUDevice.SAMPLING_FREQUENCY)
 
 
 if __name__ == "__main__":

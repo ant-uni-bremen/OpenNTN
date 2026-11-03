@@ -23,8 +23,10 @@ contact:
   - given-names: Louis
     family-names: Lagona
     email: lagona@ant.uni-bremen.de
-version: 2.0.0
-date-released: "2026-10-26"
+version: 2.1.0
+date-released: "2026-11-03"
+# The DOI of all versions on Zenodo, which resolves to the latest one.
+doi: 10.5281/zenodo.23659829
 repository-code: "https://github.com/ant-uni-bremen/OpenNTN"
 url: "https://pypi.org/project/openntn/"
 keywords:
