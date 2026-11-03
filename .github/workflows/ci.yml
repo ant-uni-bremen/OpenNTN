@@ -200,3 +200,4 @@ jobs:
           example/channel_response.ipynb
           example/BER_sims.ipynb
           example/ML_based_SIMO_receiver.ipynb
+          example/link_level_models.ipynb

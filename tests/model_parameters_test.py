@@ -38,7 +38,8 @@
 # NOTE of Tables 6.9.2-3 and 6.9.2-4, which equals the power difference of the first two
 # taps. Clause 6.9.1 writes "resulting in ZODs equal to 190" while the tables print a
 # ZOD of 140 degrees, 90 degrees + alpha_model as the same clause defines it; the files
-# hold 140. No model of the package reads these files.
+# hold 140. The model TDL reads the files TDL-A to TDL-D; no model reads the files CDL-A
+# to CDL-D.
 import json
 import math
 import os
@@ -72,13 +73,6 @@ SCENARIOS = {
 NTN_FILES = {"CDL-A.json": "6.9.1-1", "CDL-B.json": "6.9.1-2", "CDL-C.json": "6.9.1-3",
              "CDL-D.json": "6.9.1-4", "TDL-A.json": "6.9.2-1", "TDL-B.json": "6.9.2-2",
              "TDL-C.json": "6.9.2-3", "TDL-D.json": "6.9.2-4"}
-# Other files in openntn/models. They hold no TR 38.811 table values and are not read by
-# the models.
-NOT_COMPARED = {
-    "TDL-A30.json": "TDL profile not defined in TR 38.811",
-    "TDL-B100.json": "TDL profile not defined in TR 38.811",
-    "TDL-C300.json": "TDL profile not defined in TR 38.811",
-}
 
 # Model parameter -> row of Tables 6.7.2-xx
 TABLE_ROWS = {
@@ -207,7 +201,7 @@ def test_model_files_accounted_for():
     files = _model_files()
     scenario_files = _scenario_files()
     assert len(scenario_files) == 3 * 2 * 2 * 2
-    unknown = sorted(set(files) - set(scenario_files) - set(NTN_FILES) - set(NOT_COMPARED))
+    unknown = sorted(set(files) - set(scenario_files) - set(NTN_FILES))
     assert not unknown, f"model files that this test does not know: {unknown}"
 
 

@@ -20,6 +20,16 @@
 # when they are built, from their carrier frequency in their precision. The number of
 # rays per cluster is a Python int, which torch.compile takes as a constant where it
 # bounds a slice or gives a size.
+#
+# The call of the tapped delay line model TDL runs without graph breaks as well, with
+# the Doppler shift of the satellite or without it, a desired K-factor and spatial
+# correlation matrices; the shift is a Python float of the model, its phase computed in
+# double precision in the call.
+#
+# So does the call of the clustered delay line model CDL, in the downlink and in the
+# uplink: with the Doppler shift of the satellite and the Faraday rotation, desired
+# angular spreads and a desired K-factor, and orientations and velocities given for
+# each batch example.
 import math
 import os
 
@@ -28,8 +38,8 @@ import torch
 import torch._dynamo
 from sionna.phy import config
 
-from openntn import Antenna, AntennaArray, DenseUrban, SubUrban, Urban
-from openntn.utils import gen_single_sector_topology
+from openntn import CDL, TDL, Antenna, AntennaArray, DenseUrban, SubUrban, Urban
+from openntn.utils import exp_corr_mat, gen_single_sector_topology
 
 # S band in the downlink and Ka band in the uplink, 50 degrees, a satellite at 600 km,
 # 4 batch examples of 3 UTs
@@ -94,6 +104,12 @@ def test_call_without_graph_breaks(scenario, key, direction, carrier_frequency,
     def call():
         return model(NUM_TIME_SAMPLES, SAMPLING_FREQUENCY)
 
+    _assert_compiles(call)
+
+
+def _assert_compiles(call):
+    """No graph break in the call, and the call compiled with fullgraph=True on the
+    backend "eager" equal to the eager call bit for bit under the same seed"""
     torch._dynamo.reset()
     try:
         explanation = torch._dynamo.explain(call)()
@@ -119,6 +135,84 @@ def test_call_without_graph_breaks(scenario, key, direction, carrier_frequency,
         differing = int((_bits(compiled_) != _bits(eager)).sum())
         assert differing == 0, (f"{name}: {differing} of {eager.numel()} entries differ "
                                 f"from the eager call")
+
+
+def _tdl_options(precision):
+    # The shift of the satellite at 600 km and 50 degrees (29.6 kHz at 2 GHz), none with
+    # a desired K-factor, 2 x 2 antennas with receive and transmit correlation matrices,
+    # and a spatial correlation matrix of the four antenna pairs
+    rx = exp_corr_mat(0.5, 2, precision=precision)
+    tx = exp_corr_mat(0.3, 2, precision=precision)
+    return {
+        "shift": {},
+        "k-factor": {"k_factor": 7.95, "doppler_shift": 0.0},
+        "rx-tx-correlation": {"num_rx_ant": 2, "num_tx_ant": 2, "rx_corr_mat": rx,
+                              "tx_corr_mat": tx},
+        "spatial-correlation": {"num_rx_ant": 2, "num_tx_ant": 2,
+                                "spatial_corr_mat": torch.kron(rx, tx)},
+    }
+
+
+TDL_CASES = [pytest.param(model, precision, options,
+                          id=f"{model}-{precision}-{options}")
+             for model, options in (("A", "shift"), ("C", "k-factor"),
+                                    ("D", "rx-tx-correlation"),
+                                    ("B", "spatial-correlation"))
+             for precision in ("single", "double")]
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(),
+                    reason="torch.compile is not supported with this Python and PyTorch")
+@pytest.mark.parametrize("model,precision,options", TDL_CASES)
+def test_tdl_call_without_graph_breaks(model, precision, options):
+    tdl = TDL(model, 100e-9, 2.0e9, ELEVATION_ANGLE, SATELLITE_HEIGHT, max_speed=3.0,
+              precision=precision, **_tdl_options(precision)[options])
+
+    def call():
+        return tdl(BATCH_SIZE, NUM_TIME_SAMPLES, SAMPLING_FREQUENCY)
+
+    _assert_compiles(call)
+
+
+# The shift of the satellite and the Faraday rotation at 600 km and 50 degrees with a
+# UT at up to 3 m/s; desired angular spreads and a desired K-factor at 30 degrees with
+# a UT at up to 30 m/s; no shift and the velocities of the batch examples given; the
+# orientations of the batch examples given
+CDL_CASES = [
+    pytest.param("A", "downlink", "single", {"max_speed": 3.0}, id="A-downlink-single"),
+    pytest.param("D", "uplink", "double",
+                 {"elevation_angle": 30.0, "angular_spreads": (30.0, 10.0),
+                  "k_factor": 3.0, "max_speed": 30.0}, id="D-uplink-double"),
+    pytest.param("B", "uplink", "single",
+                 {"doppler_shift": 0.0,
+                  "ut_velocity": [[3.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 3.0],
+                                  [2.0, 2.0, 1.0]]}, id="B-uplink-single"),
+    pytest.param("C", "downlink", "double",
+                 {"max_speed": 3.0,
+                  "ut_orientation": [[math.pi, 0.0, 0.0]] * BATCH_SIZE,
+                  "bs_orientation": [[0.0, 0.5, 0.0]] * BATCH_SIZE},
+                 id="C-downlink-double"),
+]
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(),
+                    reason="torch.compile is not supported with this Python and PyTorch")
+@pytest.mark.parametrize("model,direction,precision,options", CDL_CASES)
+def test_cdl_call_without_graph_breaks(model, direction, precision, options):
+    # A dual-polarized UT antenna and a 1 x 2 dual-polarized array at the satellite
+    options = {"elevation_angle": ELEVATION_ANGLE, **options}
+    ut_array = Antenna("dual", "cross", "omni", 2.0e9, precision=precision)
+    bs_array = AntennaArray(1, 2, "dual", "VH", "38.901", 2.0e9, precision=precision)
+    cdl = CDL(model, 100e-9, 2.0e9, options.pop("elevation_angle"), SATELLITE_HEIGHT,
+              ut_array=ut_array, bs_array=bs_array, direction=direction,
+              precision=precision, **options)
+
+    def call():
+        return cdl(BATCH_SIZE, NUM_TIME_SAMPLES, SAMPLING_FREQUENCY)
+
+    _assert_compiles(call)
 
 
 @pytest.mark.parametrize("scenario", [DenseUrban, Urban, SubUrban])

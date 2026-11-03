@@ -23,21 +23,22 @@ from openntn import Antenna, DenseUrban, utils
 from openntn.utils import gen_single_sector_topology
 
 EXPORTS = [
-    "Antenna", "AntennaArray", "AntennaElement", "AntennaPanel",
+    "Antenna", "AntennaArray", "AntennaElement", "AntennaPanel", "CDL",
     "ChannelCoefficientsGenerator", "DenseUrban", "DenseUrbanScenario", "LSP",
     "LSPGenerator", "PanelArray", "Rays", "RaysGenerator", "SubUrban", "SubUrbanScenario",
-    "SystemLevelChannel", "SystemLevelScenario", "Topology", "Urban", "UrbanScenario",
+    "SystemLevelChannel", "SystemLevelScenario", "TDL", "Topology", "Urban",
+    "UrbanScenario",
 ]
 UTILS = [
     "cir_to_ofdm_channel", "cir_to_time_channel", "compute_satellite_speed", "deg_2_rad",
     "drop_uts_in_sector", "exp_corr_mat", "gen_single_sector_topology",
-    "generate_uts_topology", "one_ring_corr_mat", "rad_2_deg", "relocate_uts",
-    "sample_bernoulli", "set_3gpp_scenario_parameters", "subcarrier_frequencies",
-    "time_frequency_vector", "time_lag_discrete_time_channel", "time_to_ofdm_channel",
-    "wrap_angle_0_360",
+    "generate_uts_topology", "link_level_parameters", "one_ring_corr_mat", "rad_2_deg",
+    "relocate_uts", "sample_bernoulli", "set_3gpp_scenario_parameters",
+    "subcarrier_frequencies", "time_frequency_vector", "time_lag_discrete_time_channel",
+    "time_to_ofdm_channel", "wrap_angle_0_360",
 ]
-REMOVED_EXPORTS = ["TDL", "CDL"]
-REMOVED_MODULES = ["openntn.tdl", "openntn.cdl"]
+REMOVED_EXPORTS = []
+REMOVED_MODULES = []
 REMOVED_UTILS = ["compute_pathloss_additional", "gen_single_sector_topology_interferers",
                  "compute_pathloss_basic", "compute_pathloss_entry", "compute_pathloss_gas",
                  "compute_pathloss_scintilation"]

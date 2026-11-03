@@ -72,7 +72,7 @@ class Topology:
     Parameters
     -----------
 
-    velocities : [batch size, number of UTs], `torch.float`
+    velocities : [batch size, number of UTs, 3], `torch.float`
         UT velocities
 
     moving_end : str
